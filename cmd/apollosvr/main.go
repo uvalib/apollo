@@ -1,0 +1,77 @@
+package main
+
+import (
+	"flag"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"time"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/julienschmidt/httprouter"
+	"github.com/rs/cors"
+	"github.com/uvalib/apollo/internal/handlers"
+	"github.com/uvalib/apollo/internal/models"
+)
+
+// Version of the service
+const Version = "1.0.0"
+
+/**
+ * MAIN
+ */
+func main() {
+	log.Printf("===> apollo staring up <===")
+	var port int
+	flag.IntVar(&port, "port", 8080, "Port to offer service on (default 8080)")
+	dbCfg, err := models.GetConfig()
+	if err != nil {
+		log.Printf("FATAL: %s", err.Error())
+		os.Exit(1)
+	}
+
+	// Use cfg to connect DB
+	db, err := models.ConnectDB(&dbCfg)
+	if err != nil {
+		log.Printf("FATAL: %s", err.Error())
+		os.Exit(1)
+	}
+
+	// Create the main handler object which has access to common
+	// config information, like the database
+	h := handlers.SmsHandler{Version: Version, DB: db}
+
+	// Set routes and start server
+	// use julienschmidt router for all things API/version/health
+	// These handlers are accessed throu the SmsHandler which provides some
+	// shared configuration info, like DB, versions, etc...
+	router := httprouter.New()
+	router.GET("/version", h.VersionInfo)
+	router.GET("/healthcheck", h.HealthCheck)
+	router.GET("/api/nodes", h.NodesIndex)
+	router.GET("/api/users", h.UsersIndex)
+
+	// Create a standard go Mux to serve static files, and pass off
+	// all other stuff the the router. this allows static files to be
+	// served from /, and other stuff to be served under /api
+	mux := http.NewServeMux()
+	mux.Handle("/", http.FileServer(http.Dir("public")))
+	mux.Handle("/version", router)
+	mux.Handle("/healthcheck", router)
+	mux.Handle("/api/", router)
+
+	// Serve the mux with cors and logging enabled
+	log.Printf("Start service on port %d with CORS support enabled", port)
+	portStr := fmt.Sprintf(":%d", port)
+	http.ListenAndServe(portStr, cors.Default().Handler(loggingHandler(mux)))
+}
+
+func loggingHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		log.Printf("Started %s %s", r.Method, r.RequestURI)
+		next.ServeHTTP(w, r)
+		log.Printf("Completed %s %s in %s", r.Method, r.RequestURI, time.Since(start))
+	})
+}

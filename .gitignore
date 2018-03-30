@@ -1,0 +1,15 @@
+.DS_Store
+log/*.*
+*.log
+tmp/*
+*~
+*.bak
+bin
+# Ignore application configuration
+/config.yml
+dist/
+.idea
+/src
+vendor
+env.*
+/pkg
