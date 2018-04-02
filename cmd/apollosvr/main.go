@@ -40,17 +40,18 @@ func main() {
 
 	// Create the main handler object which has access to common
 	// config information, like the database
-	h := handlers.SmsHandler{Version: Version, DB: db}
+	app := handlers.ApolloHandler{Version: Version, DB: db}
 
 	// Set routes and start server
 	// use julienschmidt router for all things API/version/health
-	// These handlers are accessed throu the SmsHandler which provides some
+	// These handlers are accessed throu the ApolloHandler which provides some
 	// shared configuration info, like DB, versions, etc...
 	router := httprouter.New()
-	router.GET("/version", h.VersionInfo)
-	router.GET("/healthcheck", h.HealthCheck)
-	router.GET("/api/nodes", h.NodesIndex)
-	router.GET("/api/users", h.UsersIndex)
+	router.GET("/version", app.VersionInfo)
+	router.GET("/healthcheck", app.HealthCheck)
+	router.GET("/api/nodes", app.NodesIndex)
+	router.GET("/api/users", app.UsersIndex)
+	router.GET("/api/users/:id", app.UsersShow)
 
 	// Create a standard go Mux to serve static files, and pass off
 	// all other stuff the the router. this allows static files to be

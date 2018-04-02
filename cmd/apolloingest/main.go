@@ -53,8 +53,6 @@ func main() {
 	}
 
 	doIngest(db, user, srcFile)
-	// node := db.GetNode("zn1")
-	// log.Printf("NODE: %s", node)
 }
 
 /**

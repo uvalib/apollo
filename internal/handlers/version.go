@@ -9,6 +9,6 @@ import (
 
 // VersionInfo : report the version of the serivce
 //
-func (h *SmsHandler) VersionInfo(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+func (h *ApolloHandler) VersionInfo(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	fmt.Fprintf(rw, "UVA Serials Manager version %s", h.Version)
 }

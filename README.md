@@ -1,6 +1,6 @@
-# Apollo 
+# Apollo
 
-Apollo is a managment system for digitized collections.
+Apollo is a management system for digitized collections.
 
 ### System Requirements
 * GO version 1.9.2 or greater

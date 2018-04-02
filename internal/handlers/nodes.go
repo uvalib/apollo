@@ -9,6 +9,6 @@ import (
 
 // NodesIndex : report the version of the serivce
 //
-func (h *SmsHandler) NodesIndex(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+func (h *ApolloHandler) NodesIndex(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	fmt.Fprintf(rw, "NODE INDEX")
 }

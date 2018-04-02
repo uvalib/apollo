@@ -9,9 +9,9 @@ import (
 
 // HealthCheck : report health of this and associated services
 //
-func (h *SmsHandler) HealthCheck(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+func (h *ApolloHandler) HealthCheck(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	rw.Header().Set("Content-Type", "application/json")
-	err := h.DB.Ping()
+	_, err := h.DB.Query("SELECT 1")
 	if err != nil {
 		http.Error(rw, `{"alive": true, "mysql": false}`, http.StatusInternalServerError)
 		return
