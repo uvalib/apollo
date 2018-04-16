@@ -11,8 +11,8 @@ import (
 
 // UsersIndex : report the version of the serivce
 //
-func (h *ApolloHandler) UsersIndex(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	users := h.DB.AllUsers()
+func (app *ApolloHandler) UsersIndex(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	users := app.DB.AllUsers()
 	var buffer bytes.Buffer
 	for _, user := range users {
 		json := fmt.Sprintf(`{"id": %d, "email": "%s"}`, user.ID, user.Email)
@@ -27,19 +27,15 @@ func (h *ApolloHandler) UsersIndex(rw http.ResponseWriter, req *http.Request, pa
 
 // UsersShow : return json detail for a user
 //
-func (h *ApolloHandler) UsersShow(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	user, err := h.DB.FindUserBy("id", params.ByName("id"))
+func (app *ApolloHandler) UsersShow(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	user, err := app.DB.FindUserBy("id", params.ByName("id"))
 	if err != nil {
-		http.Error(rw, "User not found", http.StatusNotFound)
+		out := fmt.Sprintf("User %s not found", params.ByName("id"))
+		http.Error(rw, out, http.StatusNotFound)
 		return
 	}
 
-	json, err := json.Marshal(user)
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
+	json, _ := json.Marshal(user)
 	rw.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(rw, string(json))
 }

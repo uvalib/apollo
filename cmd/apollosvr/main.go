@@ -49,7 +49,7 @@ func main() {
 	router := httprouter.New()
 	router.GET("/version", app.VersionInfo)
 	router.GET("/healthcheck", app.HealthCheck)
-	router.GET("/api/nodes", app.NodesIndex)
+	router.GET("/api/collections", app.CollectionsIndex)
 	router.GET("/api/users", app.UsersIndex)
 	router.GET("/api/users/:id", app.UsersShow)
 

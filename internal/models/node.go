@@ -7,8 +7,8 @@ import (
 
 // Node is an element in a tree of metadata
 type Node struct {
-	ID           int64
-	PID          string
+	ID           int64  `json:"id"`
+	PID          string `json:"pid"`
 	Parent       *Node
 	Name         *NodeName
 	Value        string
@@ -17,6 +17,14 @@ type Node struct {
 	Current      bool
 	PriorVersion *Node
 	CreatedAt    time.Time
+}
+
+// GetCollectionPIDs finds a node by PID
+func (db *DB) GetCollectionPIDs() []string {
+	pids := []string{}
+	qs := "select pid from nodes where parent_pid=''"
+	db.Select(&pids, qs)
+	return pids
 }
 
 // GetNode finds a node by PID
