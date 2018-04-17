@@ -2,21 +2,23 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
 // Node is an element in a tree of metadata
 type Node struct {
-	ID           int64  `json:"id"`
-	PID          string `json:"pid"`
-	Parent       *Node
-	Name         *NodeName
-	Value        string
-	User         *User
-	Deleted      bool
-	Current      bool
-	PriorVersion *Node
-	CreatedAt    time.Time
+	ID        int64  `json:"id"`
+	PID       string `json:"pid"`
+	Parent    *Node
+	Ancestry  string
+	Name      *NodeName
+	Value     string
+	User      *User
+	Deleted   bool
+	Current   bool
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 // GetCollectionPIDs finds a node by PID
@@ -57,25 +59,32 @@ func (db *DB) CreateNodes(nodes []*Node) error {
 	}
 
 	for _, node := range nodes {
-		var parentPID string
-		if node.Parent != nil {
-			parentPID = node.Parent.PID
-		}
-		qs := "insert into nodes (parent_pid,node_name_id,value,user_id,created_at) values (?,?,?,?,NOW())"
-		res, insertErr := tx.Exec(qs, parentPID, node.Name.ID, node.Value, node.User.ID)
+		qs := "insert into nodes (node_name_id, value, user_id, created_at) values (?,?,?,NOW())"
+		res, insertErr := tx.Exec(qs, node.Name.ID, node.Value, node.User.ID)
 		if insertErr != nil {
 			tx.Rollback()
 			return insertErr
 		}
 
-		id, _ := res.LastInsertId()
-		pid := fmt.Sprintf("uva-an%d", id)
-		node.PID = pid
+		// update the PID using last insert ID
+		node.ID, _ = res.LastInsertId()
+		node.PID = fmt.Sprintf("uva-an%d", node.ID)
 		qs = "update nodes set pid=? where id=?"
-		res, insertErr = tx.Exec(qs, pid, id)
+		res, insertErr = tx.Exec(qs, node.PID, node.ID)
 		if insertErr != nil {
 			tx.Rollback()
 			return err
+		}
+
+		// add parent and ancestry if needed
+		if node.Parent != nil {
+			ancestry := getAncestry(node)
+			qs = "update nodes set parent_id=?, ancestry=? where id=?"
+			res, insertErr = tx.Exec(qs, node.Parent.ID, ancestry, node.ID)
+			if insertErr != nil {
+				tx.Rollback()
+				return err
+			}
 		}
 	}
 
@@ -87,9 +96,34 @@ func (db *DB) CreateNodes(nodes []*Node) error {
 	return nil
 }
 
+func getAncestry(node *Node) string {
+	// walk back up the parent chain to build a backwards
+	// list of ancestor IDs for this node
+	var parentIDs []string
+	curr := node
+	for {
+		parent := curr.Parent
+		if parent == nil {
+			break
+		} else {
+			parentIDs = append(parentIDs, fmt.Sprintf("%d", parent.ID))
+			curr = parent
+		}
+	}
+	// reverse to get proper ancestry ordering
+	for i, j := 0, len(parentIDs)-1; i < j; i, j = i+1, j-1 {
+		parentIDs[i], parentIDs[j] = parentIDs[j], parentIDs[i]
+	}
+	return strings.Join(parentIDs, "/")
+}
+
 // UpdateNode : update node value as specified. This creates a version history.
 //
-func (db *DB) UpdateNode(node *Node, user *User) {
+func (db *DB) UpdateNode(updatedNode *Node, user *User) {
+	// find all prior versions: select * from nodes where pid like 'PID.%' order created_at desc;
+	// create a new node with existing node data and set pid to pid.N where N is 1 more that last from above
+	// update existing node with data in updateNode
+	//
 	// _, err := db.Exec("update nodes set value=? where id=?", value, node.ID)
 	// if err != nil {
 	// 	log.Printf("ERROR: node value update failed %s", err.Error())

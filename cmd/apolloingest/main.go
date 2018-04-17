@@ -66,6 +66,9 @@ func doIngest(db *models.DB, user *models.User, srcFile string) {
 		return
 	}
 	defer xmlFile.Close()
+
+	// stream the xml through a decoder, catching all start, data and end events
+	// use the data at these events to build a list of nodes to be created
 	decoder := xml.NewDecoder(xmlFile)
 	nodeStack := []*models.Node{}
 	nodes := []*models.Node{}
@@ -80,14 +83,7 @@ func doIngest(db *models.DB, user *models.User, srcFile string) {
 
 		switch tok := token.(type) {
 		case xml.StartElement:
-			var parent *models.Node
-			if len(nodeStack) > 0 {
-				parent = nodeStack[len(nodeStack)-1]
-				log.Printf("START node: %s, parent: %s", tok.Name.Local, parent.Name.Value)
-			} else {
-				log.Printf("START node: %s", tok.Name.Local)
-			}
-			node, err := startNode(db, user, tok.Name.Local, parent)
+			node, err := startNode(db, user, tok.Name.Local, nodeStack)
 			if err != nil {
 				log.Printf("FATAL: unable to start node for %s: %s", tok.Name.Local, err.Error())
 				os.Exit(1)
@@ -117,9 +113,18 @@ func doIngest(db *models.DB, user *models.User, srcFile string) {
 	log.Printf("==> DONE <==")
 }
 
-func startNode(db *models.DB, user *models.User, name string, parent *models.Node) (*models.Node, error) {
+func startNode(db *models.DB, user *models.User, name string, ancestors []*models.Node) (*models.Node, error) {
 	var nn *models.NodeName
 	var err error
+
+	var parent *models.Node
+	if len(ancestors) == 0 {
+		log.Printf("Create ROOT node %s", name)
+	} else {
+		// get parent and full ancestry path
+		parent = ancestors[len(ancestors)-1]
+		log.Printf("Create node %s, parent %s", name, parent.Name.Value)
+	}
 
 	// first, find or create node name
 	nn = db.GetNodeName(name)

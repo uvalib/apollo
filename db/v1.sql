@@ -72,12 +72,23 @@ CREATE TABLE controlled_values (
 
 --
 -- Create the main model for tracking serials metadata; the node
+-- Notes: parent_id is always the immediate parent
+--        ancestry is a path of ids leading to this node
+--           Ex: 1/2/5 - 1 is the root node and 5 is immediate parent (same as parent_id)
+--        when a revision is made the following happens:
+--          1) copy existing node into a new node
+--             a) set current = 0
+--             b) set PID to the current PID with a '.#'' suffix (an1.1, an1.2)
+--          2) update the original node
+--        This keeps ID consistent for nodes. History can be found by finding pids with a suffix:
+--          select * from nodes where pid like 'p1.%' order by created_at desc
 --
 DROP TABLE IF EXISTS nodes;
 CREATE TABLE nodes (
    id int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
    pid varchar(255) NOT NULL,
-   parent_pid varchar(255),
+   parent_id int(11),
+   ancestry varchar(255),
    node_name_id int(11) NOT NULL,
    value_type ENUM('free', 'controlled') NOT NULL DEFAULT 'free',
    value varchar(255) DEFAULT NULL,
@@ -85,7 +96,7 @@ CREATE TABLE nodes (
    deleted tinyint(1) NOT NULL DEFAULT 0,
    current tinyint(1) NOT NULL DEFAULT 1,
    created_at datetime NOT NULL,
-   prior_version_id int(11),
+   updated_at datetime,
    KEY (pid),
    UNIQUE KEY (pid),
    FOREIGN KEY (node_name_id) REFERENCES node_names(id) ON DELETE RESTRICT,
