@@ -50,6 +50,7 @@ func main() {
 	router.GET("/version", app.VersionInfo)
 	router.GET("/healthcheck", app.HealthCheck)
 	router.GET("/api/collections", app.CollectionsIndex)
+	router.GET("/api/collections/:pid", app.CollectionsShow)
 	router.GET("/api/users", app.UsersIndex)
 	router.GET("/api/users/:id", app.UsersShow)
 
