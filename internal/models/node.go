@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -32,7 +33,7 @@ func (db *DB) GetCollectionPIDs() []string {
 }
 
 // GetCollection returns an entire collection identified by PID
-func (db *DB) GetCollection(pid string) *Node {
+func (db *DB) GetCollection(pid string) (*Node, error) {
 	// first, get the root node
 	var nodes []*Node
 	root := db.GetNode(pid)
@@ -50,7 +51,7 @@ func (db *DB) GetCollection(pid string) *Node {
 	rows, err := db.Queryx(qs, root.ID)
 	if err != nil {
 		log.Printf("ERROR: unable to retrieve collection: %s", err.Error())
-		return nil
+		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -76,12 +77,13 @@ func (db *DB) GetCollection(pid string) *Node {
 				}
 			}
 			if !found {
-				log.Printf("ERROR: unable to to find parentID %d for collection: %d", parentID.Int64, root.ID)
-				return nil
+				msg := fmt.Sprintf("Unable to to find parentID %d for collection: %d", parentID.Int64, root.ID)
+				log.Printf("ERROR: %s", msg)
+				return nil, errors.New(msg)
 			}
 		}
 	}
-	return root
+	return root, nil
 }
 
 // GetNode finds a SINGLE node by PID. No parent nor children is returned
