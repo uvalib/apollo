@@ -9,7 +9,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// UsersIndex : report the version of the serivce
+// UsersIndex returns a list of  Apollo users.
 //
 func (app *ApolloHandler) UsersIndex(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	users := app.DB.AllUsers()

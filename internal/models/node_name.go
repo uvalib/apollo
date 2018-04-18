@@ -12,6 +12,13 @@ type NodeName struct {
 	Value string `json:"value"`
 }
 
+// AllNames returns a list of all available names
+func (db *DB) AllNames() []NodeName {
+	names := []NodeName{}
+	db.Select(&names, "select * from node_names order by value asc")
+	return names
+}
+
 // GetNodeName finds a node name record by name
 func (db *DB) GetNodeName(name string) *NodeName {
 	nn := NodeName{}

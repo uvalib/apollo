@@ -53,6 +53,7 @@ func main() {
 	router.GET("/api/collections/:pid", app.CollectionsShow)
 	router.GET("/api/users", app.UsersIndex)
 	router.GET("/api/users/:id", app.UsersShow)
+	router.GET("/api/names", app.NamesIndex)
 
 	// Create a standard go Mux to serve static files, and pass off
 	// all other stuff the the router. this allows static files to be
