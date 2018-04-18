@@ -22,5 +22,12 @@ func (app *ApolloHandler) CollectionsIndex(rw http.ResponseWriter, req *http.Req
 func (app *ApolloHandler) CollectionsShow(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	pid := params.ByName("pid")
 	rw.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(rw, pid)
+	root := app.DB.GetCollection(pid)
+	json, err := json.Marshal(root)
+	if err != nil {
+		out := fmt.Sprintf("Couldnt map results to json %s", err.Error())
+		http.Error(rw, out, http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(rw, string(json))
 }

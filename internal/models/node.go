@@ -1,35 +1,90 @@
 package models
 
 import (
+	"database/sql"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
 
 // Node is an element in a tree of metadata
 type Node struct {
-	ID        int64  `json:"id"`
-	PID       string `json:"pid"`
-	Parent    *Node
-	Ancestry  string
-	Name      *NodeName
-	Value     string
-	User      *User
-	Deleted   bool
-	Current   bool
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        int64     `json:"-"`
+	PID       string    `json:"pid"`
+	Parent    *Node     `json:"-"`
+	Name      *NodeName `json:"name"`
+	Value     string    `json:"value,omitempty"`
+	Children  []*Node   `json:"children,omitempty"`
+	User      *User     `json:"-"`
+	Deleted   bool      `json:"-"`
+	Current   bool      `json:"-"`
+	CreatedAt time.Time `db:"created_at" json:"-"`
+	UpdatedAt time.Time `db:"updated_at" json:"-"`
 }
 
 // GetCollectionPIDs finds a node by PID
 func (db *DB) GetCollectionPIDs() []string {
 	pids := []string{}
-	qs := "select pid from nodes where parent_pid=''"
+	qs := "select pid from nodes where parent_id is null"
 	db.Select(&pids, qs)
 	return pids
 }
 
-// GetNode finds a node by PID
+// GetCollection returns an entire collection identified by PID
+func (db *DB) GetCollection(pid string) *Node {
+	// first, get the root node
+	var nodes []*Node
+	root := db.GetNode(pid)
+	nodes = append(nodes, root)
+
+	// now get all children with the root ID as the start of their ancestry
+	qs := fmt.Sprintf(
+		`SELECT n.id, n.parent_id, n.pid, n.value, n.deleted, n.current, n.created_at,
+         nn.id, nn.pid, nn.value,
+         u.id, u.computing_id, u.last_name, u.first_name, u.email
+       FROM nodes n
+         inner join node_names nn on nn.id = n.node_name_id
+         inner join users u on u.id = n.user_id
+       WHERE deleted=0 and current=1 and (ancestry like '%d/%%' or ancestry=?)`, root.ID)
+	rows, err := db.Queryx(qs, root.ID)
+	if err != nil {
+		log.Printf("ERROR: unable to retrieve collection: %s", err.Error())
+		return nil
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var n Node
+		var nn NodeName
+		var u User
+		var parentID sql.NullInt64
+		rows.Scan(&n.ID, &parentID, &n.PID, &n.Value, &n.Deleted, &n.Current, &n.CreatedAt,
+			&nn.ID, &nn.PID, &nn.Value,
+			&u.ID, &u.ComputingID, &u.LastName, &u.FirstName, &u.Email)
+		n.Name = &nn
+		n.User = &u
+		nodes = append(nodes, &n)
+		if parentID.Valid {
+			// a parentID exists. That node should be found in the nodes array
+			found := false
+			for _, val := range nodes {
+				if val.ID == parentID.Int64 {
+					n.Parent = val
+					val.Children = append(val.Children, &n)
+					found = true
+					break
+				}
+			}
+			if !found {
+				log.Printf("ERROR: unable to to find parentID %d for collection: %d", parentID.Int64, root.ID)
+				return nil
+			}
+		}
+	}
+	return root
+}
+
+// GetNode finds a SINGLE node by PID. No parent nor children is returned
 func (db *DB) GetNode(pid string) *Node {
 	qs := `SELECT n.id, n.pid, n.value, n.deleted, n.current, n.created_at,
             nn.id, nn.pid, nn.value,
@@ -39,9 +94,9 @@ func (db *DB) GetNode(pid string) *Node {
             inner join users u on u.id = n.user_id
           WHERE n.pid=?`
 	row := db.QueryRow(qs, pid)
-	n := Node{}
-	nn := NodeName{}
-	u := User{}
+	var n Node
+	var nn NodeName
+	var u User
 	row.Scan(&n.ID, &n.PID, &n.Value, &n.Deleted, &n.Current, &n.CreatedAt,
 		&nn.ID, &nn.PID, &nn.Value,
 		&u.ID, &u.ComputingID, &u.LastName, &u.FirstName, &u.Email)

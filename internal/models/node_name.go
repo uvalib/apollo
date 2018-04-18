@@ -7,9 +7,9 @@ import (
 
 // NodeName is a controlled vocabulary for node names
 type NodeName struct {
-	ID    int64
-	PID   string
-	Value string
+	ID    int64  `json:"-"`
+	PID   string `json:"pid"`
+	Value string `json:"value"`
 }
 
 // GetNodeName finds a node name record by name
