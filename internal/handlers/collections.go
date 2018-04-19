@@ -27,11 +27,6 @@ func (app *ApolloHandler) CollectionsShow(rw http.ResponseWriter, req *http.Requ
 		http.Error(rw, dbErr.Error(), http.StatusNotFound)
 		return
 	}
-	json, err := json.Marshal(root)
-	if err != nil {
-		out := fmt.Sprintf("Couldnt map results to json %s", err.Error())
-		http.Error(rw, out, http.StatusInternalServerError)
-		return
-	}
+	json, _ := json.MarshalIndent(root, "", "  ")
 	fmt.Fprintf(rw, string(json))
 }

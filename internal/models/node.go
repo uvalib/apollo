@@ -2,9 +2,11 @@ package models
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -20,8 +22,33 @@ type Node struct {
 	User      *User     `json:"-"`
 	Deleted   bool      `json:"-"`
 	Current   bool      `json:"-"`
-	CreatedAt time.Time `db:"created_at" json:"-"`
+	CreatedAt time.Time `db:"created_at" json:"createdAt"`
 	UpdatedAt time.Time `db:"updated_at" json:"-"`
+}
+
+// MarshalJSON will encode the Node structure as JSON
+func (n *Node) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		PID       string    `json:"pid"`
+		Name      *NodeName `json:"name"`
+		Value     string    `json:"value,omitempty"`
+		Children  []*Node   `json:"children,omitempty"`
+		CreatedAt time.Time `db:"created_at" json:"createdAt"`
+	}{
+		PID:       n.PID,
+		Name:      n.Name,
+		Value:     encodeValue(n.Value),
+		Children:  n.Children,
+		CreatedAt: n.CreatedAt,
+	})
+}
+
+func encodeValue(val string) string {
+	if strings.Contains(val, "http:") || strings.Contains(val, "https:") {
+		out, _ := url.QueryUnescape(val)
+		return out
+	}
+	return val
 }
 
 // GetCollectionPIDs finds a node by PID
@@ -41,7 +68,7 @@ func (db *DB) GetCollection(pid string) (*Node, error) {
 
 	// now get all children with the root ID as the start of their ancestry
 	qs := fmt.Sprintf(
-		`SELECT n.id, n.parent_id, n.pid, n.value, n.deleted, n.current, n.created_at,
+		`SELECT n.id, n.parent_id, n.pid, n.value, n.created_at,
          nn.id, nn.pid, nn.value,
          u.id, u.computing_id, u.last_name, u.first_name, u.email
        FROM nodes n
@@ -59,7 +86,7 @@ func (db *DB) GetCollection(pid string) (*Node, error) {
 		var nn NodeName
 		var u User
 		var parentID sql.NullInt64
-		rows.Scan(&n.ID, &parentID, &n.PID, &n.Value, &n.Deleted, &n.Current, &n.CreatedAt,
+		rows.Scan(&n.ID, &parentID, &n.PID, &n.Value, &n.CreatedAt,
 			&nn.ID, &nn.PID, &nn.Value,
 			&u.ID, &u.ComputingID, &u.LastName, &u.FirstName, &u.Email)
 		n.Name = &nn
