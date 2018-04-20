@@ -27,10 +27,10 @@ type DB struct {
 func GetConfig() (Config, error) {
 	// FIRST, try command line flags. Fallback is ENV variables
 	var cfg Config
-	flag.StringVar(&cfg.host, "dbhost", os.Getenv("DB_HOST"), "DB Host (required)")
-	flag.StringVar(&cfg.database, "dbname", os.Getenv("DB_NAME"), "DB Name (required)")
-	flag.StringVar(&cfg.user, "dbuser", os.Getenv("DB_USER"), "DB User (required)")
-	flag.StringVar(&cfg.pass, "dbpass", os.Getenv("DB_PASS"), "DB Password (required)")
+	flag.StringVar(&cfg.host, "dbhost", os.Getenv("APOLLO_DB_HOST"), "DB Host (required)")
+	flag.StringVar(&cfg.database, "dbname", os.Getenv("APOLLO_DB_NAME"), "DB Name (required)")
+	flag.StringVar(&cfg.user, "dbuser", os.Getenv("APOLLO_DB_USER"), "DB User (required)")
+	flag.StringVar(&cfg.pass, "dbpass", os.Getenv("APOLLO_DB_PASS"), "DB Password (required)")
 	flag.Parse()
 
 	// if anything is still not set, die

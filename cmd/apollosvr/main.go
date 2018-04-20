@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -24,7 +25,20 @@ const Version = "1.0.0"
 func main() {
 	log.Printf("===> apollo staring up <===")
 	var port int
-	flag.IntVar(&port, "port", 8080, "Port to offer service on (default 8080)")
+	var https int
+	var key, crt string
+	defPort, err := strconv.Atoi(os.Getenv("APOLLO_PORT"))
+	if err != nil {
+		defPort = 8080
+	}
+	defHTTPS, err := strconv.Atoi(os.Getenv("APOLLO_PORT"))
+	if err != nil {
+		defHTTPS = 0
+	}
+	flag.IntVar(&port, "port", defPort, "Port to offer service on (default 8080)")
+	flag.IntVar(&https, "https", defHTTPS, "Use HTTPS? (default 0)")
+	flag.StringVar(&key, "key", os.Getenv("APOLLO_KEY"), "Key for https connection")
+	flag.StringVar(&crt, "crt", os.Getenv("APOLLO_CRT"), "Crt for https connection")
 	dbCfg, err := models.GetConfig()
 	if err != nil {
 		log.Printf("FATAL: %s", err.Error())
@@ -65,9 +79,14 @@ func main() {
 	mux.Handle("/api/", router)
 
 	// Serve the mux with cors and logging enabled
-	log.Printf("Start service on port %d with CORS support enabled", port)
 	portStr := fmt.Sprintf(":%d", port)
-	http.ListenAndServe(portStr, cors.Default().Handler(loggingHandler(mux)))
+	if https == 1 {
+		log.Printf("Start HTTPS service on port %s with CORS support enabled", portStr)
+		log.Fatal(http.ListenAndServeTLS(portStr, crt, key, cors.Default().Handler(loggingHandler(mux))))
+	} else {
+		log.Printf("Start HTTP service on port %s with CORS support enabled", portStr)
+		log.Fatal(http.ListenAndServe(portStr, cors.Default().Handler(loggingHandler(mux))))
+	}
 }
 
 func loggingHandler(next http.Handler) http.Handler {
