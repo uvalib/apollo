@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"log"
+	"time"
 )
 
 // NodeName is a controlled vocabulary for node names
@@ -37,14 +38,21 @@ func (db *DB) CreateNodeName(name string) (*NodeName, error) {
 		log.Printf("ERROR: create transaction for node_name create: %s", err.Error())
 		return nil, err
 	}
-	qs := "insert into node_names (value) values (?)"
-	res, err := tx.Exec(qs, name)
+	t := time.Now().Unix()
+	tmpPID := fmt.Sprintf("TMP-%d", t)
+	qs := "insert into node_names (pid,value) values (?,?)"
+	res, err := tx.Exec(qs, tmpPID, name)
 	if err != nil {
-		log.Printf("ERROR: Unable to creat node_name: %s", err.Error())
+		log.Printf("ERROR: Unable to create node_name: %s", err.Error())
 		tx.Rollback()
 		return nil, err
 	}
-	id, _ := res.LastInsertId()
+	id, err := res.LastInsertId()
+	if err != nil {
+		log.Printf("ERROR: unable to get lastInsertID: %s", err.Error())
+		tx.Rollback()
+		return nil, err
+	}
 	pid := fmt.Sprintf("uva-ann%d", id)
 	qs = "update node_names set pid=? where id=?"
 	res, err = tx.Exec(qs, pid, id)

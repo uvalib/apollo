@@ -28,6 +28,12 @@ type Node struct {
 	UpdatedAt *time.Time `db:"updated_at" json:"updatedAt,omitempty"`
 }
 
+// Collection holds key data about a collection; its PID and Title
+type Collection struct {
+	PID   string
+	Title string
+}
+
 // MarshalJSON will encode the Node structure as JSON
 func (n *Node) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
@@ -55,12 +61,24 @@ func encodeValue(val string) string {
 	return val
 }
 
-// GetCollectionPIDs finds a node by PID
-func (db *DB) GetCollectionPIDs() []string {
-	pids := []string{}
-	qs := "select pid from nodes where parent_id is null"
+// GetCollections returns a list of all collections. Data is PID/Title
+func (db *DB) GetCollections() []Collection {
+	var pids []struct {
+		ID  int64
+		PID string
+	}
+
+	var out []Collection
+	qs := "select id,pid from nodes where parent_id is null"
+	tq := "select value from nodes where ancestry=? and node_name_id=? order by id asc limit 1"
 	db.Select(&pids, qs)
-	return pids
+
+	for _, val := range pids {
+		var title string
+		db.QueryRow(tq, val.ID, 2).Scan(&title)
+		out = append(out, Collection{val.PID, title})
+	}
+	return out
 }
 
 // GetCollection returns an entire collection identified by PID
@@ -152,8 +170,10 @@ func (db *DB) CreateNodes(nodes []*Node) error {
 	}
 
 	for _, node := range nodes {
-		qs := "insert into nodes (node_name_id, value, user_id, created_at) values (?,?,?,NOW())"
-		res, insertErr := tx.Exec(qs, node.Name.ID, node.Value, node.User.ID)
+		t := time.Now().Unix()
+		tmpPID := fmt.Sprintf("TMP-%d", t)
+		qs := "insert into nodes (pid, node_name_id, value, user_id, created_at) values (?,?,?,?,NOW())"
+		res, insertErr := tx.Exec(qs, tmpPID, node.Name.ID, node.Value, node.User.ID)
 		if insertErr != nil {
 			tx.Rollback()
 			return insertErr

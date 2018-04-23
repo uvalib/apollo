@@ -25,8 +25,10 @@ func TestCollectionsIndex(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/api/collections", nil)
 	rr := httptest.NewRecorder()
 
-	rows := sqlmock.NewRows([]string{"pid"}).AddRow("an666")
-	mock.ExpectQuery("select pid from nodes").WillReturnRows(rows)
+	rows := sqlmock.NewRows([]string{"id", "pid"}).AddRow(1, "an666")
+	mock.ExpectQuery("select id,pid from nodes").WillReturnRows(rows)
+	titleRows := sqlmock.NewRows([]string{"value"}).AddRow("test")
+	mock.ExpectQuery("select value from nodes").WithArgs(1, 2).WillReturnRows(titleRows)
 
 	app.CollectionsIndex(rr, req, httprouter.Params{})
 
@@ -36,7 +38,7 @@ func TestCollectionsIndex(t *testing.T) {
 	}
 
 	// Check the response body is what we expect.
-	expected := `["an666"]`
+	expected := `[{"PID":"an666","Title":"test"}]`
 	if strings.TrimSpace(rr.Body.String()) != expected {
 		t.Errorf("Unexpected response: got [%s] want [%s]", rr.Body.String(), expected)
 	}

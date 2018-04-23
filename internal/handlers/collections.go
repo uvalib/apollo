@@ -11,10 +11,10 @@ import (
 // CollectionsIndex : report the version of the serivce
 //
 func (app *ApolloHandler) CollectionsIndex(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	pids := app.DB.GetCollectionPIDs()
-	pidsJSON, _ := json.Marshal(pids)
+	collections := app.DB.GetCollections()
+	outJSON, _ := json.Marshal(collections)
 	rw.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(rw, string(pidsJSON))
+	fmt.Fprintf(rw, string(outJSON))
 }
 
 // CollectionsShow : get details of a collection by PID

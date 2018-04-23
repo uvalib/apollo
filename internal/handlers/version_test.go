@@ -34,7 +34,7 @@ func TestVersion(t *testing.T) {
 	}
 
 	// Check the response body is what we expect.
-	expected := "UVA Serials Manager version MOCK"
+	expected := "Apollo version MOCK"
 	if rr.Body.String() != expected {
 		t.Errorf("Unexpected response: got %v want %v", rr.Body.String(), expected)
 	}
