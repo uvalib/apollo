@@ -29,7 +29,7 @@ vet:
 
 clean:
 	$(GOCLEAN)
-	rm -rf $(BIN)
+	rm -rf bin
 
 deps:
 	dep ensure

@@ -10,8 +10,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// Config : Configuration data from command-line params or ENV variables
-type Config struct {
+// DBConfig : Configuration data from command-line params or ENV variables
+type DBConfig struct {
 	host     string
 	database string
 	user     string
@@ -24,9 +24,9 @@ type DB struct {
 }
 
 // GetConfig : get DB configuration data from ENV or command-line params
-func GetConfig() (Config, error) {
+func GetConfig() (DBConfig, error) {
 	// FIRST, try command line flags. Fallback is ENV variables
-	var cfg Config
+	var cfg DBConfig
 	flag.StringVar(&cfg.host, "dbhost", os.Getenv("APOLLO_DB_HOST"), "DB Host (required)")
 	flag.StringVar(&cfg.database, "dbname", os.Getenv("APOLLO_DB_NAME"), "DB Name (required)")
 	flag.StringVar(&cfg.user, "dbuser", os.Getenv("APOLLO_DB_USER"), "DB User (required)")
@@ -43,7 +43,7 @@ func GetConfig() (Config, error) {
 }
 
 // ConnectDB : Initialize the database connection based on data from config
-func ConnectDB(cfg *Config) (*DB, error) {
+func ConnectDB(cfg *DBConfig) (*DB, error) {
 	log.Printf("Init DB connection to %s...", cfg.host)
 	connectStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true", cfg.user, cfg.pass, cfg.host, cfg.database)
 
