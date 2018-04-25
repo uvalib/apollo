@@ -25,10 +25,10 @@ h1 {
    font-size: 40px;
 }
 img {
-   position: absolute;
-top: 15px;
-right: 15px;
-max-height: 75px;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  max-height: 75px;
 }
 .subtitle {
    display: inline-block;

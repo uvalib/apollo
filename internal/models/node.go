@@ -30,8 +30,8 @@ type Node struct {
 
 // Collection holds key data about a collection; its PID and Title
 type Collection struct {
-	PID   string
-	Title string
+	PID   string `json:"pid"`
+	Title string `json:"title"`
 }
 
 // MarshalJSON will encode the Node structure as JSON
