@@ -1,42 +1,35 @@
 <template>
-   <div id="app">
-      <Header/>
-      <div class="main">
-         <h1>Work In Progress</h1>
-      </div>
-      <Footer/>
-   </div>
+  <div id="app">
+    <Header/>
+    <Collections/>
+    <Footer/>
+  </div>
 </template>
 
 <script>
 import Header from './components/Header'
+import Collections from './components/Collections'
 import Footer from './components/Footer'
 
 export default {
-   name: 'App',
-   components: {
-      Header,
-      Footer
-   }
+  name: 'App',
+  components: {
+    Header,
+    Collections,
+    Footer
+  }
 }
 </script>
 
 <style>
 body {
-   /* background-color: #d2e5f7; */
-   background-color: #002F6C;
-   padding: 0;
-   margin: 0;
-}
-div.main {
-   background: white;
-   font-family: 'Avenir', Helvetica, Arial, sans-serif;
-   color: #2c3e50;
-   padding: 20px;   
+  background-color: #002F6C;
+  padding: 0;
+  margin: 0;
 }
 #app {
-   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-   -webkit-font-smoothing: antialiased;
-   -moz-osx-font-smoothing: grayscale;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 </style>
