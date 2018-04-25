@@ -4,8 +4,9 @@
       <h2>Collections</h2>
       <p>The following are all of the digitized serials managed by <span class="apollo">Apollo</span>:</p>
     </div>
-    <div v-if="loading">
-      Loading.....
+    <div v-if="loading" class="loading">
+      <img src="/static/spinner2.gif"/>
+      <span>Loading...</span>
     </div>
     <table v-else class="collection-list">
       <tr><th class="right">PID</td><th>Title</th></tr>
@@ -54,6 +55,13 @@
   span.apollo {
     font-family: 'Righteous', cursive;
     color: #2c3e50;
+  }
+  .loading {
+    padding: 25px 50px;
+  }
+  img {
+    vertical-align: middle;
+    padding-right: 20px;
   }
   div.collections {
     background: white;
