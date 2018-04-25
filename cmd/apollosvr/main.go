@@ -31,7 +31,7 @@ func main() {
 	if err != nil {
 		defPort = 8080
 	}
-	defHTTPS, err := strconv.Atoi(os.Getenv("APOLLO_PORT"))
+	defHTTPS, err := strconv.Atoi(os.Getenv("APOLLO_HTTPS"))
 	if err != nil {
 		defHTTPS = 0
 	}
