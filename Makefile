@@ -5,7 +5,7 @@ GOTEST=$(GOCMD) test
 
 build: build-darwin build-linux build-web
 
-all: deps build-darwin build-linux build-web
+all: deps build-darwin build-linux build-web deploy-web
 
 build-darwin:
 	GOOS=darwin GOARCH=amd64 $(GOBUILD) -a -o bin/apolloingest.darwin cmd/apolloingest/*.go
