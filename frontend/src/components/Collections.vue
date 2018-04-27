@@ -1,42 +1,58 @@
 <template>
   <div class="collections">
-    <div class="page-header">
-      <h2>Collections</h2>
-      <p>The following are all of the digitized serials managed by <span class="apollo">Apollo</span>:</p>
-    </div>
-    <div v-if="loading" class="loading">
-      <img src="/static/spinner2.gif"/>
-      <span>Loading...</span>
-    </div>
-    <table v-else class="collection-list">
-      <tr><th class="right">PID</td><th>Title</th></tr>
-      <tr v-for="item in collections">
-        <td class="right">{{ item.pid }}</td><td>{{ item.title }}</td>
-      </tr>
-    </table>
+    <template v-if="error">
+      <Error :message="errorMsg"></Error>
+    </template>
+    <template v-else>
+      <div class="page-header">
+        <h2>Collections</h2>
+        <p>The following are all of the digitized serials managed by <span class="apollo">Apollo</span>:</p>
+      </div>
+      <template v-if="loading">
+        <Loading/>
+      </template>
+      <div v-else class="content">
+        <table class="collection-list">
+          <tr><th class="right">PID</td><th>Title</th></tr>
+          <tr v-for="item in collections">
+            <td class="right">{{ item.pid }}</td><td>{{ item.title }}</td>
+          </tr>
+        </table>
+      </div>
+    </template>
   </div>
 </template>
 
 <script>
-  import axios from 'axios';
+  import axios from 'axios'
+  import Loading from './Loading'
+  import Error from './Error'
 
   export default {
     name: 'Collections',
+    components: {
+      Loading,
+      Error
+    },
     data: function () {
       return {
         collections: [],
-        loading: false
+        loading: false,
+        error: null,
       }
     },
     created: function () {
       this.loading = true;
+      var self = this;
       axios.get("/api/collections").then((response)  =>  {
         this.loading = false;
-        this.collections = response.data;
-      }, (error)  =>  {
-        this.loading = false;
-        console.log(error);
-      })
+        this.collections = response.data
+        self.error = null
+      }).catch(function (error) {
+        self.loading = false;
+        self.error = true;
+        self.errorMsg = error.response.data;
+      });
     }
   }
 </script>
@@ -55,13 +71,6 @@
   span.apollo {
     font-family: 'Righteous', cursive;
     color: #2c3e50;
-  }
-  .loading {
-    padding: 25px 50px;
-  }
-  img {
-    vertical-align: middle;
-    padding-right: 20px;
   }
   div.collections {
     background: white;

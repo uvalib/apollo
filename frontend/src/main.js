@@ -6,6 +6,9 @@ import App from './App';
 
 Vue.config.productionTip = false;
 
+// import Loading from './components/Loading'
+// Vue.component("Loading", Loading)
+
 /* eslint-disable no-new */
 new Vue({
   el: '#app',
