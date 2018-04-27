@@ -1,15 +1,13 @@
 <template>
   <div class="collections">
-    <template v-if="error">
-      <Error :message="errorMsg"></Error>
-    </template>
+    <apollo-error v-if="error" :message="errorMsg"></apollo-error>
     <template v-else>
       <div class="page-header">
         <h2>Collections</h2>
         <p>The following are all of the digitized serials managed by <span class="apollo">Apollo</span>:</p>
       </div>
       <template v-if="loading">
-        <Loading/>
+        <loading-spinner/>
       </template>
       <div v-else class="content">
         <table class="collection-list">
@@ -25,14 +23,14 @@
 
 <script>
   import axios from 'axios'
-  import Loading from './Loading'
-  import Error from './Error'
+  import LoadingSpinner from './LoadingSpinner'
+  import ApolloError from './ApolloError'
 
   export default {
-    name: 'Collections',
+    name: 'collection-list',
     components: {
-      Loading,
-      Error
+      'loading-spinner': LoadingSpinner,
+      'apollo-error': ApolloError
     },
     data: function () {
       return {

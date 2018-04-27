@@ -1,22 +1,21 @@
 <template>
   <div id="app">
-    <Header/>
-    <Collections/>
-    <Footer/>
+    <apollo-header/>
+    <collection-list/>
+    <apollo-footer/>
   </div>
 </template>
 
 <script>
-import Header from './components/Header'
-import Collections from './components/Collections'
-import Footer from './components/Footer'
+import ApolloHeader from './components/ApolloHeader'
+import CollectionList from './components/CollectionList'
+import ApolloFooter from './components/ApolloFooter'
 
 export default {
-  name: 'App',
   components: {
-    Header,
-    Collections,
-    Footer
+    'apollo-header': ApolloHeader,
+    'collection-list': CollectionList,
+    'apollo-footer': ApolloFooter
   }
 }
 </script>

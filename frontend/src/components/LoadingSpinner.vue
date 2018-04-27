@@ -7,7 +7,7 @@
 
 <script>
   export default {
-    name: 'Loading'
+    name: 'loading-spinner'
   }
 </script>
 

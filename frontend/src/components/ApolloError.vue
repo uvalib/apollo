@@ -12,7 +12,7 @@
 
 <script>
   export default {
-    name: 'Error',
+    name: 'apollo-error',
     props: ['message']
   }
 </script>

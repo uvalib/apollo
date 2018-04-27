@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import Collections from '@/components/Collections'
+import CollectionList from '@/components/CollectionList'
 
 Vue.use(Router)
 
@@ -10,7 +10,7 @@ export default new Router({
     {
       path: '/',
       name: 'home',
-      component: Collections
+      component: CollectionList
     }
   ]
 })

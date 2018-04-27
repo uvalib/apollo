@@ -24,55 +24,55 @@
 </template>
 
 <script>
-export default {
-  name: 'Footer'
-}
-</script>
+  export default {
+    name: 'apollo-footer'
+  }
+  </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-footer {
-   border-top:1px solid #d2e5f7;
-   background-color: #002F6C;
-   color: #d2e5f7;
-   padding:20px;
-   position:relative;
-   font-size: 0.9em;
-}
+  footer {
+     border-top:1px solid #d2e5f7;
+     background-color: #002F6C;
+     color: #d2e5f7;
+     padding:20px;
+     position:relative;
+     font-size: 0.9em;
+  }
 
-footer .external_links {
-   float:right;
-   text-align: right;
-}
-footer p.copy {
-   margin-top:20px;
-}
-footer a {
-   color: #d2e5f7;
-}
-footer a:hover {
-   color: white;
-}
-footer a.fdlp {
-   border-bottom: none !important;
-}
-footer div.address {
-   float:left;
-}
-footer div.legal {
-   position: relative;
-   text-align: center;
-   clear: both;
-}
-footer #fdlp-badge {
-   background: url(../assets/fdlp-badge.png);
-   height: 34px;  width: 39px;
-   display: inline-block;
-   position: relative;
-   top: 8px;
-   left: -8px;
-}
-footer p.copy, footer p.gov {
-   vertical-align: middle;
-}
+  footer .external_links {
+     float:right;
+     text-align: right;
+  }
+  footer p.copy {
+     margin-top:20px;
+  }
+  footer a {
+     color: #d2e5f7;
+  }
+  footer a:hover {
+     color: white;
+  }
+  footer a.fdlp {
+     border-bottom: none !important;
+  }
+  footer div.address {
+     float:left;
+  }
+  footer div.legal {
+     position: relative;
+     text-align: center;
+     clear: both;
+  }
+  footer #fdlp-badge {
+     background: url(../assets/fdlp-badge.png);
+     height: 34px;  width: 39px;
+     display: inline-block;
+     position: relative;
+     top: 8px;
+     left: -8px;
+  }
+  footer p.copy, footer p.gov {
+     vertical-align: middle;
+  }
 </style>
