@@ -12,8 +12,8 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/julienschmidt/httprouter"
 	"github.com/rs/cors"
-	"github.com/uvalib/apollo/internal/handlers"
-	"github.com/uvalib/apollo/internal/models"
+	"github.com/uvalib/apollo/backend/internal/handlers"
+	"github.com/uvalib/apollo/backend/internal/models"
 )
 
 // Version of the service
@@ -26,7 +26,7 @@ func main() {
 	log.Printf("===> apollo staring up <===")
 	var port int
 	var https int
-	var key, crt string
+	var key, crt, devUser string
 	defPort, err := strconv.Atoi(os.Getenv("APOLLO_PORT"))
 	if err != nil {
 		defPort = 8080
@@ -39,6 +39,7 @@ func main() {
 	flag.IntVar(&https, "https", defHTTPS, "Use HTTPS? (default 0)")
 	flag.StringVar(&key, "key", os.Getenv("APOLLO_KEY"), "Key for https connection")
 	flag.StringVar(&crt, "crt", os.Getenv("APOLLO_CRT"), "Crt for https connection")
+	flag.StringVar(&devUser, "devuser", "", "Computing ID to use for fake authentication in dev mode")
 	dbCfg, err := models.GetConfig()
 	if err != nil {
 		log.Printf("FATAL: %s", err.Error())
@@ -54,7 +55,7 @@ func main() {
 
 	// Create the main handler object which has access to common
 	// config information, like the database
-	app := handlers.ApolloHandler{Version: Version, DB: db}
+	app := handlers.ApolloHandler{Version: Version, DB: db, DevAuthUser: devUser}
 
 	// Set routes and start server
 	// use julienschmidt router for all things API/version/health
@@ -63,7 +64,7 @@ func main() {
 	router := httprouter.New()
 	router.GET("/version", app.VersionInfo)
 	router.GET("/healthcheck", app.HealthCheck)
-	router.GET("/api/collections", app.CollectionsIndex)
+	router.GET("/api/collections", app.AuthHandler(app.CollectionsIndex))
 	router.GET("/api/collections/:pid", app.CollectionsShow)
 	router.GET("/api/users", app.UsersIndex)
 	router.GET("/api/users/:id", app.UsersShow)
@@ -76,16 +77,16 @@ func main() {
 	mux.Handle("/", http.FileServer(http.Dir("public")))
 	mux.Handle("/version", router)
 	mux.Handle("/healthcheck", router)
-	mux.Handle("/api/", router)
+	mux.Handle("/api/", cors.Default().Handler(router))
 
 	// Serve the mux with cors and logging enabled
 	portStr := fmt.Sprintf(":%d", port)
 	if https == 1 {
 		log.Printf("Start HTTPS service on port %s with CORS support enabled", portStr)
-		log.Fatal(http.ListenAndServeTLS(portStr, crt, key, cors.Default().Handler(loggingHandler(mux))))
+		log.Fatal(http.ListenAndServeTLS(portStr, crt, key, loggingHandler(mux)))
 	} else {
 		log.Printf("Start HTTP service on port %s with CORS support enabled", portStr)
-		log.Fatal(http.ListenAndServe(portStr, cors.Default().Handler(loggingHandler(mux))))
+		log.Fatal(http.ListenAndServe(portStr, loggingHandler(mux)))
 	}
 }
 
@@ -94,6 +95,6 @@ func loggingHandler(next http.Handler) http.Handler {
 		start := time.Now()
 		log.Printf("Started %s %s", r.Method, r.RequestURI)
 		next.ServeHTTP(w, r)
-		log.Printf("Completed %s %s in %s", r.Method, r.RequestURI, time.Since(start))
+		log.Printf("COMPLETED %s %s in %s", r.Method, r.RequestURI, time.Since(start))
 	})
 }

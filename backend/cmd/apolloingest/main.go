@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/uvalib/apollo/internal/models"
+	"github.com/uvalib/apollo/backend/internal/models"
 )
 
 // Version of the command

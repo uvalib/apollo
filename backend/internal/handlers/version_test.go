@@ -8,7 +8,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
 	"github.com/julienschmidt/httprouter"
-	"github.com/uvalib/apollo/internal/models"
+	"github.com/uvalib/apollo/backend/internal/models"
 )
 
 func TestVersion(t *testing.T) {

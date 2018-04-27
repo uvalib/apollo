@@ -10,7 +10,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
 	"github.com/julienschmidt/httprouter"
-	"github.com/uvalib/apollo/internal/models"
+	"github.com/uvalib/apollo/backend/internal/models"
 )
 
 func TestCollectionsIndex(t *testing.T) {
@@ -38,7 +38,7 @@ func TestCollectionsIndex(t *testing.T) {
 	}
 
 	// Check the response body is what we expect.
-	expected := `[{"PID":"an666","Title":"test"}]`
+	expected := `[{"pid":"an666","title":"test"}]`
 	if strings.TrimSpace(rr.Body.String()) != expected {
 		t.Errorf("Unexpected response: got [%s] want [%s]", rr.Body.String(), expected)
 	}
