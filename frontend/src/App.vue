@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <apollo-header/>
-    <collection-list/>
+    <router-view></router-view>
     <apollo-footer/>
   </div>
 </template>

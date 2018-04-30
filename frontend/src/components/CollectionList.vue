@@ -3,17 +3,21 @@
     <apollo-error v-if="error" :message="errorMsg"></apollo-error>
     <template v-else>
       <div class="page-header">
-        <h2>Collections</h2>
-        <p>The following are all of the digitized serials managed by <span class="apollo">Apollo</span>:</p>
+        <h2 class="page-header">Collections</h2>
+        <p class="page-header">The following are all of the digitized serials managed by <span class="apollo">Apollo</span>:</p>
       </div>
-      <template v-if="loading">
-        <loading-spinner/>
-      </template>
+      <loading-spinner v-if="loading"/>
       <div v-else class="content">
         <table class="collection-list">
-          <tr><th class="right">PID</td><th>Title</th></tr>
+          <tr><th></th><th class="right">PID</td><th>Title</th></tr>
           <tr v-for="item in collections">
-            <td class="right">{{ item.pid }}</td><td>{{ item.title }}</td>
+            <td class="icon">
+              <router-link :to="{ name: 'collections', params: {id: item.pid, title: item.title}}">
+                <img class="detail" src="../assets/detail.png"/>
+              </router-link>
+            </td>
+            <td class="right">{{ item.pid }}</td>
+            <td>{{ item.title }}</td>
           </tr>
         </table>
       </div>
@@ -56,16 +60,6 @@
 </script>
 
 <style scoped>
-  .page-header {
-    border-bottom: 1px solid rgb(229, 114, 0);
-  }
-  h2 {
-    color: rgb(229, 114, 0);
-    margin: 0 0 5px 0;
-  }
-  p {
-    margin: 0 0 10px 15px;
-  }
   span.apollo {
     font-family: 'Righteous', cursive;
     color: #2c3e50;
@@ -85,7 +79,19 @@
     padding-right: 10px;
     border-right: 1px solid #ccc;
   }
+  td.icon {
+    padding: 0 10px;
+  }
+  img.detail {
+    vertical-align: middle;
+    opacity: 0.6;
+    cursor: pointer;
+  }
+  img.detail:hover {
+    opacity: 1;
+  }
   td {
+    cursor: default;
     padding: 5px 10px 2px 10px;
   }
   th {
