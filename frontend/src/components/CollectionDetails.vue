@@ -3,13 +3,12 @@
     <apollo-error v-if="error" :message="errorMsg"></apollo-error>
     <template v-else>
       <div class="page-header">
-        <h2 class="page-header">Collection</h2>
-        <p class="page-header">{{ id }}: <b>{{ title }}</b></p>
+        <h2 class="page-header">Collection Details</h2>
       </div>
       <loading-spinner v-if="loading"/>
       <div v-else class="content">
         <ul id="collection">
-          <details-node :model="collection"></details-node>
+          <details-node :model="collection" :depth="0"></details-node>
         </ul>
       </div>
     </template>
