@@ -1,9 +1,9 @@
 <template>
   <li>
-    <span class="icon" v-bind:class="{ plus: open==false, minus: open==true}"></span>
+    <span v-if="isFolder" class="icon" @click="toggle" :class="{ plus: open==false, minus: open==true}"></span>
     <div class="node">
       <div class="attribute">
-        <label>Type:</label><span class="data">{{ model.name.value }}</span><span class="depth">{{ depth }}:{{ open }}</span>
+        <label>Type:</label><span class="data">{{ model.name.value }}</span>
       </div>
       <div v-for="(attribute, index) in model.attributes">
         <label>{{ attribute.name.value }}:</label><span class="data">{{ attribute.value }}</span>
@@ -30,8 +30,16 @@
       }
     },
     computed: {
+      isFolder: function () {
+        return this.model.children && this.model.children.length
+      }
     },
     methods: {
+      toggle: function () {
+        if (this.isFolder) {
+          this.open = !this.open
+        }
+      }
     },
   }
 </script>
@@ -55,12 +63,6 @@
     margin: 10px 1px;
     position: relative;
   }
-  span.depth {
-    position: absolute;
-    right: 10px;
-    top: 5px;
-    color: #ccc;
-  }
   span.icon {
     display: inline-block;
     width: 18px;
@@ -73,6 +75,7 @@
     border-radius: 15px 0 0 15px;
     border-right: 1px solid white;
     z-index: 100;
+    cursor: pointer;
   }
   span.icon.plus {
     background: url(../assets/plus.png);
