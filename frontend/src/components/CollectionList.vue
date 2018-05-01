@@ -66,8 +66,6 @@
   }
   div.collections {
     background: white;
-    font-family: 'Avenir', Helvetica, Arial, sans-serif;
-    color: #2c3e50;
     padding: 20px;
   }
   table {

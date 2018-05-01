@@ -8,7 +8,9 @@
       </div>
       <loading-spinner v-if="loading"/>
       <div v-else class="content">
-        {{ collection }}
+        <ul id="collection">
+          <details-node :model="collection"></details-node>
+        </ul>
       </div>
     </template>
   </div>
@@ -18,12 +20,14 @@
   import axios from 'axios'
   import LoadingSpinner from './LoadingSpinner'
   import ApolloError from './ApolloError'
+  import CollectionDetailsNode from './CollectionDetailsNode'
 
   export default {
     name: 'collection-details',
     components: {
       'loading-spinner': LoadingSpinner,
-      'apollo-error': ApolloError
+      'apollo-error': ApolloError,
+      'details-node': CollectionDetailsNode
     },
     props: {
       id: String,
@@ -46,7 +50,11 @@
       }).catch(function (error) {
         self.loading = false;
         self.error = true;
-        self.errorMsg = "error.response.data";
+        if (error.response) {
+          self.errorMsg = error.response.data;
+        } else {
+          self.errorMsg = "An internal error has occurred"
+        }
       });
     },
     methods: {
