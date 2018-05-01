@@ -73,6 +73,8 @@
   table {
     margin: 15px;
     border-collapse: collapse;
+    border-right: 1px solid #ddd;
+    border-left: 1px solid #ddd;
   }
   td.right, th.right  {
     text-align: right;
@@ -92,12 +94,14 @@
   }
   td {
     cursor: default;
-    padding: 5px 10px 2px 10px;
+    padding: 10px 10px 8px 10px;
+    border-bottom: 1px solid #ddd;
   }
   th {
     background-color: #f5f5f5;
-    padding: 5px 5px 2px 10px;
+    padding: 10px 10px 8px 10px;
     text-align: left;
     border-bottom: 1px solid #ccc;
+    border-top: 1px solid #ddd;
   }
 </style>
