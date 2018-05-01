@@ -60,7 +60,7 @@
   div.node {
     padding: 10px;
     border:1px solid #ddd;
-    margin: 10px 1px;
+    margin: -1px 1px;
     position: relative;
   }
   span.icon {
@@ -68,11 +68,11 @@
     width: 18px;
     height: 18px;
     position: absolute;
-    left: -26px;
+    left: -39px;
     top: 0px;
     border: 1px solid #ccc;
-    padding: 4px;
-    border-radius: 15px 0 0 15px;
+    padding: 4px 11px 4px 10px;
+    /* border-radius: 15px 0 0 15px; */
     border-right: 1px solid white;
     z-index: 100;
     cursor: pointer;

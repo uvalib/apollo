@@ -1,6 +1,6 @@
 <template>
    <div class="header">
-      <h1>Apollo</h1>
+      <a href="/"><h1>Apollo</h1></a>
       <span class="subtitle">Digitized Serials Management System</span>
       <a target="_blank" href="https://library.virginia.edu"><img src="../assets/uvalogo.png"/></a>
    </div>
@@ -18,6 +18,10 @@ div.header {
    color: white;
    padding:20px;
    border-bottom: 1px solid #d2e5f7;
+}
+a {
+  color: white;
+  text-decoration: none;
 }
 h1 {
    margin: 0;

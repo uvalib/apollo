@@ -2,7 +2,7 @@
 div#app {
   font-family: 'Avenir', Helvetica, Arial, sans-serif;
   color: #2c3e50;
-\  -webkit-font-smoothing: antialiased;
+  -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 div.page-header {
@@ -15,5 +15,8 @@ h2.page-header {
   margin: 0 0 5px 0;
 }
 p.page-header {
-  margin: 0 0 10px 15px;
+  margin: 0 0 0 30px;
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #666;
 }

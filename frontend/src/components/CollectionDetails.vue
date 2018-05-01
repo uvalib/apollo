@@ -3,7 +3,9 @@
     <apollo-error v-if="error" :message="errorMsg"></apollo-error>
     <template v-else>
       <div class="page-header">
+        <a class="back" href="/">&larr; Back</a>
         <h2 class="page-header">Collection Details</h2>
+        <p class="page-header">{{ title }}</p>
       </div>
       <loading-spinner v-if="loading"/>
       <div v-else class="content">
@@ -98,6 +100,16 @@
 </script>
 
 <style scoped>
+  a.back {
+    color: #2c3e50;;
+    text-decoration: none;
+    font-size: 0.9em;
+    position: relative;
+    top: -10px;
+  }
+  a.back:hover {
+    text-decoration: underline;
+  }
   div.detail-wrapper {
     background-color: white;
     padding: 20px;
