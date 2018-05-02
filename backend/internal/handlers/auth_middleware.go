@@ -7,9 +7,9 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// AuthHandler is middleware that will enforce user authentication based on Shibboleth headers
+// AuthMiddleware is middleware that will enforce user authentication based on Shibboleth headers
 //
-func (app *ApolloHandler) AuthHandler(next httprouter.Handle) httprouter.Handle {
+func (app *ApolloHandler) AuthMiddleware(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		computingID := req.Header.Get("remote_user")
 		if len(app.DevAuthUser) > 0 {

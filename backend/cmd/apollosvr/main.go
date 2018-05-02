@@ -64,11 +64,12 @@ func main() {
 	router := httprouter.New()
 	router.GET("/version", app.VersionInfo)
 	router.GET("/healthcheck", app.HealthCheck)
-	router.GET("/api/collections", app.AuthHandler(app.CollectionsIndex))
-	router.GET("/api/collections/:pid", app.CollectionsShow)
-	router.GET("/api/users", app.UsersIndex)
-	router.GET("/api/users/:id", app.UsersShow)
-	router.GET("/api/names", app.NamesIndex)
+	router.GET("/api/authenticate", app.Authenticate)
+	router.GET("/api/collections", app.AuthMiddleware(app.CollectionsIndex))
+	router.GET("/api/collections/:pid", app.AuthMiddleware(app.CollectionsShow))
+	router.GET("/api/users", app.AuthMiddleware(app.UsersIndex))
+	router.GET("/api/users/:id", app.AuthMiddleware(app.UsersShow))
+	router.GET("/api/names", app.AuthMiddleware(app.NamesIndex))
 
 	// Create a standard go Mux to serve static files, and pass off
 	// all other stuff the the router. this allows static files to be
