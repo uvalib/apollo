@@ -6,7 +6,7 @@
         main="Collection Details"
         :sub="title"
         :back="true"></page-header>
-      <loading-spinner v-if="loading"/>
+      <loading-spinner v-if="loading" message="Loading collection details"/>
       <div v-else class="content">
         <ul id="collection">
           <details-node :model="collection" :depth="0"></details-node>
@@ -18,7 +18,6 @@
 
 <script>
   import axios from 'axios'
-  import LoadingSpinner from './LoadingSpinner'
   import ApolloError from './ApolloError'
   import CollectionDetailsNode from './CollectionDetailsNode'
   import PageHeader from './PageHeader'
@@ -26,7 +25,6 @@
   export default {
     name: 'collection-details',
     components: {
-      'loading-spinner': LoadingSpinner,
       'apollo-error': ApolloError,
       'details-node': CollectionDetailsNode,
       'page-header': PageHeader

@@ -6,7 +6,7 @@
         main="Collections"
         sub="The following are all of the digitized serials managed by Apollo:"
         :back="false"></page-header>
-      <loading-spinner v-if="loading"/>
+      <loading-spinner v-if="loading" message="Loading collections"/>
       <div v-else class="content">
         <table class="collection-list">
           <tr><th></th><th class="right">PID</td><th>Title</th></tr>
@@ -27,14 +27,12 @@
 
 <script>
   import axios from 'axios'
-  import LoadingSpinner from './LoadingSpinner'
   import ApolloError from './ApolloError'
   import PageHeader from './PageHeader'
 
   export default {
     name: 'collection-list',
     components: {
-      'loading-spinner': LoadingSpinner,
       'apollo-error': ApolloError,
       'page-header': PageHeader
     },
@@ -42,7 +40,7 @@
       return {
         collections: [],
         loading: false,
-        error: null,
+        error: null
       }
     },
     created: function () {
@@ -56,6 +54,8 @@
         self.loading = false;
         self.error = true;
         self.errorMsg = error.response.data;
+        // FIXME remove error from this page. instead use
+        //router.push({ path: 'error' }) with params
       });
     }
   }

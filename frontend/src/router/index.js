@@ -12,22 +12,34 @@ export default new Router({
     {
       path: '/',
       name: 'home',
-      component: CollectionList
+      component: CollectionList,
+      meta: { requiresAuth: true }
     },
     {
       path: '/collections',
-      component: CollectionList
+      component: CollectionList,
+      meta: { requiresAuth: true }
     },
     {
       name: 'collections',
       path: '/collections/:id',
       component: CollectionDetails,
+      meta: { requiresAuth: true },
       props: true
     },
     {
-      path: "*",
+      path: "/unauthorized",
+      name: "unauthorized",
       component: ApolloError,
-      props: { message: "The page you requested cannot be found" }
+      props: { message: "You are not authorized to access this site" },
+      meta: { requiresAuth: false }
+    },
+    {
+      path: "*",
+      name: "error",
+      component: ApolloError,
+      props: { message: "The page you requested cannot be found" },
+      meta: { requiresAuth: false }
     }
   ]
 })

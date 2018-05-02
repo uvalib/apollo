@@ -1,7 +1,7 @@
 <template>
   <div class="page-header">
-    <a v-show="back" class="back" href="/">&larr; Back</a>
-    <span class="user">FOO</span>
+    <router-link v-show="back" class="back" :to="{ name: 'home'}">&larr; Back</router-link>
+    <span class="user">{{ this.user }}</span>
     <h2 class="page-header">{{ main }}</h2>
     <p class="page-header"><span v-html="sub"></span></p>
   </div>
@@ -13,7 +13,13 @@
     props: {
       main: String,
       sub: String,
-      back: Boolean }
+      back: Boolean
+    },
+    data: function () {
+      return {
+        user: localStorage.getItem("user")
+      }
+    }
   }
 </script>
 

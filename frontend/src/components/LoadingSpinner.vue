@@ -1,19 +1,23 @@
 <template>
   <div class="loading">
     <img src="../assets/spinner2.gif"/>
-    <span>Loading...</span>
+    <span>{{message}}...</span>
   </div>
 </template>
 
 <script>
   export default {
-    name: 'loading-spinner'
+    name: 'loading-spinner',
+    props: {
+      message: String
+    }
   }
 </script>
 
 <style scoped>
   .loading {
     padding: 25px 50px;
+    background: white;
   }
   img {
     vertical-align: middle;

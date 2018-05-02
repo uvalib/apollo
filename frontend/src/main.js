@@ -2,11 +2,15 @@
 // (runtime-only or standalone) has been set in webpack.base.conf with an alias.
 import Vue from 'vue'
 import App from './App'
+import LoadingSpinner from './components/LoadingSpinner'
 import router from './router'
 
 require('./assets/css/shared.css');
 
 Vue.config.productionTip = false;
+
+// global register spinner; all pages use it
+Vue.component("loading-spinner", LoadingSpinner)
 
 /* eslint-disable no-new */
 new Vue({

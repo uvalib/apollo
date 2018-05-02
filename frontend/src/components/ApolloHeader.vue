@@ -1,6 +1,6 @@
 <template>
    <div class="header">
-      <a href="/"><h1>Apollo</h1></a>
+      <router-link :to="{ name: 'home'}"><h1>Apollo</h1></router-link>
       <span class="subtitle">Digitized Serials Management System</span>
       <a target="_blank" href="https://library.virginia.edu"><img src="../assets/uvalogo.png"/></a>
    </div>
