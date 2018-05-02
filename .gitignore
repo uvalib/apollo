@@ -13,3 +13,4 @@ dist/
 vendor
 env.*
 /pkg
+deploy.sh

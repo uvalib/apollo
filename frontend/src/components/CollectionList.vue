@@ -2,10 +2,10 @@
   <div class="collections">
     <apollo-error v-if="error" :message="errorMsg"></apollo-error>
     <template v-else>
-      <div class="page-header">
-        <h2 class="page-header">Collections</h2>
-        <p class="page-header">The following are all of the digitized serials managed by <span class="apollo">Apollo</span>:</p>
-      </div>
+      <page-header
+        main="Collections"
+        sub="The following are all of the digitized serials managed by Apollo:"
+        :back="false"></page-header>
       <loading-spinner v-if="loading"/>
       <div v-else class="content">
         <table class="collection-list">
@@ -29,12 +29,14 @@
   import axios from 'axios'
   import LoadingSpinner from './LoadingSpinner'
   import ApolloError from './ApolloError'
+  import PageHeader from './PageHeader'
 
   export default {
     name: 'collection-list',
     components: {
       'loading-spinner': LoadingSpinner,
-      'apollo-error': ApolloError
+      'apollo-error': ApolloError,
+      'page-header': PageHeader
     },
     data: function () {
       return {
@@ -60,10 +62,6 @@
 </script>
 
 <style scoped>
-  span.apollo {
-    font-family: 'Righteous', cursive;
-    color: #2c3e50;
-  }
   div.collections {
     background: white;
     padding: 20px;
