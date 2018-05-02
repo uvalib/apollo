@@ -26,7 +26,7 @@ func (app *ApolloHandler) Authenticate(rw http.ResponseWriter, req *http.Request
 		http.Error(rw, "You are not authorized to access this site", http.StatusForbidden)
 		return
 	}
-	log.Printf("User %s is authorized", user.ComputingID)
+	log.Printf("User %s has successfully authorized", user.ComputingID)
 	json, _ := json.Marshal(user)
 	rw.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(rw, string(json))

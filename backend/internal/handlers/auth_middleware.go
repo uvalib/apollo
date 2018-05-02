@@ -25,7 +25,7 @@ func (app *ApolloHandler) AuthMiddleware(next httprouter.Handle) httprouter.Hand
 			http.Error(w, "You are not authorized to access this site", http.StatusForbidden)
 			return
 		}
-		log.Printf("User %s is authorized", user.ComputingID)
+		log.Printf("User %s is authorized for %s", user.ComputingID, req.RequestURI)
 		next(w, req, ps)
 	}
 }
