@@ -1,12 +1,15 @@
 <template>
   <div class="detail-wrapper">
-    <apollo-error v-if="error" :message="errorMsg"></apollo-error>
+    <apollo-error v-if="errorMsg" :message="errorMsg"></apollo-error>
     <template v-else>
       <page-header
         main="Collection Details"
         :sub="title"
         :back="true"></page-header>
       <loading-spinner v-if="loading" message="Loading collection details"/>
+      <div v-else-if="Object.keys(collection).length === 0" class="content">
+        <h4>No data found!</h4>
+      </div>
       <div v-else class="content">
         <ul id="collection">
           <details-node :model="collection" :depth="0"></details-node>
@@ -18,14 +21,12 @@
 
 <script>
   import axios from 'axios'
-  import ApolloError from './ApolloError'
   import CollectionDetailsNode from './CollectionDetailsNode'
   import PageHeader from './PageHeader'
 
   export default {
     name: 'collection-details',
     components: {
-      'apollo-error': ApolloError,
       'details-node': CollectionDetailsNode,
       'page-header': PageHeader
     },
@@ -36,25 +37,17 @@
     data: function () {
       return {
         collection: {},
-        loading: false,
-        error: null,
+        loading: true,
+        errorMsg: null
       }
     },
     created: function () {
-      this.loading = true;
-      var self = this;
       axios.get("/api/collections/"+this.id).then((response)  =>  {
         this.loading = false;
         this.traverseDetails(response.data, this.collection)
-        self.error = null
-      }).catch(function (error) {
-        self.loading = false;
-        self.error = true;
-        if (error.response) {
-          self.errorMsg = error.response.data;
-        } else {
-          self.errorMsg = "An internal error has occurred"
-        }
+      }).catch((error) => {
+        this.loading = false
+        this.errorMsg =  error.response.data
       });
     },
     methods: {

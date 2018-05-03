@@ -36,7 +36,7 @@ export default new Router({
     },
     {
       path: "*",
-      name: "error",
+      name: "notfound",
       component: ApolloError,
       props: { message: "The page you requested cannot be found" },
       meta: { requiresAuth: false }

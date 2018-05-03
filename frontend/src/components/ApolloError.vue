@@ -7,6 +7,7 @@
         <p class="error-help">
           If you need further assistance, please contact Lou Foster (<a href="mailto:lf6f@virginia.edu">lf6f@virginia.edu</a>).
         </p>
+        <p><router-link :to="{ name: 'home'}">Return to Collections List</router-link></p>
       </div>
     </div>
   </div>
@@ -15,7 +16,9 @@
 <script>
   export default {
     name: 'apollo-error',
-    props: ['message']
+    props: {
+      message: String
+    }
   }
 </script>
 

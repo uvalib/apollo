@@ -1,61 +1,51 @@
 <template>
-  <div class="collections">
-    <apollo-error v-if="error" :message="errorMsg"></apollo-error>
-    <template v-else>
-      <page-header
-        main="Collections"
-        sub="The following are all of the digitized serials managed by Apollo:"
-        :back="false"></page-header>
-      <loading-spinner v-if="loading" message="Loading collections"/>
-      <div v-else class="content">
-        <table class="collection-list">
-          <tr><th></th><th class="right">PID</td><th>Title</th></tr>
-          <tr v-for="item in collections">
-            <td class="icon">
-              <router-link :to="{ name: 'collections', params: {id: item.pid, title: item.title}}">
-                <img class="detail" src="../assets/detail.png"/>
-              </router-link>
-            </td>
-            <td class="right">{{ item.pid }}</td>
-            <td>{{ item.title }}</td>
-          </tr>
-        </table>
-      </div>
-    </template>
+  <apollo-error v-if="errorMsg" :message="errorMsg"></apollo-error>
+  <div v-else class="collections">
+    <page-header
+      main="Collections"
+      sub="The following are all of the digitized serials managed by Apollo:"
+      :back="false"></page-header>
+    <loading-spinner v-if="loading" message="Loading collections"/>
+    <div v-else class="content">
+      <table class="collection-list">
+        <tr><th></th><th class="right">PID</td><th>Title</th></tr>
+        <tr v-for="item in collections">
+          <td class="icon">
+            <router-link :to="{ name: 'collections', params: {id: item.pid, title: item.title}}">
+              <img class="detail" src="../assets/detail.png"/>
+            </router-link>
+          </td>
+          <td class="right">{{ item.pid }}</td>
+          <td>{{ item.title }}</td>
+        </tr>
+      </table>
+    </div>
   </div>
 </template>
 
 <script>
   import axios from 'axios'
-  import ApolloError from './ApolloError'
   import PageHeader from './PageHeader'
 
   export default {
     name: 'collection-list',
     components: {
-      'apollo-error': ApolloError,
       'page-header': PageHeader
     },
     data: function () {
       return {
         collections: [],
-        loading: false,
-        error: null
+        loading: true,
+        errorMsg: null
       }
     },
     created: function () {
-      this.loading = true;
-      var self = this;
       axios.get("/api/collections").then((response)  =>  {
-        this.loading = false;
+        this.loading = false
         this.collections = response.data
-        self.error = null
-      }).catch(function (error) {
-        self.loading = false;
-        self.error = true;
-        self.errorMsg = error.response.data;
-        // FIXME remove error from this page. instead use
-        //router.push({ path: 'error' }) with params
+      }).catch((error) => {
+        this.loading = false
+        this.errorMsg =  error.response.data
       });
     }
   }
