@@ -10,10 +10,18 @@
       <div v-else-if="Object.keys(collection).length === 0" class="content">
         <h4>No data found!</h4>
       </div>
-      <div v-else class="content">
-        <ul id="collection">
-          <details-node :model="collection" :depth="0"></details-node>
-        </ul>
+      <div v-else class="content pure-g">
+        <div class="pure-u-1-3">
+          <ul class="collection">
+            <details-node :model="collection" :depth="0"></details-node>
+          </ul>
+        </div>
+        <div class="pure-u-2-3">
+          <h4 class="do-header">Digitial Object Viewer</h4>
+          <div id="object-viewer">
+            <p id="view-placeholder" class="hint">Click a Digital Object from the tree on the left to view it here.</p>
+          </div>
+        </div>
       </div>
     </template>
   </div>
@@ -92,8 +100,31 @@
 </script>
 
 <style scoped>
+  div#object-viewer {
+    padding: 20px 30px;
+  }
+  h4.do-header {
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 10px;
+    margin-left: 20px;
+  }
+  p.hint {
+    color: #999;
+    font-style: italic;
+    text-align: center;
+  }
+  div.object-viewer {
+    padding: 20px;
+  }
   div.detail-wrapper {
     background-color: white;
     padding: 20px;
+  }
+  div.object-viewer {
+    padding: 20px;
+  }
+  ul.collection {
+    margin-top:0;
   }
 </style>
