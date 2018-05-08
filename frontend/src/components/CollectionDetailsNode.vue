@@ -1,17 +1,20 @@
 <template>
   <li>
     <span v-if="isFolder" class="icon" @click="toggle" :class="{ plus: open==false, minus: open==true}"></span>
-    <div class="node">
-      <div class="attribute">
-        <label>Type:</label><span class="data">{{ model.name.value }}</span>
-      </div>
-      <div v-for="(attribute, index) in model.attributes"  class="attribute">
+    <table class="node">
+      <tr class="attribute">
+        <td class="label">Type:</td><td class="data">{{ model.name.value }}</td>
+      </tr>
+      <tr v-for="(attribute, index) in model.attributes"  class="attribute">
         <template v-if="attribute.name.value !='digitalObject'">
-          <label>{{ attribute.name.value }}:</label><span class="data">{{ attribute.value }}</span>
+          <td class="label">{{ attribute.name.value }}:</td><td class="data">{{ attribute.value }}</td>
         </template>
-        <span v-else :data-uri="attribute.value" @click="digitalObjectClicked" class="dobj">Digitial Object</span>
-      </div>
-    </div>
+        <template v-else>
+          <td class="label"></td>
+          <td :data-uri="attribute.value" @click="digitalObjectClicked" class="data dobj">View Digitial Object</td>
+        </template>
+      </tr>
+    </table>
     <ul v-if="open" v-show="open">
       <template v-for="(child, index) in model.children">
         <details-node :model="child" :depth="depth+1"></details-node>
@@ -39,7 +42,30 @@
         return this.model.children && this.model.children.length
       }
     },
+    mounted() {
+      $('#object-viewer').data("origTop", $('#object-viewer').offset().top);
+      window.addEventListener("scroll", this.handleScroll);
+    },
+    destroyed() {
+      window.removeEventListener("scroll", this.handleScroll);
+    },
     methods: {
+      handleScroll: function(event) {
+        var viewer = $('#object-viewer');
+
+        let scrollTop= $(window).scrollTop();
+        // console.log("SCROLL TOP: "+scrollTop);
+
+        // var isPositionFixed = ($el.css('position') == 'fixed');
+        if ( scrollTop >= 252 ) {
+           let xxx = $('#object-viewer').offset().top
+           // console.log("VIEW TOP" +xxx)
+           viewer.offset({top: scrollTop+15});
+        } else {
+           viewer.offset({top: viewer.data("origTop")});
+        }
+        // TODO maybe? fix scroll off screen bottom. Don't think needed tho
+      },
       toggle: function () {
         if (this.isFolder) {
           this.open = !this.open
@@ -53,18 +79,6 @@
 
         // grab the oembedURI and request embedding info
         let oembedUri = event.target.getAttribute('data-uri')
-        // var hack = '<div class="uv" data-uri="https://tracksys.lib.virginia.edu:8080/uva-lib:2528443" data-canvasindex="0" style="width:800px; height:600px;"></div>'
-        // var dv = $("#object-viewer")
-        // dv.empty()
-        // dv.append( $(hack) )
-        // var script = document.createElement("script");
-        // script.type = 'text/javascript'
-        // script.src = "https://doviewer.lib.virginia.edu/web/viewer/lib/embed.js"
-        // script.id = "embedUV"
-        // window.embedScriptIncluded = false;
-        // dv.append( $(script) )
-
-
         axios.get(oembedUri).then((response)  =>  {
           let dv = $("#object-viewer")
           dv.empty();
@@ -81,44 +95,53 @@
           }
         })
       }
-    },
+    }
   }
 </script>
 
 <style scoped>
-  span.dobj {
-    cursor: pointer;
+
+  table.node {
+    padding: 5px 0 5px 5px;
+    margin: 0;
+    display: block;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
+    border-bottom: 1px solid #ccc;
+    border-left: 1px solid #ccc;
   }
-  span.dobj:hover {
+  table.node td {
+    padding: 5px 10px 5px 0;
+  }
+  table.node.selected {
+    border-left: 2px solid #5c5;
+    border-bottom: 2px solid #5c5;
+    background: #f5fff5;
+  }
+  .dobj {
+    cursor: pointer;
+    color: #999;
+    font-weight: bold;
+    font-style: italic;
+  }
+  .dobj:hover {
     text-decoration: underline;
   }
-  label {
+  table.node td.label {
     text-transform: capitalize;
     margin-right: 15px;
     font-weight: bold;
+    text-align: right;
+    padding: 5px 10px 5px 10px;
   }
-  span.data {
+  table.node td.data {
     text-transform: capitalize;
   }
   div.content ul, div.content li {
     font-size: 14px;
     list-style-type: none;
     position: relative;
-  }
-  div.node {
-    padding: 10px 0 10px 10px;;
-    margin: 0;
-    position: relative;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-    hyphens: auto;
-    border-bottom: 1px solid #ccc;
-    border-left: 1px solid #ccc;
-    line-height: 1.75em;
-  }
-  div.node.selected {
-    border-left: 2px solid #ccf;
-    border-bottom: 2px solid #ccf;
   }
   span.icon {
     display: inline-block;

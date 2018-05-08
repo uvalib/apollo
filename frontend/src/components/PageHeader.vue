@@ -26,7 +26,7 @@
 <style scoped>
   div.page-header {
     border-bottom: 1px solid rgb(229, 114, 0);
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     padding-bottom: 10px;
     position: relative;
   }

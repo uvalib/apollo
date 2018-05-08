@@ -12,6 +12,7 @@
       </div>
       <div v-else class="content pure-g">
         <div class="pure-u-1-3">
+          <h4 class="do-header">Collection Structure</h4>
           <ul class="collection">
             <details-node :model="collection" :depth="0"></details-node>
           </ul>
@@ -101,27 +102,21 @@
 
 <style scoped>
   div#object-viewer {
-    padding: 20px 30px;
+    padding: 0px 20px;
   }
   h4.do-header {
     margin: 0;
     border-bottom: 1px solid #ccc;
     padding-bottom: 10px;
     margin-left: 20px;
+    margin-bottom: 15px;
   }
   p.hint {
     color: #999;
     font-style: italic;
-    text-align: center;
-  }
-  div.object-viewer {
-    padding: 20px;
   }
   div.detail-wrapper {
     background-color: white;
-    padding: 20px;
-  }
-  div.object-viewer {
     padding: 20px;
   }
   ul.collection {
