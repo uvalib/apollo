@@ -43,7 +43,6 @@
       }
     },
     mounted() {
-      $('#object-viewer').data("origTop", $('#object-viewer').offset().top);
       window.addEventListener("scroll", this.handleScroll);
     },
     destroyed() {
@@ -51,7 +50,14 @@
     },
     methods: {
       handleScroll: function(event) {
-        var viewer = $('#object-viewer');
+        var viewer = $('#object-viewer')
+        let origVal = viewer.data("origTop")
+        // console.log("OV: ["+origVal+"]")
+        if ( !origVal ) {
+          let ot = $('#object-viewer').offset().top
+          console.log("set origTop to: "+ot)
+          viewer.data("origTop", ot)
+        }
 
         let scrollTop= $(window).scrollTop();
         // console.log("SCROLL TOP: "+scrollTop);
