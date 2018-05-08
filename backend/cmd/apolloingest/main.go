@@ -96,12 +96,11 @@ func doIngest(db *models.DB, user *models.User, srcFile string) {
 			if len(val) > 0 {
 				node := nodeStack[len(nodeStack)-1]
 				node.Value = val
-				// log.Printf("   value: %s", val)
+				log.Printf("   value: %s", val)
 			}
 		case xml.EndElement:
 			// pop last node from stack
 			nodeStack = nodeStack[:len(nodeStack)-1]
-			log.Print(".")
 		}
 	}
 
@@ -124,7 +123,7 @@ func startNode(db *models.DB, user *models.User, name string, ancestors []*model
 	} else {
 		// get parent and full ancestry path
 		parent = ancestors[len(ancestors)-1]
-		//log.Printf("Create node %s, parent %s", name, parent.Name.Value)
+		log.Printf("Create node %s, parent %s", name, parent.Name.Value)
 	}
 
 	// first, find or create node name
