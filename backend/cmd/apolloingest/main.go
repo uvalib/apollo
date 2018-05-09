@@ -15,6 +15,12 @@ import (
 // Version of the command
 const Version = "1.0.0"
 
+type context struct {
+	db    *models.DB
+	names []models.NodeName
+	user  *models.User
+}
+
 /**
  * MAIN
  */
@@ -52,13 +58,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	doIngest(db, user, srcFile)
+	// build a context for the ingest containing common data
+	ctx := context{db: db, user: user, names: db.AllNames()}
+
+	doIngest(ctx, srcFile)
 }
 
 /**
  * Ingest the XML file contained in the config data
  */
-func doIngest(db *models.DB, user *models.User, srcFile string) {
+func doIngest(ctx context, srcFile string) {
 	log.Printf("Start ingest of %s...", srcFile)
 	xmlFile, err := os.Open(srcFile)
 	if err != nil {
@@ -83,7 +92,7 @@ func doIngest(db *models.DB, user *models.User, srcFile string) {
 
 		switch tok := token.(type) {
 		case xml.StartElement:
-			node, err := startNode(db, user, tok.Name.Local, nodeStack)
+			node, err := startNode(&ctx, tok.Name.Local, nodeStack)
 			if err != nil {
 				log.Printf("FATAL: unable to start node for %s: %s", tok.Name.Local, err.Error())
 				os.Exit(1)
@@ -106,16 +115,35 @@ func doIngest(db *models.DB, user *models.User, srcFile string) {
 
 	// Create all nodes now
 	log.Printf("Creating all nodes...")
-	err = db.CreateNodes(nodes)
+	err = ctx.db.CreateNodes(nodes)
 	if err != nil {
 		log.Printf("ERROR: Unable to create nodes: %s", err.Error())
 	}
 	log.Printf("==> DONE <==")
 }
 
-func startNode(db *models.DB, user *models.User, name string, ancestors []*models.Node) (*models.Node, error) {
+func startNode(ctx *context, name string, ancestors []*models.Node) (*models.Node, error) {
 	var nn *models.NodeName
 	var err error
+
+	// first, find or create node name
+	found := false
+	for _, nodeName := range ctx.names {
+		if strings.Compare(nodeName.Value, name) == 0 {
+			nn = &nodeName
+			found = true
+			break
+		}
+	}
+	if found == false {
+		log.Printf("NodeName %s not found; CREATING...", name)
+		nn, err = ctx.db.CreateNodeName(name)
+		if err != nil {
+			log.Printf("ERROR: Unable to create NodeName %s: %s", name, err.Error())
+			return nil, err
+		}
+		ctx.names = append(ctx.names, *nn)
+	}
 
 	var parent *models.Node
 	if len(ancestors) == 0 {
@@ -126,16 +154,5 @@ func startNode(db *models.DB, user *models.User, name string, ancestors []*model
 		log.Printf("Create node %s, parent %s", name, parent.Name.Value)
 	}
 
-	// first, find or create node name
-	nn = db.GetNodeName(name)
-	if nn == nil {
-		log.Printf("NodeName %s not found; creating...", name)
-		nn, err = db.CreateNodeName(name)
-		if err != nil {
-			log.Printf("ERROR: Unable to create NodeName %s: %s", name, err.Error())
-			return nil, err
-		}
-	}
-
-	return &models.Node{Parent: parent, Name: nn, User: user}, nil
+	return &models.Node{Parent: parent, Name: nn, User: ctx.user}, nil
 }
