@@ -35,9 +35,9 @@ CREATE TABLE users (
 
 -- Add starter user
 insert into users(computing_id, last_name,first_name,email,created_at,updated_at)
-   values ("lf6f", "Foster", "Lou", "lf6f@virginia.edu", NOW(), NOW());
-
-
+   values ("lf6f", "Foster", "Lou", "lf6f@virginia.edu", NOW(), NOW()),
+	        ('md5wz', 'Mike', 'Durbin', 'md5wz@virginia.edu', NOW(), NOW() );
+          
 --
 -- Create controlled vocabulary for node names
 --
