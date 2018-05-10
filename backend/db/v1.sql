@@ -37,7 +37,7 @@ CREATE TABLE users (
 insert into users(computing_id, last_name,first_name,email,created_at,updated_at)
    values ("lf6f", "Foster", "Lou", "lf6f@virginia.edu", NOW(), NOW()),
 	        ('md5wz', 'Mike', 'Durbin', 'md5wz@virginia.edu', NOW(), NOW() );
-          
+
 --
 -- Create controlled vocabulary for node names
 --
@@ -46,14 +46,20 @@ CREATE TABLE node_names (
    id int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
    pid varchar(255) NOT NULL,
    value varchar(255) NOT NULL,
+   controlled_vocab boolean not null default 0,
    UNIQUE KEY (value),
    UNIQUE KEY (pid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- add some starter names
-insert into node_names(pid,value) values
-   ("uva-ann1", "collection"), ("uva-ann2", "title"),
-   ("uva-ann3", "volume"), ("uva-ann4", "issue");
+insert into node_names(pid,value,controlled_vocab) values
+   ("uva-ann1", "collection", 0), ("uva-ann2", "title", 0),
+   ("uva-ann3", "volume", 0), ("uva-ann4", "issue", 0),
+	 ('uva-ann5', 'componentPID', 0), ('uva-ann6', 'digitalObject', 0),
+	 ('uva-ann7', 'year', 0), ('uva-ann8', 'month', 0),
+   ('uva-ann9', 'barcode', 0), ('uva-ann10', 'catalogKey', 0),
+   ('uva-ann11', 'useRights', 1);
+
 
 --
 -- Create controlled vocabulary for node values
@@ -64,10 +70,23 @@ CREATE TABLE controlled_values (
    pid varchar(255) NOT NULL,
    node_name_id int(11) NOT NULL,
    value varchar(255) NOT NULL,
+   value_uri varchar(255),
    FOREIGN KEY (node_name_id) REFERENCES node_names(id) ON DELETE CASCADE,
    UNIQUE KEY (pid),
    UNIQUE KEY (value)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+INSERT INTO controlled_values (pid, node_name_id, value, value_uri)
+VALUES
+	('uva-acv1', 11, 'Copyright Not Evaluated', 'http://rightsstatements.org/vocab/CNE/1.0/'),
+	('uva-acv2', 11, 'No Known Copyright', 'http://rightsstatements.org/vocab/NKC/1.0/'),
+	('uva-acv3', 11, 'In Copyright', 'http://rightsstatements.org/vocab/InC/1.0/'),
+	('uva-acv4', 11, 'In Copyright Educational Use Permitted', 'http://rightsstatements.org/vocab/InC-EDU/1.0/'),
+	('uva-acv5', 11, 'In Copyright Non-Commercial Use Permitted', 'http://rightsstatements.org/vocab/InC-NC/1.0/'),
+	('uva-acv6', 11, 'In Copyright Rights Holder Unlocatable', 'http://rightsstatements.org/vocab/InC-RUU/1.0/'),
+	('uva-acv9', 11, 'No Copyright Other Known Legal Restrictions', 'http://rightsstatements.org/vocab/NoC-OKLR/1.0/'),
+	('uva-acv10', 11, 'No Copyright United States', 'http://rightsstatements.org/vocab/NoC-US/1.0/'),
+	('uva-acv11', 11, 'Copyright Undetermined', 'http://rightsstatements.org/vocab/UND/1.0/');
+
 
 
 --
@@ -90,7 +109,6 @@ CREATE TABLE nodes (
    parent_id int(11),
    ancestry varchar(255),
    node_name_id int(11) NOT NULL,
-   value_type ENUM('free', 'controlled') NOT NULL DEFAULT 'free',
    value varchar(255) DEFAULT NULL,
    user_id int(11),
    deleted tinyint(1) NOT NULL DEFAULT 0,

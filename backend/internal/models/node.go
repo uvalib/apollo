@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +21,7 @@ type Node struct {
 	Parent    *Node      `json:"-"`
 	Name      *NodeName  `json:"name"`
 	Value     string     `json:"value,omitempty"`
+	ValueURI  string     `json:"valueURI,omitempty"`
 	Children  []*Node    `json:"children,omitempty"`
 	User      *User      `json:"-"`
 	Deleted   bool       `json:"-"`
@@ -40,6 +42,7 @@ func (n *Node) MarshalJSON() ([]byte, error) {
 		PID       string     `json:"pid"`
 		Name      *NodeName  `json:"name"`
 		Value     string     `json:"value,omitempty"`
+		ValueURI  string     `json:"valueURI,omitempty"`
 		CreatedAt time.Time  `db:"created_at" json:"createdAt"`
 		UpdatedAt *time.Time `db:"updated_at" json:"updatedAt,omitempty"`
 		Children  []*Node    `json:"children,omitempty"`
@@ -47,6 +50,7 @@ func (n *Node) MarshalJSON() ([]byte, error) {
 		PID:       n.PID,
 		Name:      n.Name,
 		Value:     encodeValue(n.Value),
+		ValueURI:  n.ValueURI,
 		CreatedAt: n.CreatedAt,
 		UpdatedAt: n.UpdatedAt,
 		Children:  n.Children,
@@ -85,7 +89,7 @@ func (db *DB) GetCollections() []Collection {
 func (db *DB) GetCollection(pid string) (*Node, error) {
 	log.Printf("Get collecton with PID %s", pid)
 
-	// first, get the root node
+	// first, get the root node ID
 	var rootID int64
 	db.QueryRow("select id from nodes where pid=?", pid).Scan(&rootID)
 	var nodes []*Node
@@ -94,7 +98,8 @@ func (db *DB) GetCollection(pid string) (*Node, error) {
 
 	// now get all children with the root ID as the start of their ancestry
 	qs := fmt.Sprintf(
-		`SELECT n.id, n.parent_id, n.pid, n.value, n.created_at, n.updated_at, nn.pid, nn.value
+		`SELECT n.id, n.parent_id, n.pid, n.value, n.created_at, n.updated_at,
+		        nn.pid, nn.value, nn.controlled_vocab
        FROM nodes n
          inner join node_names nn on nn.id = n.node_name_id
        WHERE deleted=0 and current=1 and (n.id=? or ancestry like '%d/%%' or ancestry=?) order by n.id asc`, rootID)
@@ -109,11 +114,21 @@ func (db *DB) GetCollection(pid string) (*Node, error) {
 		var nn NodeName
 		var parentID sql.NullInt64
 		var updateAt mysql.NullTime
-		rows.Scan(&n.ID, &parentID, &n.PID, &n.Value, &n.CreatedAt, &updateAt, &nn.PID, &nn.Value)
+		rows.Scan(&n.ID, &parentID, &n.PID, &n.Value, &n.CreatedAt, &updateAt, &nn.PID, &nn.Value, &nn.ControlledVocab)
 		if updateAt.Valid {
 			n.UpdatedAt = &updateAt.Time
 		}
 		n.Name = &nn
+		if nn.ControlledVocab {
+			id, _ := strconv.ParseInt(n.Value, 10, 64)
+			cv := db.GetControlledValueByID(id)
+			if cv == nil {
+				log.Printf("ERROR: no controlled value match for %d", id)
+			} else {
+				n.Value = cv.Value
+				n.ValueURI = cv.ValueURI
+			}
+		}
 		nodes = append(nodes, &n)
 		if n.ID == rootID {
 			root = &n

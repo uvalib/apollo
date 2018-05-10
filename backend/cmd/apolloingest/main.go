@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/xml"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -104,8 +105,7 @@ func doIngest(ctx context, srcFile string) {
 			val := strings.TrimSpace(string(tok))
 			if len(val) > 0 {
 				node := nodeStack[len(nodeStack)-1]
-				node.Value = val
-				log.Printf("   value: %s", val)
+				setNodeValue(ctx, node, val)
 			}
 		case xml.EndElement:
 			// pop last node from stack
@@ -155,4 +155,25 @@ func startNode(ctx *context, name string, ancestors []*models.Node) (*models.Nod
 	}
 
 	return &models.Node{Parent: parent, Name: nn, User: ctx.user}, nil
+}
+
+func setNodeValue(ctx context, node *models.Node, val string) {
+	if node.Name.ControlledVocab == false {
+		node.Value = val
+		log.Printf("   value: %s", val)
+		return
+	}
+	log.Printf("Look up controlled value %s", val)
+	cv := ctx.db.GetControlledValueByName(val)
+	if cv == nil {
+		log.Printf("WARN: no controlled value match found for %s. Just setting value directly.", val)
+		node.Value = val
+	}
+	if cv.NameID != node.Name.ID {
+		log.Printf("WARN: controlled value / node name mis-match (%d vs %d) for %s. Just setting value directly.",
+			node.Name.ID, cv.NameID, val)
+		node.Value = val
+	}
+	log.Printf("Controlled value %s replaced with ID %d", val, cv.ID)
+	node.Value = fmt.Sprintf("%d", cv.ID)
 }

@@ -70,6 +70,7 @@ func main() {
 	router.GET("/api/users", app.AuthMiddleware(app.UsersIndex))
 	router.GET("/api/users/:id", app.AuthMiddleware(app.UsersShow))
 	router.GET("/api/names", app.AuthMiddleware(app.NamesIndex))
+	router.GET("/api/values/:name", app.AuthMiddleware(app.ValuesForName))
 
 	// Create a standard go Mux to serve static files, and pass off
 	// all other stuff the the router. this allows static files to be

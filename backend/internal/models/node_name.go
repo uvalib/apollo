@@ -8,9 +8,10 @@ import (
 
 // NodeName is a controlled vocabulary for node names
 type NodeName struct {
-	ID    int64  `json:"-"`
-	PID   string `json:"pid"`
-	Value string `json:"value"`
+	ID              int64  `json:"-"`
+	PID             string `json:"pid"`
+	Value           string `json:"value"`
+	ControlledVocab bool   `db:"controlled_vocab" json:"controlledVocab"`
 }
 
 // AllNames returns a list of all available names
