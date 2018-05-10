@@ -3,15 +3,29 @@
     <span v-if="isFolder" class="icon" @click="toggle" :class="{ plus: open==false, minus: open==true}"></span>
     <table class="node">
       <tr class="attribute">
-        <td class="label">Type:</td><td class="data">{{ model.name.value }}</td>
+        <td class="label">Type:</td>
+        <td class="data">
+          {{ model.name.value }}
+          <template v-if="sirsiLink(model)">
+            <a class="sirsi" :href="sirsiLink(model)" target="_blank">Sirsi</a>
+          </template>
+        </td>
       </tr>
       <tr v-for="(attribute, index) in model.attributes"  class="attribute">
         <template v-if="attribute.name.value !='digitalObject'">
-          <td class="label">{{ attribute.name.value }}:</td><td class="data">{{ attribute.value }}</td>
+          <template v-if="attribute.valueURI">
+            <td class="label">{{ attribute.name.value }}:</td>
+            <td class="data">
+              <a :href="attribute.valueURI" class="uri" target="_blank">{{ attribute.value }}&nbsp;<i class="fas fa-external-link-alt"></i></a>
+            </td>
+          </template>
+          <template v-else>
+            <td class="label">{{ attribute.name.value }}:</td><td class="data">{{ attribute.value }}</td>
+          </template>
         </template>
         <template v-else>
           <td class="label"></td>
-          <td :data-uri="attribute.value" @click="digitalObjectClicked" class="data dobj">View Digitial Object</td>
+          <td :data-uri="attribute.value" @click="digitalObjectClicked" class="pure-button pure-button-primary data dobj">View Digitial Object</td>
         </template>
       </tr>
     </table>
@@ -49,6 +63,27 @@
       window.removeEventListener("scroll", this.handleScroll);
     },
     methods: {
+      sirsiLink: function(model) {
+        let barcode=""
+        let catalogKey = ""
+        for (var idx in model.attributes) {
+          var attr = model.attributes[idx]
+          if (attr.name.value === "barcode"){
+            barcode = attr.value
+          }
+          if (attr.name.value === "catalogKey") {
+            catalogKey = attr.value
+          }
+        }
+
+        if (barcode.length > 0) {
+          return "http://solr.lib.virginia.edu:8082/solr/core/select/?q=barcode_facet:"+barcode
+        }
+        if (catalogKey.length > 0) {
+          return "http://solr.lib.virginia.edu:8082/solr/core/select/?q=id:"+catalogKey
+        }
+        return ""
+      },
       handleScroll: function(event) {
         var viewer = $('#object-viewer')
         let origVal = viewer.data("origTop")
@@ -70,7 +105,6 @@
         } else {
            viewer.offset({top: viewer.data("origTop")});
         }
-        // TODO maybe? fix scroll off screen bottom. Don't think needed tho
       },
       toggle: function () {
         if (this.isFolder) {
@@ -94,6 +128,7 @@
           window.embedScriptIncluded = false;
           dv.append( $( response.data.html) )
         }).catch((error) => {
+          // FIXME real error handling!!!
           if ( error.message ) {
             alert(error.message)
           } else {
@@ -106,33 +141,67 @@
 </script>
 
 <style scoped>
-
+  .sirsi {
+    position: absolute;
+    right: 3px;
+    top: 0;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #0078e7;
+    color: white;
+    opacity: 0.6;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .sirsi:hover {
+    opacity: 1;
+  }
+  i.fa-external-link-alt {
+    margin-left:5px;
+    color: #999;
+    opacity: 0.5;
+  }
+  a.uri {
+    color: cornflowerblue;
+    text-decoration: none;
+    font-weight: bold;
+  }
+  a.uri:hover {
+    text-decoration: underline;
+  }
   table.node {
     padding: 5px 0 5px 5px;
     margin: 0;
-    display: block;
+    display: table;
+    width: 100%;
     overflow-wrap: break-word;
     word-wrap: break-word;
     hyphens: auto;
     border-bottom: 1px solid #ccc;
     border-left: 1px solid #ccc;
+    font-size: 0.9em;
   }
   table.node td {
     padding: 5px 10px 5px 0;
   }
+  table.node tr {
+    padding: 5px 10px 5px 0;
+  }
   table.node.selected {
-    border-left: 2px solid #5c5;
-    border-bottom: 2px solid #5c5;
-    background: #f5fff5;
+    border-left: 2px solid #7af;
+    border-bottom: 2px solid #7af;
+    background: #f0f7ff;
   }
-  .dobj {
-    cursor: pointer;
-    color: #999;
-    font-weight: bold;
-    font-style: italic;
+  td.sirsi-link {
+    text-align: right;
   }
-  .dobj:hover {
-    text-decoration: underline;
+  td.dobj.pure-button {
+    padding: 4px 10px;
+    margin: 4px 0;
+    opacity: 0.6;
+  }
+  td.dobj.pure-button:hover {
+    opacity: 1;
   }
   table.node td.label {
     text-transform: capitalize;
@@ -140,9 +209,7 @@
     font-weight: bold;
     text-align: right;
     padding: 5px 10px 5px 10px;
-  }
-  table.node td.data {
-    text-transform: capitalize;
+    width: 35%;
   }
   div.content ul, div.content li {
     font-size: 14px;
@@ -156,11 +223,13 @@
     position: absolute;
     left: -35px;
     top: 10px;
-    /* border: 1px solid #ccc; */
     padding: 4px 11px 4px 10px;
-    /* border-right: 1px solid white; */
     z-index: 100;
     cursor: pointer;
+    opacity: 0.4;
+  }
+  span.icon:hover {
+    opacity: 0.7;
   }
   span.icon.plus {
     background: url(../assets/plus.png);

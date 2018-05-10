@@ -11,16 +11,16 @@
         <h4>No data found!</h4>
       </div>
       <div v-else class="content pure-g">
-        <div class="pure-u-1-3">
+        <div class="pure-u-9-24">
           <h4 class="do-header">Collection Structure</h4>
           <ul class="collection">
             <details-node :model="collection" :depth="0"></details-node>
           </ul>
         </div>
-        <div class="pure-u-2-3">
+        <div class="pure-u-15-24">
           <h4 class="do-header">Digitial Object Viewer</h4>
           <div id="object-viewer">
-            <p id="view-placeholder" class="hint">Click a Digital Object from the tree on the left to view it here.</p>
+            <p id="view-placeholder" class="hint">Click 'View Digital Object' from the tree on the left to view it here.</p>
           </div>
         </div>
       </div>
@@ -74,6 +74,9 @@
         if (json.value) {
           // This node has a value; it is an attribute. just poulate value
           currNode.value = json.value
+          if (json.valueURI) {
+            currNode.valueURI = json.valueURI
+          }
         } else {
             // This node has no value so it is a container.
             // Walk children and build attributes and children arrays
