@@ -91,7 +91,7 @@
         this.activePID = ""
       },
       iiifManufestURL: function() {
-        return "https://tracksys.lib.virginia.edu:8080/"+this.activePID
+        return "https://tracksys.lib.virginia.edu:8080/"+this.activePID+"/manifest.json"
       },
       traverseDetails: function(json, currNode) {
         // every node has at least a PID and name obj (pid, name)
