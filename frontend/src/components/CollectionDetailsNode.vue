@@ -7,11 +7,11 @@
         <td class="data">
           {{ model.name.value }}
           <div class="formats">
-            <template v-if="jsonLink(model)">
-              <a class="raw" :href="jsonLink(model)" target="_blank">JSON</a>
+            <template v-if="jsonLink()">
+              <a class="raw" :href="jsonLink()" target="_blank">JSON</a>
             </template>
-            <template v-if="sirsiLink(model)">
-              <a class="sirsi" :href="sirsiLink(model)" target="_blank">Sirsi</a>
+            <template v-if="sirsiLink()">
+              <a class="sirsi" :href="sirsiLink()" target="_blank">Sirsi</a>
             </template>
           </div>
         </td>
@@ -62,30 +62,45 @@
         return this.model.children && this.model.children.length
       }
     },
+
     mounted() {
       window.addEventListener("scroll", this.handleScroll);
     },
+
     destroyed() {
       window.removeEventListener("scroll", this.handleScroll);
     },
+
     methods: {
-      zzz: function() {
-        alert("def")
-      },
-      jsonLink: function(model) {
-        for (var idx in model.attributes) {
-          var attr = model.attributes[idx]
-          if (attr.name.value === "barcode" || attr.name.value === "catalogKey") {
-            return "/api/collections/"+model.pid
+      componentPID: function() {
+        for (var idx in this.model.attributes) {
+          var attr = this.model.attributes[idx]
+          if (attr.name.value === "componentPID") {
+            return attr.value
           }
         }
         return ""
       },
+
+      jsonLink: function() {
+        // This should only return a URL for nodes that
+        // are top level. A top level node will have a barcode and/or key
+        for (var idx in this.model.attributes) {
+          let attr = this.model.attributes[idx]
+          if (attr.name.value === "barcode" || attr.name.value === "catalogKey") {
+            return "/api/collections/"+this.model.pid
+          }
+        }
+        return ""
+      },
+
       sirsiLink: function(model) {
+        // This should only return a URL for nodes that
+        // are top level. A top level node will have a barcode and/or key
         let barcode=""
         let catalogKey = ""
-        for (var idx in model.attributes) {
-          var attr = model.attributes[idx]
+        for (var idx in this.model.attributes) {
+          let attr = this.model.attributes[idx]
           if (attr.name.value === "barcode"){
             barcode = attr.value
           }
@@ -102,6 +117,7 @@
         }
         return ""
       },
+
       handleScroll: function(event) {
         // Keep the viewer on screen as the user scrolls through
         // the (potentially) long list of nodes in the collection.
@@ -125,11 +141,13 @@
            viewer.offset({top: viewer.data("origTop")});
         }
       },
+
       toggle: function () {
         if (this.isFolder) {
           this.open = !this.open
         }
       },
+
       digitalObjectClicked: function(event) {
         // make sure only one node is marked as selected
         $(".selected").removeClass("selected")
@@ -147,7 +165,7 @@
           // will not load, and the viewer will not render
           window.embedScriptIncluded = false
           dv.append( $( response.data.html) )
-          EventBus.$emit('viewer-opened')
+          EventBus.$emit('viewer-opened', this.componentPID() )
         }).catch((error) => {
           if ( error.message ) {
             EventBus.$emit('viewer-error', error.message)

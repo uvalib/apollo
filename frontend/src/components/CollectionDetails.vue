@@ -25,8 +25,8 @@
               <p id="view-placeholder" class="hint">Click 'View Digital Object' from the tree on the left to view it here.</p>
             </div>
             <div v-if="viewerVisible" id="viewer-tools">
-              <a class="do-button" href="#" target="_blank">PDF</a>
-              <a class="do-button" href="#" target="_blank">IIIF Manifest</a>
+              <!-- <a class="do-button" href="#" target="_blank">PDF</a> -->
+              <a class="do-button" :href="iiifManufestURL()" target="_blank">IIIF Manifest</a>
             </div>
           </div>
         </div>
@@ -57,7 +57,8 @@
         loading: true,
         viewerVisible: false,
         errorMsg: null,
-        viewerError: null
+        viewerError: null,
+        activePID: ""
       }
     },
     created: function () {
@@ -79,12 +80,18 @@
     methods: {
       handleViewerClicked: function() {
         this.viewerError = null
+        this.activePID = ""
       },
-      handleViewerOpened: function() {
+      handleViewerOpened: function(pid) {
         this.viewerVisible = true
+        this.activePID = pid
       },
       handleViewerError: function(msg) {
         this.viewerError = msg
+        this.activePID = ""
+      },
+      iiifManufestURL: function() {
+        return "https://tracksys.lib.virginia.edu:8080/"+this.activePID
       },
       traverseDetails: function(json, currNode) {
         // every node has at least a PID and name obj (pid, name)
