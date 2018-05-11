@@ -41,12 +41,12 @@
     },
     created: function () {
       axios.get("/api/collections").then((response)  =>  {
-        this.loading = false
         this.collections = response.data
       }).catch((error) => {
+        this.errorMsg = error.response.data
+      }).finally(() => {
         this.loading = false
-        this.errorMsg =  error.response.data
-      });
+      })
     }
   }
 </script>

@@ -6,9 +6,14 @@
         <td class="label">Type:</td>
         <td class="data">
           {{ model.name.value }}
-          <template v-if="sirsiLink(model)">
-            <a class="sirsi" :href="sirsiLink(model)" target="_blank">Sirsi</a>
-          </template>
+          <div class="formats">
+            <template v-if="jsonLink(model)">
+              <a class="raw" :href="jsonLink(model)" target="_blank">JSON</a>
+            </template>
+            <template v-if="sirsiLink(model)">
+              <a class="sirsi" :href="sirsiLink(model)" target="_blank">Sirsi</a>
+            </template>
+          </div>
         </td>
       </tr>
       <tr v-for="(attribute, index) in model.attributes"  class="attribute">
@@ -39,6 +44,7 @@
 
 <script>
   import axios from 'axios'
+  import EventBus from './EventBus'
 
   export default {
     name: 'details-node',
@@ -63,6 +69,18 @@
       window.removeEventListener("scroll", this.handleScroll);
     },
     methods: {
+      zzz: function() {
+        alert("def")
+      },
+      jsonLink: function(model) {
+        for (var idx in model.attributes) {
+          var attr = model.attributes[idx]
+          if (attr.name.value === "barcode" || attr.name.value === "catalogKey") {
+            return "/api/collections/"+model.pid
+          }
+        }
+        return ""
+      },
       sirsiLink: function(model) {
         let barcode=""
         let catalogKey = ""
@@ -85,12 +103,13 @@
         return ""
       },
       handleScroll: function(event) {
-        var viewer = $('#object-viewer')
+        // Keep the viewer on screen as the user scrolls through
+        // the (potentially) long list of nodes in the collection.
+        var viewer = $('#viewer-wrapper')
         let origVal = viewer.data("origTop")
         // console.log("OV: ["+origVal+"]")
         if ( !origVal ) {
-          let ot = $('#object-viewer').offset().top
-          console.log("set origTop to: "+ot)
+          let ot = $('#viewer-wrapper').offset().top
           viewer.data("origTop", ot)
         }
 
@@ -99,7 +118,7 @@
 
         // var isPositionFixed = ($el.css('position') == 'fixed');
         if ( scrollTop >= 252 ) {
-           let xxx = $('#object-viewer').offset().top
+           let xxx = $('#viewer-wrapper').offset().top
            // console.log("VIEW TOP" +xxx)
            viewer.offset({top: scrollTop+15});
         } else {
@@ -116,23 +135,24 @@
         $(".selected").removeClass("selected")
         let node = $(event.target).closest(".node")
         node.addClass("selected")
+        EventBus.$emit('viewer-clicked')
 
         // grab the oembedURI and request embedding info
         let oembedUri = event.target.getAttribute('data-uri')
         axios.get(oembedUri).then((response)  =>  {
           let dv = $("#object-viewer")
-          dv.empty();
+          dv.empty()
           // set a global flag to make the browser think JS jas not all been
           // loaded. Without this, the JS file included in the response
           // will not load, and the viewer will not render
-          window.embedScriptIncluded = false;
+          window.embedScriptIncluded = false
           dv.append( $( response.data.html) )
+          EventBus.$emit('viewer-opened')
         }).catch((error) => {
-          // FIXME real error handling!!!
           if ( error.message ) {
-            alert(error.message)
+            EventBus.$emit('viewer-error', error.message)
           } else {
-            alert(error.response.data)
+            EventBus.$emit('viewer-error', error.response.data)
           }
         })
       }
@@ -141,10 +161,12 @@
 </script>
 
 <style scoped>
-  .sirsi {
+  div.formats {
     position: absolute;
     right: 3px;
     top: 0;
+  }
+  .sirsi, .raw {
     padding: 2px 8px;
     border-radius: 10px;
     background: #0078e7;
@@ -153,8 +175,12 @@
     cursor: pointer;
     text-decoration: none;
   }
-  .sirsi:hover {
+  .sirsi:hover, .raw:hover {
     opacity: 1;
+  }
+  .raw {
+    background: rgb(240, 130, 40);
+    opacity: 0.8;
   }
   i.fa-external-link-alt {
     margin-left:5px;
@@ -199,6 +225,7 @@
     padding: 4px 10px;
     margin: 4px 0;
     opacity: 0.6;
+    border-radius: 10px;
   }
   td.dobj.pure-button:hover {
     opacity: 1;

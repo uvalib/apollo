@@ -19,8 +19,15 @@
         </div>
         <div class="pure-u-15-24">
           <h4 class="do-header">Digitial Object Viewer</h4>
-          <div id="object-viewer">
-            <p id="view-placeholder" class="hint">Click 'View Digital Object' from the tree on the left to view it here.</p>
+          <apollo-error v-if="viewerError" :message="viewerError"></apollo-error>
+          <div v-else id="viewer-wrapper">
+            <div id="object-viewer">
+              <p id="view-placeholder" class="hint">Click 'View Digital Object' from the tree on the left to view it here.</p>
+            </div>
+            <div v-if="viewerVisible" id="viewer-tools">
+              <a class="do-button" href="#" target="_blank">PDF</a>
+              <a class="do-button" href="#" target="_blank">IIIF Manifest</a>
+            </div>
           </div>
         </div>
       </div>
@@ -32,6 +39,7 @@
   import axios from 'axios'
   import CollectionDetailsNode from './CollectionDetailsNode'
   import PageHeader from './PageHeader'
+  import EventBus from './EventBus'
 
   export default {
     name: 'collection-details',
@@ -47,19 +55,37 @@
       return {
         collection: {},
         loading: true,
-        errorMsg: null
+        viewerVisible: false,
+        errorMsg: null,
+        viewerError: null
       }
     },
     created: function () {
       axios.get("/api/collections/"+this.id).then((response)  =>  {
-        this.loading = false;
+        this.loading = false
         this.traverseDetails(response.data, this.collection)
       }).catch((error) => {
         this.loading = false
         this.errorMsg =  error.response.data
-      });
+      }).finally(() => {
+        this.loading = false
+      })
+    },
+    mounted: function (){
+      EventBus.$on("viewer-clicked", this.handleViewerClicked)
+      EventBus.$on("viewer-opened", this.handleViewerOpened)
+      EventBus.$on("viewer-error", this.handleViewerError)
     },
     methods: {
+      handleViewerClicked: function() {
+        this.viewerError = null
+      },
+      handleViewerOpened: function() {
+        this.viewerVisible = true
+      },
+      handleViewerError: function(msg) {
+        this.viewerError = msg
+      },
       traverseDetails: function(json, currNode) {
         // every node has at least a PID and name obj (pid, name)
         currNode.pid = json.pid
@@ -107,6 +133,24 @@
   div#object-viewer {
     padding: 0px 20px;
   }
+  #viewer-tools {
+    text-align: right;
+    margin: 15px 0;
+  }
+  a.do-button {
+    padding: 5px 25px 4px 25px;
+    border-radius: 15px;
+    background: #0078e7;
+    color: white;
+    opacity: 0.7;
+    cursor: pointer;
+    text-decoration: none;
+    margin-left: 5px;
+    font-size: 0.9em;
+  }
+  a.do-button:hover {
+    opacity: 1;
+  }
   h4.do-header {
     margin: 0;
     border-bottom: 1px solid #ccc;
@@ -116,7 +160,9 @@
   }
   p.hint {
     color: #999;
-    font-style: italic;
+    margin: 25px 0;
+    text-align: center;;
+    /* font-style: italic; */
   }
   div.detail-wrapper {
     background-color: white;
