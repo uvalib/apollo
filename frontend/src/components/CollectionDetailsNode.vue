@@ -3,6 +3,10 @@
     <span v-if="isFolder" class="icon" @click="toggle" :class="{ plus: open==false, minus: open==true}"></span>
     <table class="node">
       <tr class="attribute">
+        <td class="label">PID:</td>
+        <td class="data">{{ model.pid }}</td>
+      </tr>
+      <tr class="attribute">
         <td class="label">Type:</td>
         <td class="data">
           {{ model.name.value }}
@@ -16,7 +20,7 @@
           </div>
         </td>
       </tr>
-      <tr v-for="(attribute, index) in model.attributes"  class="attribute">
+      <tr v-for="(attribute, index) in model.attributes" v-if="attribute.name.value !='componentPID'"  class="attribute">
         <template v-if="attribute.name.value !='digitalObject'">
           <template v-if="attribute.valueURI">
             <td class="label">{{ attribute.name.value }}:</td>
