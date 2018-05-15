@@ -90,6 +90,20 @@ func (db *DB) GetCollections() []Collection {
 	return out
 }
 
+// LegacyLookup will find an ApolloPID for a legacy TrackSys PID
+func (db *DB) LegacyLookup(componentPID string) (string, error) {
+	var apolloPID string
+	qs := `SELECT np.pid FROM nodes ns
+		INNER JOIN nodes np ON np.id = ns.parent_id
+ 		WHERE ns.value=?`
+	log.Printf("Q: %s, PID: %s", qs, componentPID)
+	db.QueryRow(qs, componentPID).Scan(&apolloPID)
+	if len(apolloPID) == 0 {
+		return "", fmt.Errorf("Unable to find match for legacy PID %s", componentPID)
+	}
+	return apolloPID, nil
+}
+
 // GetParentCollection returns details about the collection that contains the PID
 func (db *DB) GetParentCollection(pid string) (*Node, error) {
 	var ancestry string
