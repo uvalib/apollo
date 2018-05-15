@@ -96,7 +96,6 @@ func (db *DB) LegacyLookup(componentPID string) (string, error) {
 	qs := `SELECT np.pid FROM nodes ns
 		INNER JOIN nodes np ON np.id = ns.parent_id
  		WHERE ns.value=?`
-	log.Printf("Q: %s, PID: %s", qs, componentPID)
 	db.QueryRow(qs, componentPID).Scan(&apolloPID)
 	if len(apolloPID) == 0 {
 		return "", fmt.Errorf("Unable to find match for legacy PID %s", componentPID)
@@ -189,6 +188,7 @@ func (db *DB) queryNodes(query string, rootID int64, stripNoValue bool) (*Node, 
 				continue
 			}
 			// a parentID exists. That node should be found in the nodes array
+			nodes = append(nodes, &n)
 			found := false
 			for _, val := range nodes {
 				if val.ID == parentID.Int64 {
