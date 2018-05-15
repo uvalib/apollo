@@ -59,14 +59,15 @@ func main() {
 
 	// Set routes and start server
 	// use julienschmidt router for all things API/version/health
-	// These handlers are accessed throu the ApolloHandler which provides some
-	// shared configuration info, like DB, versions, etc...
+	// These handlers are accessed thru the ApolloHandler which provides some
+	// shared configuration info; DB, versions, authUser
 	router := httprouter.New()
 	router.GET("/version", app.VersionInfo)
 	router.GET("/healthcheck", app.HealthCheck)
 	router.GET("/api/authenticate", app.Authenticate)
 	router.GET("/api/collections", app.AuthMiddleware(app.CollectionsIndex))
 	router.GET("/api/collections/:pid", app.AuthMiddleware(app.CollectionsShow))
+	router.GET("/api/items/:pid", app.AuthMiddleware(app.ItemShow))
 	router.GET("/api/users", app.AuthMiddleware(app.UsersIndex))
 	router.GET("/api/users/:id", app.AuthMiddleware(app.UsersShow))
 	router.GET("/api/names", app.AuthMiddleware(app.NamesIndex))

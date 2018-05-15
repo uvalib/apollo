@@ -14,7 +14,12 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-// Node is an element in a tree of metadata
+// Node is a single element in a tree of metadata. This is the smallest unit
+// of data in the system; essentially a name/value pair.
+// An Item is a collection of nodes with
+// the same parent.
+// A Collection is the hierarchical representation of all nodes stemming from a
+// single PID.
 type Node struct {
 	ID        int64      `json:"-"`
 	PID       string     `json:"pid"`
@@ -85,27 +90,58 @@ func (db *DB) GetCollections() []Collection {
 	return out
 }
 
-// GetCollection returns an entire collection identified by PID
-func (db *DB) GetCollection(pid string) (*Node, error) {
-	log.Printf("Get collecton with PID %s", pid)
+// GetParentCollection returns details about the collection that contains the PID
+func (db *DB) GetParentCollection(pid string) (*Node, error) {
+	var ancestry string
+	log.Printf("Get Parent Collection for PID %s", pid)
+	db.QueryRow("select ancestry from nodes where pid=?", pid).Scan(&ancestry)
+	rootID, _ := strconv.ParseInt(strings.Split(ancestry, "/")[0], 10, 64)
 
-	// first, get the root node ID
+	qs := fmt.Sprintf(`
+		%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '(^.*/|^)%d$')
+	 	ORDER BY n.id ASC`, getNodeSelect(), rootID)
+	return db.queryNodes(qs, rootID, true)
+}
+
+// GetTree returns the node tree rooted at the specified PID
+func (db *DB) GetTree(pid string) (*Node, error) {
+	log.Printf("Get tree rooted at PID %s", pid)
 	var rootID int64
 	db.QueryRow("select id from nodes where pid=?", pid).Scan(&rootID)
-	var nodes []*Node
-	var root *Node
-	log.Printf("Collecton for PID %s has ID %d", pid, rootID)
 
 	// now get all children with the root ID as the start of their ancestry
-	qs := fmt.Sprintf(
-		`SELECT n.id, n.parent_id, n.pid, n.value, n.created_at, n.updated_at,
-		        nn.pid, nn.value, nn.controlled_vocab
-       FROM nodes n
-         inner join node_names nn on nn.id = n.node_name_id
-       WHERE deleted=0 and current=1 and (n.id=? or ancestry like '%d/%%' or ancestry=?) order by n.id asc`, rootID)
-	rows, err := db.Queryx(qs, rootID, rootID)
+	qs := fmt.Sprintf(`
+		%s WHERE deleted=0 and current=1 AND (n.id=? or ancestry REGEXP '(^.*/|^)%d($|/.*)')
+		ORDER BY n.id ASC`, getNodeSelect(), rootID)
+	return db.queryNodes(qs, rootID, false)
+}
+
+// GetChildren returns this node and all of its immediate children
+func (db *DB) GetChildren(pid string) (*Node, error) {
+	var itemID int64
+	log.Printf("Get Children of PID %s", pid)
+	db.QueryRow("select id from nodes where pid=?", pid).Scan(&itemID)
+
+	// now get all children with the above PID as the end of their ancestry
+	qs := fmt.Sprintf(`
+		%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '(^.*/|^)%d$')
+	 	ORDER BY n.id ASC`, getNodeSelect(), itemID)
+	return db.queryNodes(qs, itemID, true)
+}
+
+func getNodeSelect() string {
+	return `SELECT n.id, n.parent_id, n.pid, n.value, n.created_at, n.updated_at,
+			  		nn.pid, nn.value, nn.controlled_vocab
+	 		  FROM nodes n
+			  		INNER JOIN node_names nn ON nn.id = n.node_name_id`
+}
+
+func (db *DB) queryNodes(query string, rootID int64, stripNoValue bool) (*Node, error) {
+	var nodes []*Node
+	var root *Node
+	rows, err := db.Queryx(query, rootID)
 	if err != nil {
-		log.Printf("ERROR: unable to retrieve collection: %s", err.Error())
+		log.Printf("ERROR: unable to retrieve nodes: %s", err.Error())
 		return nil, err
 	}
 	defer rows.Close()
@@ -129,11 +165,15 @@ func (db *DB) GetCollection(pid string) (*Node, error) {
 				n.ValueURI = cv.ValueURI
 			}
 		}
-		nodes = append(nodes, &n)
+
 		if n.ID == rootID {
 			root = &n
-		}
-		if parentID.Valid {
+			nodes = append(nodes, &n)
+		} else if parentID.Valid {
+			if stripNoValue && len(n.Value) == 0 {
+				// skip no-value nodes mode and one encountered. Skip it!
+				continue
+			}
 			// a parentID exists. That node should be found in the nodes array
 			found := false
 			for _, val := range nodes {

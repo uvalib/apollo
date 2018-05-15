@@ -22,7 +22,7 @@ func (app *ApolloHandler) CollectionsIndex(rw http.ResponseWriter, req *http.Req
 func (app *ApolloHandler) CollectionsShow(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	pid := params.ByName("pid")
 	rw.Header().Set("Content-Type", "application/json")
-	root, dbErr := app.DB.GetCollection(pid)
+	root, dbErr := app.DB.GetTree(pid)
 	if dbErr != nil {
 		http.Error(rw, dbErr.Error(), http.StatusNotFound)
 		return
