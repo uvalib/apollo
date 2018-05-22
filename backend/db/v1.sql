@@ -55,7 +55,7 @@ CREATE TABLE node_names (
 insert into node_names(pid,value,controlled_vocab) values
    ("uva-ann1", "collection", 0), ("uva-ann2", "title", 0),
    ("uva-ann3", "volume", 0), ("uva-ann4", "issue", 0),
-	 ('uva-ann5', 'componentPID', 0), ('uva-ann6', 'digitalObject', 0),
+	 ('uva-ann5', 'externalPID', 0), ('uva-ann6', 'digitalObject', 0),
 	 ('uva-ann7', 'year', 0), ('uva-ann8', 'month', 0),
    ('uva-ann9', 'barcode', 0), ('uva-ann10', 'catalogKey', 0),
    ('uva-ann11', 'useRights', 1);
