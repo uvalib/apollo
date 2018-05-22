@@ -20,7 +20,7 @@
           </div>
         </td>
       </tr>
-      <tr v-for="(attribute, index) in model.attributes" v-if="attribute.name.value !='componentPID'"  class="attribute">
+      <tr v-for="(attribute, index) in model.attributes" class="attribute">
         <template v-if="attribute.name.value !='digitalObject'">
           <template v-if="attribute.valueURI">
             <td class="label">{{ attribute.name.value }}:</td>
