@@ -109,7 +109,7 @@ CREATE TABLE nodes (
    parent_id int(11),
    ancestry varchar(255),
    node_name_id int(11) NOT NULL,
-   value varchar(255) DEFAULT NULL,
+   value varchar(512) DEFAULT NULL,
    user_id int(11),
    deleted tinyint(1) NOT NULL DEFAULT 0,
    current tinyint(1) NOT NULL DEFAULT 1,

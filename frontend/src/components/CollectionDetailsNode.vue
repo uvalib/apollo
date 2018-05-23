@@ -76,10 +76,10 @@
     },
 
     methods: {
-      componentPID: function() {
+      externalPID: function() {
         for (var idx in this.model.attributes) {
           var attr = this.model.attributes[idx]
-          if (attr.name.value === "componentPID") {
+          if (attr.name.value === "externalPID") {
             return attr.value
           }
         }
@@ -169,7 +169,7 @@
           // will not load, and the viewer will not render
           window.embedScriptIncluded = false
           dv.append( $( response.data.html) )
-          EventBus.$emit('viewer-opened', this.componentPID() )
+          EventBus.$emit('viewer-opened', this.externalPID() )
         }).catch((error) => {
           if ( error.message ) {
             EventBus.$emit('viewer-error', error.message)

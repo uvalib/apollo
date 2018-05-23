@@ -10,6 +10,7 @@ export default new Router({
   mode: 'history',
   routes: [
     {
+      alias: '/index.html',
       path: '/',
       name: 'home',
       component: CollectionList,
