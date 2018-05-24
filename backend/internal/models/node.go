@@ -125,9 +125,8 @@ func (db *DB) GetTree(pid string) (*Node, error) {
 	log.Printf("Got ID %d for root PID %s", rootID, pid)
 
 	// now get all children with the root ID as the start of their ancestry
-	qs := fmt.Sprintf(`
-		%s WHERE deleted=0 and current=1 AND (n.id=? or ancestry REGEXP '(^.*/|^)%d($|/.*)')
-		ORDER BY n.id ASC`, getNodeSelect(), rootID)
+	qs := fmt.Sprintf("%s WHERE deleted=0 and current=1 AND (n.id=? or ancestry REGEXP '(^.*/|^)%d($|/.*)')",
+		getNodeSelect(), rootID)
 	return db.queryNodes(qs, rootID, false)
 }
 
@@ -138,9 +137,8 @@ func (db *DB) GetChildren(pid string) (*Node, error) {
 	db.QueryRow("select id from nodes where pid=?", pid).Scan(&itemID)
 
 	// now get all children with the above PID as the end of their ancestry
-	qs := fmt.Sprintf(`
-		%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '(^.*/|^)%d$')
-	 	ORDER BY n.id ASC`, getNodeSelect(), itemID)
+	qs := fmt.Sprintf("%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '(^.*/|^)%d$')",
+		getNodeSelect(), itemID)
 	return db.queryNodes(qs, itemID, true)
 }
 
@@ -152,7 +150,6 @@ func getNodeSelect() string {
 }
 
 func (db *DB) queryNodes(query string, rootID int64, stripNoValue bool) (*Node, error) {
-	// var nodes []*Node
 	nodes := make(map[int64]*Node)
 	var root *Node
 	controlledValues := make(map[int64]*ControlledValue)
