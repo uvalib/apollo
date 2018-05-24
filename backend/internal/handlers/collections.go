@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -27,6 +28,8 @@ func (app *ApolloHandler) CollectionsShow(rw http.ResponseWriter, req *http.Requ
 		http.Error(rw, dbErr.Error(), http.StatusNotFound)
 		return
 	}
+	log.Printf("Tree retrieved; Marshall to JSON...")
 	json, _ := json.MarshalIndent(root, "", "  ")
+	log.Printf("DONE")
 	fmt.Fprintf(rw, string(json))
 }

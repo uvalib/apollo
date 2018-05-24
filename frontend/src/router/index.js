@@ -7,10 +7,9 @@ import ApolloError from '@/components/ApolloError'
 Vue.use(Router)
 
 export default new Router({
-  mode: 'history',
+  // mode: 'history',
   routes: [
     {
-      alias: '/index.html',
       path: '/',
       name: 'home',
       component: CollectionList,

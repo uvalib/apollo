@@ -21,18 +21,19 @@ import (
 // A Collection is the hierarchical representation of all nodes stemming from a
 // single PID.
 type Node struct {
-	ID        int64      `json:"-"`
-	PID       string     `json:"pid"`
-	Parent    *Node      `json:"-"`
-	Name      *NodeName  `json:"name"`
-	Value     string     `json:"value,omitempty"`
-	ValueURI  string     `json:"valueURI,omitempty"`
-	Children  []*Node    `json:"children,omitempty"`
-	User      *User      `json:"-"`
-	Deleted   bool       `json:"-"`
-	Current   bool       `json:"-"`
-	CreatedAt time.Time  `db:"created_at" json:"createdAt"`
-	UpdatedAt *time.Time `db:"updated_at" json:"updatedAt,omitempty"`
+	ID        int64         `json:"-"`
+	PID       string        `json:"pid"`
+	parentID  sql.NullInt64 `json:"-"`
+	Parent    *Node         `json:"-"`
+	Name      *NodeName     `json:"name"`
+	Value     string        `json:"value,omitempty"`
+	ValueURI  string        `json:"valueURI,omitempty"`
+	Children  []*Node       `json:"children,omitempty"`
+	User      *User         `json:"-"`
+	Deleted   bool          `json:"-"`
+	Current   bool          `json:"-"`
+	CreatedAt time.Time     `db:"created_at" json:"createdAt"`
+	UpdatedAt *time.Time    `db:"updated_at" json:"updatedAt,omitempty"`
 }
 
 // Collection holds key data about a collection; its PID and Title
@@ -121,6 +122,7 @@ func (db *DB) GetTree(pid string) (*Node, error) {
 	log.Printf("Get tree rooted at PID %s", pid)
 	var rootID int64
 	db.QueryRow("select id from nodes where pid=?", pid).Scan(&rootID)
+	log.Printf("Got ID %d for root PID %s", rootID, pid)
 
 	// now get all children with the root ID as the start of their ancestry
 	qs := fmt.Sprintf(`
@@ -150,61 +152,70 @@ func getNodeSelect() string {
 }
 
 func (db *DB) queryNodes(query string, rootID int64, stripNoValue bool) (*Node, error) {
-	var nodes []*Node
+	// var nodes []*Node
+	nodes := make(map[int64]*Node)
 	var root *Node
-	rows, err := db.Queryx(query, rootID)
+	controlledValues := make(map[int64]*ControlledValue)
+	rows, err := db.Query(query, rootID)
 	if err != nil {
 		log.Printf("ERROR: unable to retrieve nodes: %s", err.Error())
 		return nil, err
 	}
+	log.Printf("Got response; iterating rows")
 	defer rows.Close()
 	for rows.Next() {
 		var n Node
 		var nn NodeName
-		var parentID sql.NullInt64
 		var updateAt mysql.NullTime
-		rows.Scan(&n.ID, &parentID, &n.PID, &n.Value, &n.CreatedAt, &updateAt, &nn.PID, &nn.Value, &nn.ControlledVocab)
+		rows.Scan(&n.ID, &n.parentID, &n.PID, &n.Value, &n.CreatedAt, &updateAt, &nn.PID, &nn.Value, &nn.ControlledVocab)
 		if updateAt.Valid {
 			n.UpdatedAt = &updateAt.Time
 		}
 		n.Name = &nn
 		if nn.ControlledVocab {
 			id, _ := strconv.ParseInt(n.Value, 10, 64)
-			cv := db.GetControlledValueByID(id)
-			if cv == nil {
-				log.Printf("ERROR: no controlled value match for %d", id)
-			} else {
+			if cv, ok := controlledValues[id]; ok {
 				n.Value = cv.Value
 				n.ValueURI = cv.ValueURI
+				log.Printf("Use cached controlled value %d", id)
+			} else {
+				cv := db.GetControlledValueByID(id)
+				if cv == nil {
+					log.Printf("ERROR: no controlled value match for %d", id)
+				} else {
+					n.Value = cv.Value
+					n.ValueURI = cv.ValueURI
+					controlledValues[id] = cv
+					log.Printf("Cache controlled value %d", id)
+				}
 			}
 		}
 
+		if stripNoValue && len(n.Value) == 0 {
+			// skip no-value nodes mode and one encountered. Skip it!
+			continue
+		}
+
+		nodes[n.ID] = &n
 		if n.ID == rootID {
 			root = &n
-			nodes = append(nodes, &n)
-		} else if parentID.Valid {
-			if stripNoValue && len(n.Value) == 0 {
-				// skip no-value nodes mode and one encountered. Skip it!
-				continue
-			}
-			// a parentID exists. That node should be found in the nodes array
-			nodes = append(nodes, &n)
-			found := false
-			for _, val := range nodes {
-				if val.ID == parentID.Int64 {
-					n.Parent = val
-					val.Children = append(val.Children, &n)
-					found = true
-					break
-				}
-			}
-			if !found {
-				msg := fmt.Sprintf("Unable to to find parentID %d for collection: %d", parentID.Int64, root.ID)
-				log.Printf("ERROR: %s", msg)
-				return nil, errors.New(msg)
-			}
 		}
 	}
+
+	// hook all nodes that have a parent with the parent
+	for _, node := range nodes {
+		if node.parentID.Valid == false {
+			continue
+		}
+		if parent, ok := nodes[node.parentID.Int64]; ok {
+			parent.Children = append(parent.Children, node)
+		} else {
+			msg := fmt.Sprintf("Unable to to find parentID %d for collection: %d", node.parentID.Int64, root.ID)
+			log.Printf("ERROR: %s", msg)
+			return nil, errors.New(msg)
+		}
+	}
+
 	return root, nil
 }
 
