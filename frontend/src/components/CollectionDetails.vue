@@ -65,6 +65,7 @@
       axios.get("/api/collections/"+this.id).then((response)  =>  {
         this.loading = false
         this.traverseDetails(response.data, this.collection)
+        // console.log(this.collection)
       }).catch((error) => {
         this.loading = false
         this.errorMsg =  error.response.data
@@ -86,20 +87,35 @@
         this.viewerVisible = true
         this.activePID = pid
       },
+
       handleViewerError: function(msg) {
         this.viewerError = msg
         this.activePID = ""
       },
+
       iiifManufestURL: function() {
         return "https://tracksys.lib.virginia.edu:8080/"+this.activePID+"/manifest.json"
       },
-      traverseDetails: function(json, currNode) {
-        // every node has at least a PID and name obj (pid, name)
-        currNode.pid = json.pid
-        currNode.name = json.name
 
-        // If it does not have a corresponding VALUE attribute, it is a container node
-        // container nodes contain attributes (simple name/value pairs) and children.
+      // Comparator method used to sort nodes in ascending sequence order
+      compareNodes(a, b) {
+        if (a.sequence < b.sequence) {
+          return -1
+        }
+        if (a.sequence > b.sequence) {
+          return 1;
+        }
+        return 0;
+      },
+
+      traverseDetails: function(json, currNode) {
+        // every node has at least a PID and type obj (pid, name)
+        currNode.pid = json.pid
+        currNode.type = json.type
+        currNode.sequence = json.sequence
+
+        // If it does not have a corresponding VALUE attribute, it is a container node.
+        // Container nodes contain attributes (simple name/value pairs) and children.
         // NOTE: All container nodes should have a title attribute
         // non-container nodes just contain attributes.
         //     Ex: in our mountain work, issue is not a container. It has 2 attributes;
@@ -130,6 +146,12 @@
             }
         }
         // The node, children and attributes have been populated; return result
+        if (currNode.attributes) {
+          currNode.attributes.sort( this.compareNodes )
+        }
+        if (currNode.children) {
+          currNode.children.sort( this.compareNodes )
+        }
         return currNode
       }
     }

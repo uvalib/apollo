@@ -9,7 +9,7 @@
       <tr class="attribute">
         <td class="label">Type:</td>
         <td class="data">
-          {{ model.name.value }}
+          {{ model.type.name }}
           <div class="formats">
             <template v-if="jsonLink()">
               <a class="raw" :href="jsonLink()" target="_blank">JSON</a>
@@ -21,15 +21,15 @@
         </td>
       </tr>
       <tr v-for="(attribute, index) in model.attributes" class="attribute">
-        <template v-if="attribute.name.value !='digitalObject'">
+        <template v-if="attribute.type.name !='digitalObject'">
           <template v-if="attribute.valueURI">
-            <td class="label">{{ attribute.name.value }}:</td>
+            <td class="label">{{ attribute.type.name }}:</td>
             <td class="data">
               <a :href="attribute.valueURI" class="uri" target="_blank">{{ attribute.value }}&nbsp;<i class="fas fa-external-link-alt"></i></a>
             </td>
           </template>
           <template v-else>
-            <td class="label">{{ attribute.name.value }}:</td><td class="data">{{ attribute.value }}</td>
+            <td class="label">{{ attribute.type.name }}:</td><td class="data">{{ attribute.value }}</td>
           </template>
         </template>
         <template v-else>
@@ -79,7 +79,7 @@
       externalPID: function() {
         for (var idx in this.model.attributes) {
           var attr = this.model.attributes[idx]
-          if (attr.name.value === "externalPID") {
+          if (attr.type.name === "externalPID") {
             return attr.value
           }
         }
@@ -91,7 +91,7 @@
         // are top level. A top level node will have a barcode and/or key
         for (var idx in this.model.attributes) {
           let attr = this.model.attributes[idx]
-          if (attr.name.value === "barcode" || attr.name.value === "catalogKey") {
+          if (attr.type.name === "barcode" || attr.type.name === "catalogKey") {
             return "/api/collections/"+this.model.pid
           }
         }
@@ -105,10 +105,10 @@
         let catalogKey = ""
         for (var idx in this.model.attributes) {
           let attr = this.model.attributes[idx]
-          if (attr.name.value === "barcode"){
+          if (attr.type.name === "barcode"){
             barcode = attr.value
           }
-          if (attr.name.value === "catalogKey") {
+          if (attr.type.name === "catalogKey") {
             catalogKey = attr.value
           }
         }
