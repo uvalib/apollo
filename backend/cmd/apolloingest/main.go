@@ -18,7 +18,7 @@ const Version = "1.0.0"
 
 type context struct {
 	db    *models.DB
-	names []models.NodeName
+	types []models.NodeType
 	user  *models.User
 }
 
@@ -60,15 +60,15 @@ func main() {
 	}
 
 	// build a context for the ingest containing common data
-	ctx := context{db: db, user: user, names: db.AllNames()}
+	ctx := context{db: db, user: user, types: db.AllTypes()}
 
-	doIngest(ctx, srcFile)
+	doIngest(&ctx, srcFile)
 }
 
 /**
  * Ingest the XML file contained in the config data
  */
-func doIngest(ctx context, srcFile string) {
+func doIngest(ctx *context, srcFile string) {
 	log.Printf("Start ingest of %s...", srcFile)
 	xmlFile, err := os.Open(srcFile)
 	if err != nil {
@@ -93,7 +93,7 @@ func doIngest(ctx context, srcFile string) {
 
 		switch tok := token.(type) {
 		case xml.StartElement:
-			node, err := startNode(&ctx, tok.Name.Local, nodeStack)
+			node, err := startNode(ctx, tok.Name.Local, nodeStack)
 			if err != nil {
 				log.Printf("FATAL: unable to start node for %s: %s", tok.Name.Local, err.Error())
 				os.Exit(1)
@@ -113,6 +113,9 @@ func doIngest(ctx context, srcFile string) {
 		}
 	}
 
+	log.Printf("Initialize sequence...")
+	sequenceNodes(nodes[0])
+
 	// Create all nodes now
 	log.Printf("Creating all nodes...")
 	err = ctx.db.CreateNodes(nodes)
@@ -122,27 +125,38 @@ func doIngest(ctx context, srcFile string) {
 	log.Printf("==> DONE <==")
 }
 
+func sequenceNodes(node *models.Node) {
+	if len(node.Children) > 0 {
+		seq := 0
+		for _, c := range node.Children {
+			c.Sequence = seq
+			seq++
+			sequenceNodes(c)
+		}
+	}
+}
+
 func startNode(ctx *context, name string, ancestors []*models.Node) (*models.Node, error) {
-	var nn *models.NodeName
+	var nt *models.NodeType
 	var err error
 
 	// first, find or create node name
 	found := false
-	for _, nodeName := range ctx.names {
-		if strings.Compare(nodeName.Value, name) == 0 {
-			nn = &nodeName
+	for _, nodeType := range ctx.types {
+		if strings.Compare(nodeType.Name, name) == 0 {
+			nt = &nodeType
 			found = true
 			break
 		}
 	}
 	if found == false {
-		log.Printf("NodeName %s not found; CREATING...", name)
-		nn, err = ctx.db.CreateNodeName(name)
+		log.Printf("NodeType %s not found; CREATING...", name)
+		nt, err = ctx.db.CreateNodeType(name)
 		if err != nil {
-			log.Printf("ERROR: Unable to create NodeName %s: %s", name, err.Error())
+			log.Printf("ERROR: Unable to create NodeType %s: %s", name, err.Error())
 			return nil, err
 		}
-		ctx.names = append(ctx.names, *nn)
+		ctx.types = append(ctx.types, *nt)
 	}
 
 	var parent *models.Node
@@ -151,14 +165,19 @@ func startNode(ctx *context, name string, ancestors []*models.Node) (*models.Nod
 	} else {
 		// get parent and full ancestry path
 		parent = ancestors[len(ancestors)-1]
-		log.Printf("Create node %s, parent %s", name, parent.Name.Value)
+		log.Printf("Create node %s, parent %s", name, parent.Type.Name)
 	}
 
-	return &models.Node{Parent: parent, Name: nn, User: ctx.user}, nil
+	newNode := &models.Node{Parent: parent, Type: nt, User: ctx.user}
+	if parent != nil {
+		parent.Children = append(parent.Children, newNode)
+	}
+
+	return newNode, nil
 }
 
-func setNodeValue(ctx context, node *models.Node, val string) {
-	if node.Name.ControlledVocab == false {
+func setNodeValue(ctx *context, node *models.Node, val string) {
+	if node.Type.ControlledVocab == false {
 		node.Value = val
 		log.Printf("   value: %s", val)
 		return
@@ -169,9 +188,9 @@ func setNodeValue(ctx context, node *models.Node, val string) {
 		log.Printf("WARN: no controlled value match found for %s. Just setting value directly.", val)
 		node.Value = val
 	}
-	if cv.NameID != node.Name.ID {
-		log.Printf("WARN: controlled value / node name mis-match (%d vs %d) for %s. Just setting value directly.",
-			node.Name.ID, cv.NameID, val)
+	if cv.TypeID != node.Type.ID {
+		log.Printf("WARN: controlled value / node name mismatch (%d vs %d) for %s. Just setting value directly.",
+			node.Type.ID, cv.TypeID, val)
 		node.Value = val
 	}
 	log.Printf("Controlled value %s replaced with ID %d", val, cv.ID)

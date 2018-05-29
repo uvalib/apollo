@@ -70,7 +70,7 @@ func main() {
 	router.GET("/api/items/:pid", app.AuthMiddleware(app.ItemShow))
 	router.GET("/api/users", app.AuthMiddleware(app.UsersIndex))
 	router.GET("/api/users/:id", app.AuthMiddleware(app.UsersShow))
-	router.GET("/api/names", app.AuthMiddleware(app.NamesIndex))
+	router.GET("/api/types", app.AuthMiddleware(app.TypesIndex))
 	router.GET("/api/values/:name", app.AuthMiddleware(app.ValuesForName))
 	router.GET("/api/external/:pid", app.ExternalPIDLookup)
 

@@ -42,23 +42,26 @@ insert into users(computing_id, last_name,first_name,email,created_at,updated_at
 -- Create controlled vocabulary for node names
 --
 DROP TABLE IF EXISTS node_names;
-CREATE TABLE node_names (
+DROP TABLE IF EXISTS node_types;
+CREATE TABLE node_types (
    id int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
    pid varchar(255) NOT NULL,
-   value varchar(255) NOT NULL,
+   name varchar(255) NOT NULL,
    controlled_vocab boolean not null default 0,
-   UNIQUE KEY (value),
+   validation varchar(255) not null default "",
+   container boolean not null default 0,
+   UNIQUE KEY (name),
    UNIQUE KEY (pid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
--- add some starter names
-insert into node_names(pid,value,controlled_vocab) values
-   ("uva-ann1", "collection", 0), ("uva-ann2", "title", 0),
-   ("uva-ann3", "volume", 0), ("uva-ann4", "issue", 0),
-	 ('uva-ann5', 'externalPID', 0), ('uva-ann6', 'digitalObject', 0),
-	 ('uva-ann7', 'year', 0), ('uva-ann8', 'month', 0),
-   ('uva-ann9', 'barcode', 0), ('uva-ann10', 'catalogKey', 0),
-   ('uva-ann11', 'useRights', 1);
+-- add some starter types
+insert into node_types(pid,name,controlled_vocab,container, validation) values
+   ("uva-ant1", "collection", 0,1,null), ("uva-ant2", "title", 0,0, null),
+   ("uva-ant3", "volume", 0,1, null), ("uva-ant4", "issue", 0,1, null),
+	 ('uva-ant5', 'externalPID', 0,0, null), ('uva-ant6', 'digitalObject', 0,0, null),
+	 ('uva-ant7', 'year', 0,1, "^\d{4}$"), ('uva-ant8', 'month', 0,1, null),
+   ('uva-ant9', 'barcode', 0,0, null), ('uva-ant10', 'catalogKey', 0,0, null),
+   ('uva-ant11', 'useRights', 1,0, null);
 
 
 --
@@ -68,14 +71,14 @@ DROP TABLE IF EXISTS controlled_values;
 CREATE TABLE controlled_values (
    id int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
    pid varchar(255) NOT NULL,
-   node_name_id int(11) NOT NULL,
+   node_type_id int(11) NOT NULL,
    value varchar(255) NOT NULL,
    value_uri varchar(255),
-   FOREIGN KEY (node_name_id) REFERENCES node_names(id) ON DELETE CASCADE,
+   FOREIGN KEY (node_type_id) REFERENCES node_names(id) ON DELETE CASCADE,
    UNIQUE KEY (pid),
    UNIQUE KEY (value)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-INSERT INTO controlled_values (pid, node_name_id, value, value_uri)
+INSERT INTO controlled_values (pid, node_type_id, value, value_uri)
 VALUES
 	('uva-acv1', 11, 'Copyright Not Evaluated', 'http://rightsstatements.org/vocab/CNE/1.0/'),
 	('uva-acv2', 11, 'No Known Copyright', 'http://rightsstatements.org/vocab/NKC/1.0/'),
@@ -108,7 +111,8 @@ CREATE TABLE nodes (
    pid varchar(255) NOT NULL,
    parent_id int(11),
    ancestry varchar(255),
-   node_name_id int(11) NOT NULL,
+   sequence SMALLINT not null,
+   node_type_id int(11) NOT NULL,
    value varchar(512) DEFAULT NULL,
    user_id int(11),
    deleted tinyint(1) NOT NULL DEFAULT 0,
@@ -117,7 +121,8 @@ CREATE TABLE nodes (
    updated_at datetime,
    KEY (pid),
    UNIQUE KEY (pid),
-   FOREIGN KEY (node_name_id) REFERENCES node_names(id) ON DELETE RESTRICT,
+   KEY (ancestry),
+   FOREIGN KEY (node_type_id) REFERENCES node_types(id) ON DELETE RESTRICT,
    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

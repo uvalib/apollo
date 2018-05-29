@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -36,6 +37,7 @@ func TestBadItemShow(t *testing.T) {
 }
 
 func TestItemShow(t *testing.T) {
+	log.Printf("=== TestItemShow")
 	mockDB, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("Stub DB connection failed: %s", err)
@@ -45,16 +47,19 @@ func TestItemShow(t *testing.T) {
 	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
 
 	tgt := "uva-an10"
+
 	rowsPid := sqlmock.NewRows([]string{"id"}).AddRow(10)
+	mock.ExpectQuery("select id from nodes").WithArgs(tgt).WillReturnRows(rowsPid)
+
 	rows := sqlmock.NewRows([]string{
-		"n.id", "n.parent_id", "n.pid", "n.value", "n.created_at", "n.updated_at",
-		"nn.pid", "nn.value", "nn.controlled_vocab"}).
-		AddRow(10, 1, tgt, "bark", nil, nil, "uva-ann7", "item", 0)
-	mock.ExpectQuery("select id from nodes").WillReturnRows(rowsPid)
+		"n.id", "n.parent_id", "n.sequence", "n.pid", "n.value", "n.created_at", "n.updated_at",
+		"nt.pid", "nt.value", "nt.controlled_vocab", "nt.container"}).
+		AddRow(1, nil, 0, "uva-an1", "PARENT", nil, nil, "uva-ann1", "collection", 0, 0).
+		AddRow(10, 1, 0, tgt, "bark", nil, nil, "uva-ann7", "item", 0, 0)
 	mock.ExpectQuery("SELECT n.id").WithArgs(10).WillReturnRows(rows)
 
 	ancestry := sqlmock.NewRows([]string{"ancestry"}).AddRow("1/10")
-	mock.ExpectQuery("select ancestry").WillReturnRows(ancestry)
+	mock.ExpectQuery("select ancestry").WithArgs(tgt).WillReturnRows(ancestry)
 
 	collectionRows := sqlmock.NewRows([]string{
 		"n.id", "n.parent_id", "n.pid", "n.value", "n.created_at", "n.updated_at",

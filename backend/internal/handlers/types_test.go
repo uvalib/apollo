@@ -12,7 +12,7 @@ import (
 	"github.com/uvalib/apollo/backend/internal/models"
 )
 
-func TestNamesIndex(t *testing.T) {
+func TestTypesIndex(t *testing.T) {
 	mockDB, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("Stub DB connection failed: %s", err)
@@ -21,13 +21,13 @@ func TestNamesIndex(t *testing.T) {
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
 	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
 
-	rows := sqlmock.NewRows([]string{"pid", "value"}).
+	rows := sqlmock.NewRows([]string{"pid", "name"}).
 		AddRow("uva-ann1", "collection").AddRow("uva-ann2", "title")
 	mock.ExpectQuery("select").WillReturnRows(rows) // Query is CASE SENSITIVE
 
-	req, _ := http.NewRequest("GET", "/api/names", nil)
+	req, _ := http.NewRequest("GET", "/api/types", nil)
 	rr := httptest.NewRecorder()
-	app.NamesIndex(rr, req, httprouter.Params{})
+	app.TypesIndex(rr, req, httprouter.Params{})
 
 	// Check the status code is what we expect.
 	if status := rr.Code; status != http.StatusOK {

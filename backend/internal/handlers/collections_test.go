@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -67,6 +68,7 @@ func TestBadCollectionShow(t *testing.T) {
 }
 
 func TestCollectionShow(t *testing.T) {
+	log.Printf("=== TestCollectionsShow")
 	mockDB, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("Stub DB connection failed: %s", err)
@@ -77,11 +79,12 @@ func TestCollectionShow(t *testing.T) {
 
 	tgt := "uva-an1"
 	rowsPid := sqlmock.NewRows([]string{"id"}).AddRow(1)
-	rows := sqlmock.NewRows([]string{
-		"n.id", "n.parent_id", "n.pid", "n.value", "n.created_at", "n.updated_at",
-		"nn.pid", "nn.value", "nn.controlled_vocab"}).
-		AddRow(1, nil, tgt, "woof", nil, nil, "uva-ann1", "collection", 0)
 	mock.ExpectQuery("select id from nodes").WillReturnRows(rowsPid)
+
+	rows := sqlmock.NewRows([]string{
+		"n.id", "n.parent_id", "n.sequence", "n.pid", "n.value", "n.created_at", "n.updated_at",
+		"nt.pid", "nt.value", "nt.controlled_vocab", "nt.container"}).
+		AddRow(1, nil, 0, tgt, "woof", nil, nil, "uva-ann1", "collection", 0, 1)
 	mock.ExpectQuery("SELECT n.id").WithArgs(1).WillReturnRows(rows)
 
 	req, _ := http.NewRequest("GET", "/api/collection", nil)

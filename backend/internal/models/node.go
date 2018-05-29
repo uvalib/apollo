@@ -14,6 +14,12 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
+// Collection holds key data about a collection; its PID and Title
+type Collection struct {
+	PID   string `json:"pid"`
+	Title string `json:"title"`
+}
+
 // Node is a single element in a tree of metadata. This is the smallest unit
 // of data in the system; essentially a name/value pair.
 // An Item is a collection of nodes with
@@ -21,32 +27,28 @@ import (
 // A Collection is the hierarchical representation of all nodes stemming from a
 // single PID.
 type Node struct {
-	ID        int64         `json:"-"`
-	PID       string        `json:"pid"`
-	parentID  sql.NullInt64 `json:"-"`
-	Parent    *Node         `json:"-"`
-	Name      *NodeName     `json:"name"`
-	Value     string        `json:"value,omitempty"`
-	ValueURI  string        `json:"valueURI,omitempty"`
-	Children  []*Node       `json:"children,omitempty"`
-	User      *User         `json:"-"`
-	Deleted   bool          `json:"-"`
-	Current   bool          `json:"-"`
-	CreatedAt time.Time     `db:"created_at" json:"createdAt"`
-	UpdatedAt *time.Time    `db:"updated_at" json:"updatedAt,omitempty"`
-}
-
-// Collection holds key data about a collection; its PID and Title
-type Collection struct {
-	PID   string `json:"pid"`
-	Title string `json:"title"`
+	ID        int64      `json:"-"`
+	PID       string     `json:"pid"`
+	Parent    *Node      `json:"-"`
+	Sequence  int        `json:"sequence"`
+	Type      *NodeType  `json:"type"`
+	Value     string     `json:"value,omitempty"`
+	ValueURI  string     `json:"valueURI,omitempty"`
+	Children  []*Node    `json:"children,omitempty"`
+	User      *User      `json:"-"`
+	Deleted   bool       `json:"-"`
+	Current   bool       `json:"-"`
+	CreatedAt time.Time  `db:"created_at" json:"createdAt"`
+	UpdatedAt *time.Time `db:"updated_at" json:"updatedAt,omitempty"`
+	parentID  sql.NullInt64
 }
 
 // MarshalJSON will encode the Node structure as JSON
 func (n *Node) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		PID       string     `json:"pid"`
-		Name      *NodeName  `json:"name"`
+		Sequence  int        `json:"sequence"`
+		Type      *NodeType  `json:"type"`
 		Value     string     `json:"value,omitempty"`
 		ValueURI  string     `json:"valueURI,omitempty"`
 		CreatedAt time.Time  `db:"created_at" json:"createdAt"`
@@ -54,7 +56,8 @@ func (n *Node) MarshalJSON() ([]byte, error) {
 		Children  []*Node    `json:"children,omitempty"`
 	}{
 		PID:       n.PID,
-		Name:      n.Name,
+		Sequence:  n.Sequence,
+		Type:      n.Type,
 		Value:     encodeValue(n.Value),
 		ValueURI:  n.ValueURI,
 		CreatedAt: n.CreatedAt,
@@ -80,7 +83,7 @@ func (db *DB) GetCollections() []Collection {
 
 	var out []Collection
 	qs := "select id,pid from nodes where parent_id is null"
-	tq := "select value from nodes where ancestry=? and node_name_id=? order by id asc limit 1"
+	tq := "select value from nodes where ancestry=? and node_type_id=? order by id asc limit 1"
 	db.Select(&pids, qs)
 
 	for _, val := range pids {
@@ -111,10 +114,9 @@ func (db *DB) GetParentCollection(pid string) (*Node, error) {
 	db.QueryRow("select ancestry from nodes where pid=?", pid).Scan(&ancestry)
 	rootID, _ := strconv.ParseInt(strings.Split(ancestry, "/")[0], 10, 64)
 
-	qs := fmt.Sprintf(`
-		%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '(^.*/|^)%d$')
-	 	ORDER BY n.id ASC`, getNodeSelect(), rootID)
-	return db.queryNodes(qs, rootID, true)
+	qs := fmt.Sprintf(`%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '(^.*/|^)%d$')`,
+		getNodeSelect(), rootID)
+	return db.queryNodes(qs, rootID)
 }
 
 // GetTree returns the node tree rooted at the specified PID
@@ -125,9 +127,9 @@ func (db *DB) GetTree(pid string) (*Node, error) {
 	log.Printf("Got ID %d for root PID %s", rootID, pid)
 
 	// now get all children with the root ID as the start of their ancestry
-	qs := fmt.Sprintf("%s WHERE deleted=0 and current=1 AND (n.id=? or ancestry REGEXP '(^.*/|^)%d($|/.*)')",
+	qs := fmt.Sprintf(`%s WHERE deleted=0 and current=1 AND (n.id=? or ancestry REGEXP '(^.*/|^)%d($|/.*)')`,
 		getNodeSelect(), rootID)
-	return db.queryNodes(qs, rootID, false)
+	return db.queryNodes(qs, rootID)
 }
 
 // GetChildren returns this node and all of its immediate children
@@ -137,19 +139,19 @@ func (db *DB) GetChildren(pid string) (*Node, error) {
 	db.QueryRow("select id from nodes where pid=?", pid).Scan(&itemID)
 
 	// now get all children with the above PID as the end of their ancestry
-	qs := fmt.Sprintf("%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '(^.*/|^)%d$')",
+	qs := fmt.Sprintf(`%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '(^.*/|^)%d$')`,
 		getNodeSelect(), itemID)
-	return db.queryNodes(qs, itemID, true)
+	return db.queryNodes(qs, itemID)
 }
 
 func getNodeSelect() string {
-	return `SELECT n.id, n.parent_id, n.pid, n.value, n.created_at, n.updated_at,
-			  		nn.pid, nn.value, nn.controlled_vocab
+	return `SELECT n.id, n.parent_id, n.sequence, n.pid, n.value, n.created_at, n.updated_at,
+			  		nt.pid, nt.name, nt.controlled_vocab, nt.container
 	 		  FROM nodes n
-			  		INNER JOIN node_names nn ON nn.id = n.node_name_id`
+			  		INNER JOIN node_types nt ON nt.id = n.node_type_id`
 }
 
-func (db *DB) queryNodes(query string, rootID int64, stripNoValue bool) (*Node, error) {
+func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
 	nodes := make(map[int64]*Node)
 	var root *Node
 	controlledValues := make(map[int64]*ControlledValue)
@@ -158,18 +160,18 @@ func (db *DB) queryNodes(query string, rootID int64, stripNoValue bool) (*Node, 
 		log.Printf("ERROR: unable to retrieve nodes: %s", err.Error())
 		return nil, err
 	}
-	log.Printf("Got response; iterating rows")
 	defer rows.Close()
 	for rows.Next() {
 		var n Node
-		var nn NodeName
+		var nt NodeType
 		var updateAt mysql.NullTime
-		rows.Scan(&n.ID, &n.parentID, &n.PID, &n.Value, &n.CreatedAt, &updateAt, &nn.PID, &nn.Value, &nn.ControlledVocab)
+		rows.Scan(&n.ID, &n.parentID, &n.Sequence, &n.PID, &n.Value, &n.CreatedAt, &updateAt, &nt.PID,
+			&nt.Name, &nt.ControlledVocab, &nt.Container)
 		if updateAt.Valid {
 			n.UpdatedAt = &updateAt.Time
 		}
-		n.Name = &nn
-		if nn.ControlledVocab {
+		n.Type = &nt
+		if nt.ControlledVocab {
 			id, _ := strconv.ParseInt(n.Value, 10, 64)
 			if cv, ok := controlledValues[id]; ok {
 				n.Value = cv.Value
@@ -188,19 +190,20 @@ func (db *DB) queryNodes(query string, rootID int64, stripNoValue bool) (*Node, 
 			}
 		}
 
-		if stripNoValue && len(n.Value) == 0 {
-			// skip no-value nodes mode and one encountered. Skip it!
-			continue
-		}
-
 		nodes[n.ID] = &n
 		if n.ID == rootID {
+			log.Printf("Set root node to %d", n.ID)
 			root = &n
 		}
 	}
 
 	// hook all nodes that have a parent with the parent
 	for _, node := range nodes {
+		// In the case when we are requesting a sub-tree, the parent of the
+		// start of the tree will not exist. Don't try to find it!
+		if node.ID == rootID {
+			continue
+		}
 		if node.parentID.Valid == false {
 			continue
 		}
@@ -220,20 +223,20 @@ func (db *DB) queryNodes(query string, rootID int64, stripNoValue bool) (*Node, 
 // Details about user and revision history are included (TODO)
 func (db *DB) GetNode(pid string) *Node {
 	qs := `SELECT n.id, n.pid, n.value, n.deleted, n.current, n.created_at,
-            nn.id, nn.pid, nn.value,
+            nt.id, nt.pid, nt.value,
             u.id, u.computing_id, u.last_name, u.first_name, u.email
           FROM nodes n
-            inner join node_names nn on nn.id = n.node_name_id
+            inner join node_types nt on nt.id = n.node_type_id
             inner join users u on u.id = n.user_id
           WHERE n.pid=?`
 	row := db.QueryRow(qs, pid)
 	var n Node
-	var nn NodeName
+	var nt NodeType
 	var u User
 	row.Scan(&n.ID, &n.PID, &n.Value, &n.Deleted, &n.Current, &n.CreatedAt,
-		&nn.ID, &nn.PID, &nn.Value,
+		&nt.ID, &nt.PID, &nt.Name,
 		&u.ID, &u.ComputingID, &u.LastName, &u.FirstName, &u.Email)
-	n.Name = &nn
+	n.Type = &nt
 	n.User = &u
 	return &n
 }
@@ -246,11 +249,17 @@ func (db *DB) CreateNodes(nodes []*Node) error {
 		return err
 	}
 
+	// FIXME! Sequence is wrong. Reets to 0 when it hits a container. All Container and non-container
+	// children of a container node should increase in sequence. First Child of every container should
+	// be sequence 0
+
+	// FIXME On the VUE side, the names have all changed (NodeName -> NodeType) Fix client to match
+
 	for _, node := range nodes {
 		t := time.Now().Unix()
 		tmpPID := fmt.Sprintf("TMP-%d", t)
-		qs := "insert into nodes (pid, node_name_id, value, user_id, created_at) values (?,?,?,?,NOW())"
-		res, insertErr := tx.Exec(qs, tmpPID, node.Name.ID, node.Value, node.User.ID)
+		qs := "insert into nodes (pid, node_type_id, sequence, value, user_id, created_at) values (?,?,?,?,?,NOW())"
+		res, insertErr := tx.Exec(qs, tmpPID, node.Type.ID, node.Sequence, node.Value, node.User.ID)
 		if insertErr != nil {
 			tx.Rollback()
 			return insertErr

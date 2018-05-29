@@ -9,12 +9,12 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// NamesIndex will return a list of controlled vocabulary names
+// TypesIndex will return a list of controlled vocabulary types
 //
-func (app *ApolloHandler) NamesIndex(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	names := app.DB.AllNames()
+func (app *ApolloHandler) TypesIndex(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	types := app.DB.AllTypes()
 	var buffer bytes.Buffer
-	for _, name := range names {
+	for _, name := range types {
 		json, _ := json.MarshalIndent(name, "", "  ")
 		if buffer.Len() > 0 {
 			buffer.WriteString(",")
