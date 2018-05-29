@@ -28,6 +28,8 @@ func (app *ApolloHandler) AuthMiddleware(next httprouter.Handle) httprouter.Hand
 			return
 		}
 		log.Printf("User %s is authorized for %s", user.ComputingID, req.RequestURI)
+		w.Header().Set("cache-control", "private, max-age=0, no-cache")
+
 		next(w, req, ps)
 	}
 }
