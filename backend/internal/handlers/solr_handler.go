@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/xml"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,37 +8,23 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-type solrAdd struct {
-	XMLName xml.Name `xml:"add"`
-	Doc     solrDoc
-}
-
-type solrDoc struct {
-	XMLName xml.Name `xml:"doc"`
-	Fields  *[]solrField
-}
-
-type solrField struct {
-	XMLName xml.Name `xml:"field"`
-	Name    string   `xml:"name,attr"`
-	Value   string   `xml:",chardata"`
-}
-
 // GenerateSolr generates a Solr Add document for ingest into Virgo3
 // The general format is: <add><doc><field name="name"></field>, <field/>, ... </doc></add>
 // If a field has multiple values, just add multiple field elements with
 // the same name attribute
 func (app *ApolloHandler) GenerateSolr(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+	// Assume the PID is external... find it; fail if not found
 	log.Printf("Generate Solr Add for '%s'", params.ByName("pid"))
-
-	var add solrAdd
-	var fields []solrField
-	fields = append(fields, solrField{Name: "id", Value: params.ByName("pid")})
-	add.Doc.Fields = &fields
-
-	xmlOut, err := xml.MarshalIndent(add, "", "  ")
+	apolloPID, err := app.DB.ExternalPIDLookup(params.ByName("pid"))
 	if err != nil {
-		out := fmt.Sprintf("Unable to generate Solr doc for %s: %s", params.ByName("pid"), err.Error())
+		out := fmt.Sprintf("Unable to find PID %s : %s", params.ByName("pid"), err.Error())
+		http.Error(rw, out, http.StatusNotFound)
+		return
+	}
+
+	xmlOut, err := app.DB.GetSolrXML(apolloPID)
+	if err != nil {
+		out := fmt.Sprintf("Unable to generate Solr doc for %s: %s", apolloPID, err.Error())
 		http.Error(rw, out, http.StatusNotFound)
 		return
 	}
