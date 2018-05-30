@@ -73,6 +73,7 @@ func main() {
 	router.GET("/api/types", app.AuthMiddleware(app.TypesIndex))
 	router.GET("/api/values/:name", app.AuthMiddleware(app.ValuesForName))
 	router.GET("/api/external/:pid", app.ExternalPIDLookup)
+	router.GET("/api/solr/:pid", app.AuthMiddleware(app.GenerateSolr))
 
 	// Create a standard go Mux to serve static files, and pass off
 	// all other stuff the the router. this allows static files to be
