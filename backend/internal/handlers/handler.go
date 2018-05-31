@@ -8,4 +8,5 @@ type ApolloHandler struct {
 	Version     string
 	DB          *models.DB
 	DevAuthUser string
+	IIIF        string
 }

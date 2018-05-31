@@ -21,7 +21,7 @@ func (app *ApolloHandler) GenerateSolr(rw http.ResponseWriter, req *http.Request
 		return
 	}
 
-	xmlOut, err := app.DB.GetSolrXML(apolloID)
+	xmlOut, err := app.DB.GetSolrXML(apolloID, app.IIIF)
 	if err != nil {
 		out := fmt.Sprintf("Unable to generate Solr doc for %s: %s", params.ByName("pid"), err.Error())
 		http.Error(rw, out, http.StatusNotFound)

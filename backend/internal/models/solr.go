@@ -3,8 +3,11 @@ package models
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -31,7 +34,7 @@ type breadcrumb struct {
 }
 
 // GetSolrXML will return the Solr Add XML for the specified nodeID
-func (db *DB) GetSolrXML(nodeID int64) (string, error) {
+func (db *DB) GetSolrXML(nodeID int64, iiifURL string) (string, error) {
 	// First, get this item regardless of its level (collection or item)
 	item, dbErr := db.GetChildren(nodeID)
 	if dbErr != nil {
@@ -102,7 +105,7 @@ func (db *DB) GetSolrXML(nodeID int64) (string, error) {
 
 	if hasChild(item, "digitalObject") {
 		log.Printf("This node has an associated digital object; getting IIIF manifest")
-		// TODO
+		addIIIFMetadata(item, &fields, iiifURL)
 	}
 
 	add.Doc.Fields = &fields
@@ -154,13 +157,16 @@ func getBreadcrumbXML(ancestry *Node) string {
 		out += fmt.Sprintf("<ancestor><id>%s</id><title>%s</title></ancestor>", bc.PID, bc.Title)
 	}
 	out += "</breadcrumbs>"
+	return escapeXML(out)
+}
+
+func escapeXML(src string) string {
 	var outBuf bytes.Buffer
-	xml.EscapeText(&outBuf, []byte(out))
+	xml.EscapeText(&outBuf, []byte(src))
 	return outBuf.String()
 }
 
 func getBreadcrumbs(node *Node, breadcrumbs *[]breadcrumb) {
-	log.Printf("NODE: %s:%s", node.Type.Name, node.Value)
 	if len(node.Children) > 0 {
 		bc := breadcrumb{
 			PID:   getValue(node, "externalPID", node.PID),
@@ -173,4 +179,32 @@ func getBreadcrumbs(node *Node, breadcrumbs *[]breadcrumb) {
 			}
 		}
 	}
+}
+
+func addIIIFMetadata(node *Node, fields *[]solrField, iiifURL string) {
+	pid := getValue(node, "externalPID", node.PID)
+	iiifManifest, err := getAPIResponse(fmt.Sprintf("%s/%s", iiifURL, pid))
+	if err != nil {
+		log.Printf("Unable to retrieve IIIF Manifest: %s", err.Error())
+		return
+	}
+	*fields = append(*fields, solrField{Name: "format_facet", Value: "Online"})
+	*fields = append(*fields, solrField{Name: "feature_facet", Value: "iiif"})
+	*fields = append(*fields, solrField{Name: "iiif_presentation_metadata_display", Value: (iiifManifest)})
+	*fields = append(*fields, solrField{Name: "feature_facet", Value: "pdf_service"})
+	*fields = append(*fields, solrField{Name: "pdf_url_display", Value: "http://pdfws.lib.virginia.edu:8088"})
+}
+
+func getAPIResponse(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	respString := string(bodyBytes)
+	if resp.StatusCode != 200 {
+		return "", errors.New(respString)
+	}
+	return respString, nil
 }

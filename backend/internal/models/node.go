@@ -138,7 +138,6 @@ func (db *DB) GetAncestry(node *Node) (*Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("Ancestor: %+v", ancestor)
 		if root == nil {
 			root = ancestor
 		} else {

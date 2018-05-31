@@ -26,7 +26,7 @@ func main() {
 	log.Printf("===> apollo staring up <===")
 	var port int
 	var https int
-	var key, crt, devUser string
+	var key, crt, devUser, iiifServer string
 	defPort, err := strconv.Atoi(os.Getenv("APOLLO_PORT"))
 	if err != nil {
 		defPort = 8080
@@ -40,6 +40,8 @@ func main() {
 	flag.StringVar(&key, "key", os.Getenv("APOLLO_KEY"), "Key for https connection")
 	flag.StringVar(&crt, "crt", os.Getenv("APOLLO_CRT"), "Crt for https connection")
 	flag.StringVar(&devUser, "devuser", "", "Computing ID to use for fake authentication in dev mode")
+	flag.StringVar(&iiifServer, "iiif", "https://tracksys.lib.virginia.edu:8080", "IIIF Manifest service URL")
+
 	dbCfg, err := models.GetConfig()
 	if err != nil {
 		log.Printf("FATAL: %s", err.Error())
@@ -55,7 +57,7 @@ func main() {
 
 	// Create the main handler object which has access to common
 	// config information, like the database
-	app := handlers.ApolloHandler{Version: Version, DB: db, DevAuthUser: devUser}
+	app := handlers.ApolloHandler{Version: Version, DB: db, DevAuthUser: devUser, IIIF: iiifServer}
 
 	// Set routes and start server
 	// use julienschmidt router for all things API/version/health
