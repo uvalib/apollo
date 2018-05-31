@@ -52,19 +52,16 @@ func TestItemShow(t *testing.T) {
 	mock.ExpectQuery("select id from nodes").WithArgs(tgt).WillReturnRows(rowsPid)
 
 	rows := sqlmock.NewRows([]string{
-		"n.id", "n.parent_id", "n.sequence", "n.pid", "n.value", "n.created_at", "n.updated_at",
+		"n.id", "n.parent_id", "n.ancestry", "n.sequence", "n.pid", "n.value", "n.created_at", "n.updated_at",
 		"nt.pid", "nt.value", "nt.controlled_vocab", "nt.container"}).
-		AddRow(1, nil, 0, "uva-an1", "PARENT", nil, nil, "uva-ann1", "collection", 0, 0).
-		AddRow(10, 1, 0, tgt, "bark", nil, nil, "uva-ann7", "item", 0, 0)
+		AddRow(1, nil, nil, 0, "uva-an1", "PARENT", nil, nil, "uva-ann1", "collection", 0, 0).
+		AddRow(10, 1, "1", 0, tgt, "bark", nil, nil, "uva-ann7", "item", 0, 0)
 	mock.ExpectQuery("SELECT n.id").WithArgs(10).WillReturnRows(rows)
 
-	ancestry := sqlmock.NewRows([]string{"ancestry"}).AddRow("1/10")
-	mock.ExpectQuery("select ancestry").WithArgs(tgt).WillReturnRows(ancestry)
-
 	collectionRows := sqlmock.NewRows([]string{
-		"n.id", "n.parent_id", "n.pid", "n.value", "n.created_at", "n.updated_at",
+		"n.id", "n.parent_id", "n.ancestry", "n.sequence", "n.pid", "n.value", "n.created_at", "n.updated_at",
 		"nn.pid", "nn.value", "nn.controlled_vocab"}).
-		AddRow(1, nil, tgt, "woof", nil, nil, "uva-ann1", "collection", 0)
+		AddRow(1, nil, nil, 0, tgt, "woof", nil, nil, "uva-ann1", "collection", 0)
 	mock.ExpectQuery("SELECT n.id").WithArgs(1).WillReturnRows(collectionRows)
 
 	req, _ := http.NewRequest("GET", "/api/items", nil)

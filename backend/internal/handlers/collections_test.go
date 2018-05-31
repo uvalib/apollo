@@ -82,9 +82,9 @@ func TestCollectionShow(t *testing.T) {
 	mock.ExpectQuery("select id from nodes").WillReturnRows(rowsPid)
 
 	rows := sqlmock.NewRows([]string{
-		"n.id", "n.parent_id", "n.sequence", "n.pid", "n.value", "n.created_at", "n.updated_at",
+		"n.id", "n.parent_id", "n.ancestry", "n.sequence", "n.pid", "n.value", "n.created_at", "n.updated_at",
 		"nt.pid", "nt.value", "nt.controlled_vocab", "nt.container"}).
-		AddRow(1, nil, 0, tgt, "woof", nil, nil, "uva-ann1", "collection", 0, 1)
+		AddRow(1, nil, nil, 0, tgt, "woof", nil, nil, "uva-ann1", "collection", 0, 1)
 	mock.ExpectQuery("SELECT n.id").WithArgs(1).WillReturnRows(rows)
 
 	req, _ := http.NewRequest("GET", "/api/collection", nil)

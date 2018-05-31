@@ -1,6 +1,7 @@
 package models
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"log"
@@ -24,10 +25,15 @@ type solrField struct {
 	Value   string   `xml:",chardata"`
 }
 
-// GetSolrXML will return the Solr Add XML for the specified PID
-func (db *DB) GetSolrXML(pid string) (string, error) {
+type breadcrumb struct {
+	PID   string
+	Title string
+}
+
+// GetSolrXML will return the Solr Add XML for the specified nodeID
+func (db *DB) GetSolrXML(nodeID int64) (string, error) {
 	// First, get this item regardless of its level (collection or item)
-	item, dbErr := db.GetChildren(pid)
+	item, dbErr := db.GetChildren(nodeID)
 	if dbErr != nil {
 		return "", dbErr
 	}
@@ -35,16 +41,17 @@ func (db *DB) GetSolrXML(pid string) (string, error) {
 	// Now get collection info if the item is not it already
 	var ancestry *Node
 	if item.parentID.Valid {
-		log.Printf("PID %s is not a collection; getting ancestry", pid)
-		ancestry, _ = db.GetParentCollection(pid)
+		log.Printf("ID %d is not a collection; getting ancestry", nodeID)
+		ancestry, _ = db.GetAncestry(item)
 	} else {
-		log.Printf("PID %s is a collection", pid)
+		log.Printf("ID %d is a collection", nodeID)
 	}
 	var add solrAdd
 	var fields []solrField
 
 	// Generate the field mappings based on:
 	//    https://confluence.lib.virginia.edu/display/DCMD/Indexing+Apollo+Content+in+Virgo+3
+	// If the start node has a externalPID use it. If not, default to Apollo PID
 	outPID := getValue(item, "externalPID", item.PID)
 	fields = append(fields, solrField{Name: "id", Value: outPID})
 	fields = append(fields, solrField{Name: "source_facet", Value: "UVA Library Digital Repository"})
@@ -62,7 +69,8 @@ func (db *DB) GetSolrXML(pid string) (string, error) {
 		fields = append(fields, solrField{Name: "collection_title_display", Value: title})
 		fields = append(fields, solrField{Name: "digital_collection_facet", Value: title})
 		fields = append(fields, solrField{Name: "collection_title_text", Value: title})
-		// TODO breadcrumbs_display
+		breadcrumbXML := getBreadcrumbXML(ancestry)
+		fields = append(fields, solrField{Name: "breadcrumbs_display", Value: breadcrumbXML})
 	}
 
 	fields = append(fields, solrField{Name: "feature_facet", Value: "dl_metadata"})
@@ -136,4 +144,33 @@ func hasChild(node *Node, typeName string) bool {
 		}
 	}
 	return false
+}
+
+func getBreadcrumbXML(ancestry *Node) string {
+	var breadcrumbs []breadcrumb
+	getBreadcrumbs(ancestry, &breadcrumbs)
+	out := "<breadcrumbs>"
+	for _, bc := range breadcrumbs {
+		out += fmt.Sprintf("<ancestor><id>%s</id><title>%s</title></ancestor>", bc.PID, bc.Title)
+	}
+	out += "</breadcrumbs>"
+	var outBuf bytes.Buffer
+	xml.EscapeText(&outBuf, []byte(out))
+	return outBuf.String()
+}
+
+func getBreadcrumbs(node *Node, breadcrumbs *[]breadcrumb) {
+	log.Printf("NODE: %s:%s", node.Type.Name, node.Value)
+	if len(node.Children) > 0 {
+		bc := breadcrumb{
+			PID:   getValue(node, "externalPID", node.PID),
+			Title: getValue(node, "title", "")}
+		*breadcrumbs = append(*breadcrumbs, bc)
+		for _, c := range node.Children {
+			if len(c.Children) > 0 {
+				log.Printf("Get child breadcrumbs %s", c.Type.Name)
+				getBreadcrumbs(c, breadcrumbs)
+			}
+		}
+	}
 }

@@ -13,18 +13,17 @@ import (
 // If a field has multiple values, just add multiple field elements with
 // the same name attribute
 func (app *ApolloHandler) GenerateSolr(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	// Assume the PID is external... find it; fail if not found
 	log.Printf("Generate Solr Add for '%s'", params.ByName("pid"))
-	apolloPID, err := app.DB.ExternalPIDLookup(params.ByName("pid"))
+	apolloID, err := app.DB.GetNodeIDFromPID(params.ByName("pid"))
 	if err != nil {
 		out := fmt.Sprintf("Unable to find PID %s : %s", params.ByName("pid"), err.Error())
 		http.Error(rw, out, http.StatusNotFound)
 		return
 	}
 
-	xmlOut, err := app.DB.GetSolrXML(apolloPID)
+	xmlOut, err := app.DB.GetSolrXML(apolloID)
 	if err != nil {
-		out := fmt.Sprintf("Unable to generate Solr doc for %s: %s", apolloPID, err.Error())
+		out := fmt.Sprintf("Unable to generate Solr doc for %s: %s", params.ByName("pid"), err.Error())
 		http.Error(rw, out, http.StatusNotFound)
 		return
 	}

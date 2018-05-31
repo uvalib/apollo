@@ -41,6 +41,15 @@ type Node struct {
 	CreatedAt time.Time  `db:"created_at" json:"createdAt"`
 	UpdatedAt *time.Time `db:"updated_at" json:"updatedAt,omitempty"`
 	parentID  sql.NullInt64
+	ancestry  sql.NullString
+}
+
+func (n *Node) encodeValue(val string) string {
+	if strings.Contains(val, "http:") || strings.Contains(val, "https:") {
+		out, _ := url.QueryUnescape(val)
+		return out
+	}
+	return val
 }
 
 // MarshalJSON will encode the Node structure as JSON
@@ -58,7 +67,7 @@ func (n *Node) MarshalJSON() ([]byte, error) {
 		PID:       n.PID,
 		Sequence:  n.Sequence,
 		Type:      n.Type,
-		Value:     encodeValue(n.Value),
+		Value:     n.encodeValue(n.Value),
 		ValueURI:  n.ValueURI,
 		CreatedAt: n.CreatedAt,
 		UpdatedAt: n.UpdatedAt,
@@ -66,12 +75,28 @@ func (n *Node) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func encodeValue(val string) string {
-	if strings.Contains(val, "http:") || strings.Contains(val, "https:") {
-		out, _ := url.QueryUnescape(val)
-		return out
+// ExternalPIDLookup will find an ApolloPID for an external PID
+func (db *DB) ExternalPIDLookup(externalPID string) (string, error) {
+	var apolloPID string
+	qs := `SELECT np.pid FROM nodes ns
+		INNER JOIN nodes np ON np.id = ns.parent_id
+ 		WHERE ns.value=?`
+	db.QueryRow(qs, externalPID).Scan(&apolloPID)
+	if len(apolloPID) == 0 {
+		return "", fmt.Errorf("Unable to find match for legacy PID %s", externalPID)
 	}
-	return val
+	return apolloPID, nil
+}
+
+// GetNodeIDFromPID takes a PID and returns the corresponding node ID
+func (db *DB) GetNodeIDFromPID(pid string) (int64, error) {
+	log.Printf("Get node ID for PID %s", pid)
+	var nodeID int64
+	db.QueryRow("select id from nodes where pid=?", pid).Scan(&nodeID)
+	if nodeID > 0 {
+		return nodeID, nil
+	}
+	return 0, fmt.Errorf("PID %s was not found", pid)
 }
 
 // GetCollections returns a list of all collections. Data is PID/Title
@@ -94,58 +119,81 @@ func (db *DB) GetCollections() []Collection {
 	return out
 }
 
-// ExternalPIDLookup will find an ApolloPID for an external PID
-func (db *DB) ExternalPIDLookup(externalPID string) (string, error) {
-	var apolloPID string
-	qs := `SELECT np.pid FROM nodes ns
-		INNER JOIN nodes np ON np.id = ns.parent_id
- 		WHERE ns.value=?`
-	db.QueryRow(qs, externalPID).Scan(&apolloPID)
-	if len(apolloPID) == 0 {
-		return "", fmt.Errorf("Unable to find match for legacy PID %s", externalPID)
+// GetAncestry returns all ancestors of the source node
+func (db *DB) GetAncestry(node *Node) (*Node, error) {
+	log.Printf("Get ancestors for %s with ancestry [%s]", node.PID, node.ancestry.String)
+
+	// Get the ancestry string. If there is none, there are no ancestors
+	ancestry := node.ancestry.String
+	if ancestry == "" {
+		return nil, nil
 	}
-	return apolloPID, nil
+
+	// Pull rootID off of ancestry string
+	var root, prior *Node
+	ancestryArray := strings.Split(ancestry, "/")
+	for _, stringID := range ancestryArray {
+		id, _ := strconv.ParseInt(stringID, 10, 64)
+		ancestor, err := db.GetChildren(id)
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("Ancestor: %+v", ancestor)
+		if root == nil {
+			root = ancestor
+		} else {
+			prior.Children = append(prior.Children, ancestor)
+		}
+		prior = ancestor
+	}
+	return root, nil
 }
 
-// GetParentCollection returns details about the collection that contains the PID
-func (db *DB) GetParentCollection(pid string) (*Node, error) {
-	var ancestry string
-	log.Printf("Get Parent Collection for PID %s", pid)
-	db.QueryRow("select ancestry from nodes where pid=?", pid).Scan(&ancestry)
+// GetParentCollection returns details about the collection that contains the source node
+func (db *DB) GetParentCollection(node *Node) (*Node, error) {
+	log.Printf("Get Parent for %s with ancestry [%s]", node.PID, node.ancestry.String)
+
+	// Get the ancestry string. If there is none, this node is the collection
+	ancestry := node.ancestry.String
+	if ancestry == "" {
+		return node, nil
+	}
+
+	// The collection node is the one with  ID matching the first ancestry substring
 	rootID, _ := strconv.ParseInt(strings.Split(ancestry, "/")[0], 10, 64)
 
-	qs := fmt.Sprintf(`%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '(^.*/|^)%d$')`,
+	// Dont want deleted or non-current nodes. Non-root nodes without values are the start of
+	// child containers of the collection; skip them. Only take the parent node itself (id match)
+	// or all nodes that have ONLY that node as their ancestor.
+	qs := fmt.Sprintf(`%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '^%d$' and n.value <> '')`,
 		getNodeSelect(), rootID)
 	return db.queryNodes(qs, rootID)
 }
 
-// GetTree returns the node tree rooted at the specified PID
-func (db *DB) GetTree(pid string) (*Node, error) {
-	log.Printf("Get tree rooted at PID %s", pid)
-	var rootID int64
-	db.QueryRow("select id from nodes where pid=?", pid).Scan(&rootID)
-	log.Printf("Got ID %d for root PID %s", rootID, pid)
-
-	// now get all children with the root ID as the start of their ancestry
-	qs := fmt.Sprintf(`%s WHERE deleted=0 and current=1 AND (n.id=? or ancestry REGEXP '(^.*/|^)%d($|/.*)')`,
+// GetTree returns the node tree rooted at the specified node ID
+func (db *DB) GetTree(rootID int64) (*Node, error) {
+	// Get all children with the root ID as the start of their ancestry -- OR
+	// any nodes that contain the ID as part of their ancestry (this is necessary for subtrees)
+	log.Printf("Get tree rooted at ID %d", rootID)
+	qs := fmt.Sprintf(`
+		%s WHERE deleted=0 and current=1 AND (n.id=? or ancestry REGEXP '(^.*/|^)%d($|/.*)')
+		ORDER BY n.id ASC`,
 		getNodeSelect(), rootID)
 	return db.queryNodes(qs, rootID)
 }
 
 // GetChildren returns this node and all of its immediate children
-func (db *DB) GetChildren(pid string) (*Node, error) {
-	var itemID int64
-	log.Printf("Get Children of PID %s", pid)
-	db.QueryRow("select id from nodes where pid=?", pid).Scan(&itemID)
-
+func (db *DB) GetChildren(nodeID int64) (*Node, error) {
 	// now get all children with the above PID as the end of their ancestry
-	qs := fmt.Sprintf(`%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '(^.*/|^)%d$')`,
-		getNodeSelect(), itemID)
-	return db.queryNodes(qs, itemID)
+	qs := fmt.Sprintf(`
+		%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '(^.*/|^)%d$' and n.value <> "")
+		ORDER BY n.id ASC`,
+		getNodeSelect(), nodeID)
+	return db.queryNodes(qs, nodeID)
 }
 
 func getNodeSelect() string {
-	return `SELECT n.id, n.parent_id, n.sequence, n.pid, n.value, n.created_at, n.updated_at,
+	return `SELECT n.id, n.parent_id, n.ancestry, n.sequence, n.pid, n.value, n.created_at, n.updated_at,
 			  		nt.pid, nt.name, nt.controlled_vocab, nt.container
 	 		  FROM nodes n
 			  		INNER JOIN node_types nt ON nt.id = n.node_type_id`
@@ -165,11 +213,14 @@ func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
 		var n Node
 		var nt NodeType
 		var updateAt mysql.NullTime
-		rows.Scan(&n.ID, &n.parentID, &n.Sequence, &n.PID, &n.Value, &n.CreatedAt, &updateAt, &nt.PID,
+
+		rows.Scan(&n.ID, &n.parentID, &n.ancestry, &n.Sequence, &n.PID, &n.Value, &n.CreatedAt, &updateAt, &nt.PID,
 			&nt.Name, &nt.ControlledVocab, &nt.Container)
+
 		if updateAt.Valid {
 			n.UpdatedAt = &updateAt.Time
 		}
+
 		n.Type = &nt
 		if nt.ControlledVocab {
 			id, _ := strconv.ParseInt(n.Value, 10, 64)
@@ -210,7 +261,7 @@ func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
 		if parent, ok := nodes[node.parentID.Int64]; ok {
 			parent.Children = append(parent.Children, node)
 		} else {
-			msg := fmt.Sprintf("Unable to to find parentID %d for collection: %d", node.parentID.Int64, root.ID)
+			msg := fmt.Sprintf("Unable to to find parentID %d for node %d", node.parentID.Int64, node.ID)
 			log.Printf("ERROR: %s", msg)
 			return nil, errors.New(msg)
 		}
@@ -219,41 +270,12 @@ func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
 	return root, nil
 }
 
-// GetNode finds a SINGLE node by PID. No parent nor children is returned
-// Details about user and revision history are included (TODO)
-func (db *DB) GetNode(pid string) *Node {
-	qs := `SELECT n.id, n.pid, n.value, n.deleted, n.current, n.created_at,
-            nt.id, nt.pid, nt.value,
-            u.id, u.computing_id, u.last_name, u.first_name, u.email
-          FROM nodes n
-            inner join node_types nt on nt.id = n.node_type_id
-            inner join users u on u.id = n.user_id
-          WHERE n.pid=?`
-	row := db.QueryRow(qs, pid)
-	var n Node
-	var nt NodeType
-	var u User
-	row.Scan(&n.ID, &n.PID, &n.Value, &n.Deleted, &n.Current, &n.CreatedAt,
-		&nt.ID, &nt.PID, &nt.Name,
-		&u.ID, &u.ComputingID, &u.LastName, &u.FirstName, &u.Email)
-	n.Type = &nt
-	n.User = &u
-	return &n
-}
-
-// CreateNodes creates a list of nodes
-//
+// CreateNodes creates all nodes contained in the source list
 func (db *DB) CreateNodes(nodes []*Node) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
-
-	// FIXME! Sequence is wrong. Reets to 0 when it hits a container. All Container and non-container
-	// children of a container node should increase in sequence. First Child of every container should
-	// be sequence 0
-
-	// FIXME On the VUE side, the names have all changed (NodeName -> NodeType) Fix client to match
 
 	for _, node := range nodes {
 		t := time.Now().Unix()
@@ -277,7 +299,7 @@ func (db *DB) CreateNodes(nodes []*Node) error {
 
 		// add parent and ancestry if needed
 		if node.Parent != nil {
-			ancestry := getAncestry(node)
+			ancestry := generateAncestryString(node)
 			qs = "update nodes set parent_id=?, ancestry=? where id=?"
 			res, insertErr = tx.Exec(qs, node.Parent.ID, ancestry, node.ID)
 			if insertErr != nil {
@@ -295,9 +317,9 @@ func (db *DB) CreateNodes(nodes []*Node) error {
 	return nil
 }
 
-func getAncestry(node *Node) string {
-	// walk back up the parent chain to build a backwards
-	// list of ancestor IDs for this node
+// generateAncestryString will walk back up the parent chain to build a backwards
+// list of ancestor IDs for this node
+func generateAncestryString(node *Node) string {
 	var parentIDs []string
 	curr := node
 	for {
@@ -316,15 +338,38 @@ func getAncestry(node *Node) string {
 	return strings.Join(parentIDs, "/")
 }
 
-// UpdateNode : update node value as specified. This creates a version history.
-//
-func (db *DB) UpdateNode(updatedNode *Node, user *User) {
-	// find all prior versions: select * from nodes where pid like 'PID.%' order created_at desc;
-	// create a new node with existing node data and set pid to pid.N where N is 1 more that last from above
-	// update existing node with data in updateNode
-	//
-	// _, err := db.Exec("update nodes set value=? where id=?", value, node.ID)
-	// if err != nil {
-	// 	log.Printf("ERROR: node value update failed %s", err.Error())
-	// }
-}
+// TODO Implement these methods
+// // UpdateNode : update node value as specified. This creates a version history.
+// //
+// func (db *DB) UpdateNode(updatedNode *Node, user *User) {
+// 	// find all prior versions: select * from nodes where pid like 'PID.%' order created_at desc;
+// 	// create a new node with existing node data and set pid to pid.N where N is 1 more that last from above
+// 	// update existing node with data in updateNode
+// 	//
+// 	// _, err := db.Exec("update nodes set value=? where id=?", value, node.ID)
+// 	// if err != nil {
+// 	// 	log.Printf("ERROR: node value update failed %s", err.Error())
+// 	// }
+// }
+
+// // GetNode finds a SINGLE node by PID. No parent nor children is returned
+// // Details about user and revision history are included
+// func (db *DB) GetNode(pid string) *Node {
+// 	qs := `SELECT n.id, n.pid, n.value, n.deleted, n.current, n.created_at,
+//             nt.id, nt.pid, nt.value,
+//             u.id, u.computing_id, u.last_name, u.first_name, u.email
+//           FROM nodes n
+//             inner join node_types nt on nt.id = n.node_type_id
+//             inner join users u on u.id = n.user_id
+//           WHERE n.pid=?`
+// 	row := db.QueryRow(qs, pid)
+// 	var n Node
+// 	var nt NodeType
+// 	var u User
+// 	row.Scan(&n.ID, &n.PID, &n.Value, &n.Deleted, &n.Current, &n.CreatedAt,
+// 		&nt.ID, &nt.PID, &nt.Name,
+// 		&u.ID, &u.ComputingID, &u.LastName, &u.FirstName, &u.Email)
+// 	n.Type = &nt
+// 	n.User = &u
+// 	return &n
+// }
