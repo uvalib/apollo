@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -57,6 +58,7 @@ func (db *DB) GetSolrXML(nodeID int64, iiifURL string) (string, error) {
 	outPID := getValue(item, "externalPID", item.PID)
 	fields = append(fields, solrField{Name: "id", Value: outPID})
 	fields = append(fields, solrField{Name: "source_facet", Value: "UVA Library Digital Repository"})
+	var breadcrumbXML string
 	if ancestry == nil {
 		// the passed PID is for the collection
 		title := getValue(item, "title", "")
@@ -71,7 +73,7 @@ func (db *DB) GetSolrXML(nodeID int64, iiifURL string) (string, error) {
 		fields = append(fields, solrField{Name: "collection_title_display", Value: title})
 		fields = append(fields, solrField{Name: "digital_collection_facet", Value: title})
 		fields = append(fields, solrField{Name: "collection_title_text", Value: title})
-		breadcrumbXML := getBreadcrumbXML(ancestry)
+		breadcrumbXML = getBreadcrumbXML(ancestry)
 		fields = append(fields, solrField{Name: "breadcrumbs_display", Value: breadcrumbXML})
 	}
 
@@ -82,7 +84,7 @@ func (db *DB) GetSolrXML(nodeID int64, iiifURL string) (string, error) {
 	fields = append(fields, solrField{Name: "date_received_facet", Value: getNow()})
 
 	fields = append(fields, solrField{Name: "feature_facet", Value: "has_hierarchy"})
-	hierarchyXML := db.getHierarchyXML(nodeID)
+	hierarchyXML := db.getHierarchyXML(nodeID, breadcrumbXML)
 	fields = append(fields, solrField{Name: "hierarchy_display", Value: hierarchyXML})
 
 	title := getValue(item, "title", "")
@@ -145,7 +147,7 @@ func hasChild(node *Node, typeName string) bool {
 
 // Get the subtree rooted at the target node and convert it into an escaped
 // XML hierarchy document
-func (db *DB) getHierarchyXML(rootID int64) string {
+func (db *DB) getHierarchyXML(rootID int64, breadcrumbXML string) string {
 	log.Printf("Get hierarchy XML for node %d", rootID)
 	tree, err := db.GetTree(rootID)
 	if err != nil {
@@ -155,11 +157,13 @@ func (db *DB) getHierarchyXML(rootID int64) string {
 
 	log.Printf("Walk nodes to generate hierarchy xml...")
 	var buffer bytes.Buffer
+	buffer.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
 	walkHierarchy(tree, &buffer)
 
 	// log.Printf("HIERARCHY: %s", buffer.String())
 
-	return escapeXML(buffer.String())
+	//return escapeXML(buffer.String())
+	return strings.Replace(buffer.String(), "BREADCRUMBS", breadcrumbXML, 1)
 }
 
 func walkHierarchy(node *Node, buffer *bytes.Buffer) {
@@ -170,8 +174,8 @@ func walkHierarchy(node *Node, buffer *bytes.Buffer) {
 		buffer.WriteString(fmt.Sprintf("<title>%s</title>", title))
 		buffer.WriteString(fmt.Sprintf("<shorttitle>%s</shorttitle>", title))
 	} else {
-		buffer.WriteString("<component>")
-		buffer.WriteString(fmt.Sprintf("<id>%s</id>", getValue(node, "externalPID", node.PID)))
+		buffer.WriteString("<component>BREADCRUMBS")
+		// buffer.WriteString(fmt.Sprintf("<id>%s</id>", getValue(node, "externalPID", node.PID)))
 		buffer.WriteString(fmt.Sprintf("<type>%s</type>", node.Type.Name))
 		title := getValue(node, "title", "")
 		buffer.WriteString(fmt.Sprintf("<unittitle>%s</unittitle>", title))
@@ -200,7 +204,8 @@ func getBreadcrumbXML(ancestry *Node) string {
 		out += fmt.Sprintf("<ancestor><id>%s</id><title>%s</title></ancestor>", bc.PID, bc.Title)
 	}
 	out += "</breadcrumbs>"
-	return escapeXML(out)
+	// return escapeXML(out)
+	return out
 }
 
 // recursively walk down the ancestry tree rooted at the node param. Return
