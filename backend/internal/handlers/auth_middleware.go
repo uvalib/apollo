@@ -11,7 +11,7 @@ import (
 //
 func (app *ApolloHandler) AuthMiddleware(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-		log.Printf("HEADERS: %s", req.Header)
+		// log.Printf("HEADERS: %s", req.Header)
 		computingID := req.Header.Get("remote_user")
 		if len(app.DevAuthUser) > 0 && len(computingID) == 0 {
 			log.Printf("Authenticating using devMode user")

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -265,8 +266,20 @@ func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
 			return nil, errors.New(msg)
 		}
 	}
+	sortNodes(root)
 
 	return root, nil
+}
+
+func sortNodes(node *Node) {
+	if len(node.Children) > 0 {
+		sort.Slice(node.Children, func(i, j int) bool {
+			return node.Children[i].Sequence < node.Children[j].Sequence
+		})
+		for _, c := range node.Children {
+			sortNodes(c)
+		}
+	}
 }
 
 // CreateNodes creates all nodes contained in the source list

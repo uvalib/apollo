@@ -157,13 +157,13 @@ func (db *DB) getHierarchyXML(rootID int64) string {
 	var buffer bytes.Buffer
 	walkHierarchy(tree, &buffer)
 
-	log.Printf("HIERARCHY: %s", buffer.String())
+	// log.Printf("HIERARCHY: %s", buffer.String())
 
 	return escapeXML(buffer.String())
 }
 
 func walkHierarchy(node *Node, buffer *bytes.Buffer) {
-	log.Printf("Walk node %s:%s", node.PID, node.Type.Name)
+	// log.Printf("Walk node %s:%s", node.PID, node.Type.Name)
 	if node.parentID.Valid == false {
 		buffer.WriteString("<collection>")
 		title := getValue(node, "title", "")
