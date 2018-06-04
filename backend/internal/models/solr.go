@@ -172,7 +172,8 @@ func (db *DB) getHierarchyXML(rootID int64, breadcrumbXML string) string {
 	log.Printf("Walk nodes to generate hierarchy xml...")
 	var buffer bytes.Buffer
 	buffer.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
-	walkHierarchy(tree, &buffer, true)
+	var counter int
+	walkHierarchy(tree, &buffer, &counter)
 
 	//return escapeXML(buffer.String())
 	out := buffer.String()
@@ -185,7 +186,7 @@ func (db *DB) getHierarchyXML(rootID int64, breadcrumbXML string) string {
 	return out
 }
 
-func walkHierarchy(node *Node, buffer *bytes.Buffer, first bool) {
+func walkHierarchy(node *Node, buffer *bytes.Buffer, itemCnt *int) {
 	// log.Printf("Walk node %s:%s", node.PID, node.Type.Name)
 	if node.parentID.Valid == false {
 		buffer.WriteString("<collection>")
@@ -193,27 +194,34 @@ func walkHierarchy(node *Node, buffer *bytes.Buffer, first bool) {
 		buffer.WriteString(fmt.Sprintf("<title>%s</title>", title))
 		buffer.WriteString(fmt.Sprintf("<shorttitle>%s</shorttitle>", title))
 		buffer.WriteString(fmt.Sprintf("<component_count>%d</component_count>", countComponents(node)))
-		buffer.WriteString("<digitized_component_count>0</digitized_component_count>")
+		// buffer.WriteString("<digitized_component_count>0</digitized_component_count>")
 	} else {
-		buffer.WriteString("<component>")
-		if first == false {
-			buffer.WriteString(fmt.Sprintf("<id>%s</id>", getValue(node, "externalPID", node.PID)))
-		} else {
-			buffer.WriteString("<digitized_component_count>0</digitized_component_count>")
+		componentCnt := countComponents(node)
+		if componentCnt == 0 {
+			// if this node has no components, it is an item. count it
+			*itemCnt = *itemCnt + 1
+			if *itemCnt > 3 && bytes.Contains(buffer.Bytes(), []byte("<collection>")) == true {
+				log.Printf("Stopping after 3 items")
+				return
+			}
 		}
+		buffer.WriteString("<component>")
+		buffer.WriteString(fmt.Sprintf("<id>%s</id>", getValue(node, "externalPID", node.PID)))
 		buffer.WriteString(fmt.Sprintf("<type>%s</type>", node.Type.Name))
 		title := getValue(node, "title", "")
 		buffer.WriteString(fmt.Sprintf("<unittitle>%s</unittitle>", title))
 		buffer.WriteString(fmt.Sprintf("<shortunittitle>%s</shortunittitle>", title))
-		componentCnt := countComponents(node)
+
 		if componentCnt > 0 {
 			buffer.WriteString(fmt.Sprintf("<component_count>%d</component_count>", componentCnt))
+			*itemCnt = 0
 		}
 	}
+	// log.Printf("BEFORE CHILDREN=%d", localCnt)
 
 	for _, c := range node.Children {
 		if len(c.Children) > 0 {
-			walkHierarchy(c, buffer, false)
+			walkHierarchy(c, buffer, itemCnt)
 		}
 	}
 
