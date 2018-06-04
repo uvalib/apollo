@@ -66,6 +66,8 @@ func (db *DB) GetSolrXML(nodeID int64, iiifURL string) (string, error) {
 		fields = append(fields, solrField{Name: "collection_title_display", Value: title})
 		fields = append(fields, solrField{Name: "digital_collection_facet", Value: title})
 		fields = append(fields, solrField{Name: "collection_title_text", Value: title})
+		fields = append(fields, solrField{Name: "breadcrumbs_display", Value: "<breadcrumbs></breadcrumbs>"})
+		fields = append(fields, solrField{Name: "hierarchy_level_display", Value: "collection"})
 	} else {
 		// the passed pid is an ITEM
 		title := getValue(ancestry, "title", "")
@@ -145,6 +147,18 @@ func hasChild(node *Node, typeName string) bool {
 	return false
 }
 
+func countComponents(node *Node) int {
+	count := 0
+	if len(node.Children) > 0 {
+		for _, c := range node.Children {
+			if len(c.Children) > 0 {
+				count++
+			}
+		}
+	}
+	return count
+}
+
 // Get the subtree rooted at the target node and convert it into an escaped
 // XML hierarchy document
 func (db *DB) getHierarchyXML(rootID int64, breadcrumbXML string) string {
@@ -158,33 +172,48 @@ func (db *DB) getHierarchyXML(rootID int64, breadcrumbXML string) string {
 	log.Printf("Walk nodes to generate hierarchy xml...")
 	var buffer bytes.Buffer
 	buffer.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
-	walkHierarchy(tree, &buffer)
-
-	// log.Printf("HIERARCHY: %s", buffer.String())
+	walkHierarchy(tree, &buffer, true)
 
 	//return escapeXML(buffer.String())
-	return strings.Replace(buffer.String(), "BREADCRUMBS", breadcrumbXML, 1)
+	out := buffer.String()
+	if breadcrumbXML != "" {
+		// replace the first instance of the component tag with
+		// a combimnation of the component tag and the breadcrumbs
+		newComp := fmt.Sprintf("<component>%s", breadcrumbXML)
+		return strings.Replace(out, "<component>", newComp, 1)
+	}
+	return out
 }
 
-func walkHierarchy(node *Node, buffer *bytes.Buffer) {
+func walkHierarchy(node *Node, buffer *bytes.Buffer, first bool) {
 	// log.Printf("Walk node %s:%s", node.PID, node.Type.Name)
 	if node.parentID.Valid == false {
 		buffer.WriteString("<collection>")
 		title := getValue(node, "title", "")
 		buffer.WriteString(fmt.Sprintf("<title>%s</title>", title))
 		buffer.WriteString(fmt.Sprintf("<shorttitle>%s</shorttitle>", title))
+		buffer.WriteString(fmt.Sprintf("<component_count>%d</component_count>", countComponents(node)))
+		buffer.WriteString("<digitized_component_count>0</digitized_component_count>")
 	} else {
-		buffer.WriteString("<component>BREADCRUMBS")
-		// buffer.WriteString(fmt.Sprintf("<id>%s</id>", getValue(node, "externalPID", node.PID)))
+		buffer.WriteString("<component>")
+		if first == false {
+			buffer.WriteString(fmt.Sprintf("<id>%s</id>", getValue(node, "externalPID", node.PID)))
+		} else {
+			buffer.WriteString("<digitized_component_count>0</digitized_component_count>")
+		}
 		buffer.WriteString(fmt.Sprintf("<type>%s</type>", node.Type.Name))
 		title := getValue(node, "title", "")
 		buffer.WriteString(fmt.Sprintf("<unittitle>%s</unittitle>", title))
 		buffer.WriteString(fmt.Sprintf("<shortunittitle>%s</shortunittitle>", title))
+		componentCnt := countComponents(node)
+		if componentCnt > 0 {
+			buffer.WriteString(fmt.Sprintf("<component_count>%d</component_count>", componentCnt))
+		}
 	}
 
 	for _, c := range node.Children {
 		if len(c.Children) > 0 {
-			walkHierarchy(c, buffer)
+			walkHierarchy(c, buffer, false)
 		}
 	}
 
