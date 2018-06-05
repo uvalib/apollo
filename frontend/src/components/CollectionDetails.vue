@@ -12,7 +12,10 @@
       </div>
       <div v-else class="content pure-g">
         <div class="pure-u-9-24">
-          <h4 class="do-header">Collection Structure</h4>
+          <h4 class="do-header">
+            <span>Collection Structure</span>
+            <span @click="publishClicked" class="publish">Publish</span>
+          </h4>
           <ul class="collection">
             <details-node :model="collection" :depth="0"></details-node>
           </ul>
@@ -93,6 +96,14 @@
         this.activePID = ""
       },
 
+      publishClicked: function() {
+        let resp = confirm("Publish this collection?")
+        // TODO make a modal that asks this question, then 
+        // provides feedback - lublished, will be in virgo by tomorrow
+        // show published date
+        // show virgo link
+      },
+
       iiifManufestURL: function() {
         return "https://tracksys.lib.virginia.edu:8080/"+this.activePID+"/manifest.json"
       },
@@ -159,6 +170,20 @@
 </script>
 
 <style scoped>
+  span.publish {
+    float: right;
+    font-size: 0.8em;
+    font-weight: bold;
+    background: #5b5;
+    color: white;
+    padding: 3px 26px;
+    border-radius: 10px;
+    opacity: 0.8;
+    cursor: pointer;
+  }
+  span.publish:hover {
+    opacity: 1;
+  }
   div#object-viewer {
     padding: 0px 20px;
   }

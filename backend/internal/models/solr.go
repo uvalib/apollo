@@ -36,6 +36,7 @@ type breadcrumb struct {
 // GetSolrXML will return the Solr Add XML for the specified nodeID
 func (db *DB) GetSolrXML(nodeID int64, iiifURL string) (string, error) {
 	// First, get this item regardless of its level (collection or item)
+	// log.Printf("Get SOLR XML for %d", nodeID)
 	item, dbErr := db.GetChildren(nodeID)
 	if dbErr != nil {
 		return "", dbErr
@@ -44,10 +45,10 @@ func (db *DB) GetSolrXML(nodeID int64, iiifURL string) (string, error) {
 	// Now get collection info if the item is not it already
 	var ancestry *Node
 	if item.parentID.Valid {
-		log.Printf("ID %d is not a collection; getting ancestry", nodeID)
+		// log.Printf("ID %d is not a collection; getting ancestry", nodeID)
 		ancestry, _ = db.GetAncestry(item)
 	} else {
-		log.Printf("ID %d is a collection", nodeID)
+		// log.Printf("ID %d is a collection", nodeID)
 	}
 	var add solrAdd
 	var fields []solrField
@@ -108,7 +109,7 @@ func (db *DB) GetSolrXML(nodeID int64, iiifURL string) (string, error) {
 	}
 
 	if hasChild(item, "digitalObject") {
-		log.Printf("This node has an associated digital object; getting IIIF manifest")
+		// log.Printf("This node has an associated digital object; getting IIIF manifest")
 		addIIIFMetadata(item, &fields, iiifURL)
 	}
 
@@ -162,14 +163,13 @@ func countComponents(node *Node) int {
 // Get the subtree rooted at the target node and convert it into an escaped
 // XML hierarchy document
 func (db *DB) getHierarchyXML(rootID int64, breadcrumbXML string) string {
-	log.Printf("Get hierarchy XML for node %d", rootID)
+	// log.Printf("Get hierarchy XML for node %d", rootID)
 	tree, err := db.GetTree(rootID)
 	if err != nil {
-		log.Printf("Unable to get tree from node %d: %s", rootID, err.Error())
+		log.Printf("ERROR: Unable to get tree from node %d: %s", rootID, err.Error())
 		return ""
 	}
 
-	log.Printf("Walk nodes to generate hierarchy xml...")
 	var buffer bytes.Buffer
 	buffer.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
 	var counter int
@@ -201,7 +201,6 @@ func walkHierarchy(node *Node, buffer *bytes.Buffer, itemCnt *int) {
 			// if this node has no components, it is an item. count it
 			*itemCnt = *itemCnt + 1
 			if *itemCnt > 3 && bytes.Contains(buffer.Bytes(), []byte("<collection>")) == true {
-				log.Printf("Stopping after 3 items")
 				return
 			}
 		}
@@ -255,7 +254,6 @@ func getBreadcrumbs(node *Node, breadcrumbs *[]breadcrumb) {
 		*breadcrumbs = append(*breadcrumbs, bc)
 		for _, c := range node.Children {
 			if len(c.Children) > 0 {
-				log.Printf("Get child breadcrumbs %s", c.Type.Name)
 				getBreadcrumbs(c, breadcrumbs)
 			}
 		}
@@ -267,7 +265,7 @@ func addIIIFMetadata(node *Node, fields *[]solrField, iiifURL string) {
 	pid := getValue(node, "externalPID", node.PID)
 	iiifManifest, err := getAPIResponse(fmt.Sprintf("%s/%s", iiifURL, pid))
 	if err != nil {
-		log.Printf("Unable to retrieve IIIF Manifest: %s", err.Error())
+		log.Printf("ERROR: Unable to retrieve IIIF Manifest: %s", err.Error())
 		return
 	}
 	*fields = append(*fields, solrField{Name: "format_facet", Value: "Online"})

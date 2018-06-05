@@ -12,17 +12,17 @@ import (
 func (app *ApolloHandler) AuthMiddleware(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		// log.Printf("HEADERS: %s", req.Header)
-		computingID := req.Header.Get("remote_user")
-		if len(app.DevAuthUser) > 0 && len(computingID) == 0 {
+		app.AuthComputingID = req.Header.Get("remote_user")
+		if len(app.DevAuthUser) > 0 && app.AuthComputingID == "" {
 			log.Printf("Authenticating using devMode user")
-			computingID = app.DevAuthUser
+			app.AuthComputingID = app.DevAuthUser
 		}
-		log.Printf("Authenticating request; remote_user [%s]", computingID)
-		if len(computingID) == 0 {
+		log.Printf("Authenticating request; remote_user [%s]", app.AuthComputingID)
+		if app.AuthComputingID == "" {
 			http.Error(w, "You are not authorized to access this site", http.StatusForbidden)
 			return
 		}
-		user, err := app.DB.FindUserBy("computing_id", computingID)
+		user, err := app.DB.FindUserBy("computing_id", app.AuthComputingID)
 		if err != nil {
 			http.Error(w, "You are not authorized to access this site", http.StatusForbidden)
 			return

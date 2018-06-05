@@ -36,9 +36,13 @@ func (app *ApolloHandler) CollectionsShow(rw http.ResponseWriter, req *http.Requ
 		http.Error(rw, dbErr.Error(), http.StatusInternalServerError)
 		return
 	}
+	root.PublishedAt = app.DB.GetLatestPublication(rootID)
 
 	log.Printf("Tree retrieved; Marshall to JSON...")
-	json, _ := json.MarshalIndent(root, "", "  ")
+	json, err := json.MarshalIndent(root, "", "  ")
+	if err != nil {
+		log.Printf("MArshal problem %s", err.Error())
+	}
 	log.Printf("DONE")
 
 	rw.Header().Set("Content-Type", "application/json")

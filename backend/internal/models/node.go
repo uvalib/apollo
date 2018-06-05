@@ -28,21 +28,22 @@ type Collection struct {
 // A Collection is the hierarchical representation of all nodes stemming from a
 // single PID.
 type Node struct {
-	ID        int64      `json:"-"`
-	PID       string     `json:"pid"`
-	Parent    *Node      `json:"-"`
-	Sequence  int        `json:"sequence"`
-	Type      *NodeType  `json:"type"`
-	Value     string     `json:"value,omitempty"`
-	ValueURI  string     `json:"valueURI,omitempty"`
-	Children  []*Node    `json:"children,omitempty"`
-	User      *User      `json:"-"`
-	Deleted   bool       `json:"-"`
-	Current   bool       `json:"-"`
-	CreatedAt time.Time  `db:"created_at" json:"createdAt"`
-	UpdatedAt *time.Time `db:"updated_at" json:"updatedAt,omitempty"`
-	parentID  sql.NullInt64
-	ancestry  sql.NullString
+	ID          int64      `json:"-"`
+	PID         string     `json:"pid"`
+	Parent      *Node      `json:"-"`
+	Sequence    int        `json:"sequence"`
+	Type        *NodeType  `json:"type"`
+	Value       string     `json:"value,omitempty"`
+	ValueURI    string     `json:"valueURI,omitempty"`
+	Children    []*Node    `json:"children,omitempty"`
+	User        *User      `json:"-"`
+	Deleted     bool       `json:"-"`
+	Current     bool       `json:"-"`
+	CreatedAt   time.Time  `db:"created_at" json:"createdAt"`
+	UpdatedAt   *time.Time `db:"updated_at" json:"updatedAt,omitempty"`
+	PublishedAt *time.Time `json:"publishedAt,omitempty"`
+	parentID    sql.NullInt64
+	ancestry    sql.NullString
 }
 
 func (n *Node) encodeValue(val string) string {
@@ -56,23 +57,25 @@ func (n *Node) encodeValue(val string) string {
 // MarshalJSON will encode the Node structure as JSON
 func (n *Node) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
-		PID       string     `json:"pid"`
-		Sequence  int        `json:"sequence"`
-		Type      *NodeType  `json:"type"`
-		Value     string     `json:"value,omitempty"`
-		ValueURI  string     `json:"valueURI,omitempty"`
-		CreatedAt time.Time  `db:"created_at" json:"createdAt"`
-		UpdatedAt *time.Time `db:"updated_at" json:"updatedAt,omitempty"`
-		Children  []*Node    `json:"children,omitempty"`
+		PID         string     `json:"pid"`
+		Sequence    int        `json:"sequence"`
+		Type        *NodeType  `json:"type"`
+		Value       string     `json:"value,omitempty"`
+		ValueURI    string     `json:"valueURI,omitempty"`
+		CreatedAt   time.Time  `db:"created_at" json:"createdAt"`
+		UpdatedAt   *time.Time `db:"updated_at" json:"updatedAt,omitempty"`
+		PublishedAt *time.Time `json:"publishedAt,omitempty"`
+		Children    []*Node    `json:"children,omitempty"`
 	}{
-		PID:       n.PID,
-		Sequence:  n.Sequence,
-		Type:      n.Type,
-		Value:     n.encodeValue(n.Value),
-		ValueURI:  n.ValueURI,
-		CreatedAt: n.CreatedAt,
-		UpdatedAt: n.UpdatedAt,
-		Children:  n.Children,
+		PID:         n.PID,
+		Sequence:    n.Sequence,
+		Type:        n.Type,
+		Value:       n.encodeValue(n.Value),
+		ValueURI:    n.ValueURI,
+		CreatedAt:   n.CreatedAt,
+		UpdatedAt:   n.UpdatedAt,
+		PublishedAt: n.PublishedAt,
+		Children:    n.Children,
 	})
 }
 
@@ -120,6 +123,18 @@ func (db *DB) GetCollections() []Collection {
 	return out
 }
 
+// GetCollectionItemIDs returns all ancestors of the source node
+func (db *DB) GetCollectionItemIDs(collectionID int64) ([]int64, error) {
+	var ids []int64
+	qs := `select n.id from nodes n inner join node_types nt on nt.id = n.node_type_id
+			 where nt.container = 1 and ancestry regexp '^1($|/.*)' order by n.id asc;`
+	err := db.Select(&ids, qs)
+	if err != nil {
+		return ids, err
+	}
+	return ids, nil
+}
+
 // GetAncestry returns all ancestors of the source node
 func (db *DB) GetAncestry(node *Node) (*Node, error) {
 	log.Printf("Get ancestors for %s with ancestry [%s]", node.PID, node.ancestry.String)
@@ -130,10 +145,11 @@ func (db *DB) GetAncestry(node *Node) (*Node, error) {
 		return nil, nil
 	}
 
-	// Pull rootID off of ancestry string
+	// split ancestry into a list of itemID
 	var root, prior *Node
 	ancestryArray := strings.Split(ancestry, "/")
 	for _, stringID := range ancestryArray {
+		// Pull details for the item and assemble into ancestry structure
 		id, _ := strconv.ParseInt(stringID, 10, 64)
 		ancestor, err := db.GetChildren(id)
 		if err != nil {
@@ -161,6 +177,7 @@ func (db *DB) GetParentCollection(node *Node) (*Node, error) {
 
 	// The collection node is the one with  ID matching the first ancestry substring
 	rootID, _ := strconv.ParseInt(strings.Split(ancestry, "/")[0], 10, 64)
+	log.Printf("Ancestry rootID: %d", rootID)
 
 	// Dont want deleted or non-current nodes. Non-root nodes without values are the start of
 	// child containers of the collection; skip them. Only take the parent node itself (id match)
@@ -200,6 +217,7 @@ func getNodeSelect() string {
 }
 
 func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
+	// log.Printf("%s, %d", query, rootID)
 	nodes := make(map[int64]*Node)
 	var root *Node
 	controlledValues := make(map[int64]*ControlledValue)
