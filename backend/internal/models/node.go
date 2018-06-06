@@ -21,6 +21,12 @@ type Collection struct {
 	Title string `json:"title"`
 }
 
+// ItemIDs holds identifiers for an item
+type ItemIDs struct {
+	PID string
+	ID  int64
+}
+
 // Node is a single element in a tree of metadata. This is the smallest unit
 // of data in the system; essentially a name/value pair.
 // An Item is a collection of nodes with
@@ -123,11 +129,11 @@ func (db *DB) GetCollections() []Collection {
 	return out
 }
 
-// GetCollectionItemIDs returns all ancestors of the source node
-func (db *DB) GetCollectionItemIDs(collectionID int64) ([]int64, error) {
-	var ids []int64
-	qs := `select n.id from nodes n inner join node_types nt on nt.id = n.node_type_id
-			 where nt.container = 1 and ancestry regexp '^1($|/.*)' order by n.id asc;`
+// GetCollectionItemIdentifiers returns all ancestors of the source node
+func (db *DB) GetCollectionItemIdentifiers(collectionID int64) ([]ItemIDs, error) {
+	var ids []ItemIDs
+	qs := fmt.Sprintf(`select n.id,n.pid from nodes n inner join node_types nt on nt.id = n.node_type_id
+			 where nt.container = 1 and ancestry regexp '^%d($|/.*)' order by n.id asc;`, collectionID)
 	err := db.Select(&ids, qs)
 	if err != nil {
 		return ids, err
@@ -245,7 +251,7 @@ func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
 			if cv, ok := controlledValues[id]; ok {
 				n.Value = cv.Value
 				n.ValueURI = cv.ValueURI
-				log.Printf("Use cached controlled value %d", id)
+				// log.Printf("Use cached controlled value %d", id)
 			} else {
 				cv := db.GetControlledValueByID(id)
 				if cv == nil {
@@ -254,14 +260,14 @@ func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
 					n.Value = cv.Value
 					n.ValueURI = cv.ValueURI
 					controlledValues[id] = cv
-					log.Printf("Cache controlled value %d", id)
+					// log.Printf("Cache controlled value %d", id)
 				}
 			}
 		}
 
 		nodes[n.ID] = &n
 		if n.ID == rootID {
-			log.Printf("Set root node to %d", n.ID)
+			// log.Printf("Set root node to %d", n.ID)
 			root = &n
 		}
 	}
