@@ -10,14 +10,6 @@
         <td class="label">Type:</td>
         <td class="data">
           {{ model.type.name }}
-          <div class="formats">
-            <template v-if="jsonLink()">
-              <a class="raw" :href="jsonLink()" target="_blank">JSON</a>
-            </template>
-            <template v-if="sirsiLink()">
-              <a class="sirsi" :href="sirsiLink()" target="_blank">Sirsi</a>
-            </template>
-          </div>
         </td>
       </tr>
       <tr v-for="(attribute, index) in model.attributes" class="attribute">
@@ -86,42 +78,6 @@
         return ""
       },
 
-      jsonLink: function() {
-        // This should only return a URL for nodes that
-        // are top level. A top level node will have a barcode and/or key
-        for (var idx in this.model.attributes) {
-          let attr = this.model.attributes[idx]
-          if (attr.type.name === "barcode" || attr.type.name === "catalogKey") {
-            return "/api/collections/"+this.model.pid
-          }
-        }
-        return ""
-      },
-
-      sirsiLink: function(model) {
-        // This should only return a URL for nodes that
-        // are top level. A top level node will have a barcode and/or key
-        let barcode=""
-        let catalogKey = ""
-        for (var idx in this.model.attributes) {
-          let attr = this.model.attributes[idx]
-          if (attr.type.name === "barcode"){
-            barcode = attr.value
-          }
-          if (attr.type.name === "catalogKey") {
-            catalogKey = attr.value
-          }
-        }
-
-        if (barcode.length > 0) {
-          return "http://solr.lib.virginia.edu:8082/solr/core/select/?q=barcode_facet:"+barcode
-        }
-        if (catalogKey.length > 0) {
-          return "http://solr.lib.virginia.edu:8082/solr/core/select/?q=id:"+catalogKey
-        }
-        return ""
-      },
-
       handleScroll: function(event) {
         // Keep the viewer on screen as the user scrolls through
         // the (potentially) long list of nodes in the collection.
@@ -183,27 +139,6 @@
 </script>
 
 <style scoped>
-  div.formats {
-    position: absolute;
-    right: 3px;
-    top: 0;
-  }
-  .sirsi, .raw {
-    padding: 2px 8px;
-    border-radius: 10px;
-    background: #0078e7;
-    color: white;
-    opacity: 0.6;
-    cursor: pointer;
-    text-decoration: none;
-  }
-  .sirsi:hover, .raw:hover {
-    opacity: 1;
-  }
-  .raw {
-    background: rgb(240, 130, 40);
-    opacity: 0.8;
-  }
   i.fa-external-link-alt {
     margin-left:5px;
     color: #999;
@@ -266,28 +201,25 @@
     position: relative;
   }
   span.icon {
-    display: inline-block;
     width: 18px;
     height: 18px;
     position: absolute;
-    left: -35px;
-    top: 10px;
-    padding: 4px 11px 4px 10px;
+    left: 8px;
+    top: 8px;
+    padding: 0;
     z-index: 100;
     cursor: pointer;
     opacity: 0.4;
+    background-repeat: no-repeat;
+    background-position: 0;
   }
   span.icon:hover {
     opacity: 0.7;
   }
   span.icon.plus {
     background: url(../assets/plus.png);
-    background-repeat: no-repeat;
-    background-position: 5px,6px;
   }
   span.icon.minus {
     background: url(../assets/minus.png);
-    background-repeat: no-repeat;
-    background-position: 5px,6px;
   }
 </style>

@@ -14,8 +14,18 @@
         <div class="pure-u-9-24">
           <h4 class="do-header">
             <span>Collection Structure</span>
-            <span @click="publishClicked" class="publish">Publish</span>
           </h4>
+
+          <div class="toolbar">
+            <template v-if="jsonLink()">
+              <a class="raw" :href="jsonLink()" target="_blank">View JSON</a>
+            </template>
+            <template v-if="sirsiLink()">
+              <a class="sirsi" :href="sirsiLink()" target="_blank">View Sirsi</a>
+            </template>
+            <span @click="publishClicked" class="publish">Publish</span>
+          </div>
+
           <ul class="collection">
             <details-node :model="collection" :depth="0"></details-node>
           </ul>
@@ -96,9 +106,45 @@
         this.activePID = ""
       },
 
+      jsonLink: function() {
+        // This should only return a URL for nodes that
+        // are top level. A top level node will have a barcode and/or key
+        for (var idx in this.collection.attributes) {
+          let attr = this.collection.attributes[idx]
+          if (attr.type.name === "barcode" || attr.type.name === "catalogKey") {
+            return "/api/collections/"+this.collection.pid
+          }
+        }
+        return ""
+      },
+
+      sirsiLink: function(model) {
+        // This should only return a URL for nodes that
+        // are top level. A top level node will have a barcode and/or key
+        let barcode=""
+        let catalogKey = ""
+        for (var idx in this.collection.attributes) {
+          let attr = this.collection.attributes[idx]
+          if (attr.type.name === "barcode"){
+            barcode = attr.value
+          }
+          if (attr.type.name === "catalogKey") {
+            catalogKey = attr.value
+          }
+        }
+
+        if (barcode.length > 0) {
+          return "http://solr.lib.virginia.edu:8082/solr/core/select/?q=barcode_facet:"+barcode
+        }
+        if (catalogKey.length > 0) {
+          return "http://solr.lib.virginia.edu:8082/solr/core/select/?q=id:"+catalogKey
+        }
+        return ""
+      },
+
       publishClicked: function() {
         let resp = confirm("Publish this collection?")
-        // TODO make a modal that asks this question, then 
+        // TODO make a modal that asks this question, then
         // provides feedback - lublished, will be in virgo by tomorrow
         // show published date
         // show virgo link
@@ -170,19 +216,35 @@
 </script>
 
 <style scoped>
-  span.publish {
-    float: right;
+  .toolbar  {
     font-size: 0.8em;
-    font-weight: bold;
-    background: #5b5;
-    color: white;
-    padding: 3px 26px;
+    position: relative;
+    text-align: right;
+    margin: 0 0 0 20px;
+    border-bottom: 1px solid #ccc;
+    padding: 0 5px 13px 0;
+  }
+  .sirsi, .raw, .publish {
+    padding: 2px 8px;
     border-radius: 10px;
-    opacity: 0.8;
+    background: #0078e7;
+    opacity: 0.75;
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 500;
+    color: white;
+    padding: 3px 15px;
+    border-radius: 10px;
     cursor: pointer;
   }
-  span.publish:hover {
+  .sirsi:hover, .raw:hover, .publish:hover {
     opacity: 1;
+  }
+  .raw {
+    background: rgb(240, 130, 40);
+  }
+  span.publish {
+    background: #5b5;
   }
   div#object-viewer {
     padding: 0px 20px;
@@ -224,5 +286,6 @@
   }
   ul.collection {
     margin-top:0;
+    -webkit-padding-start: 20px;
   }
 </style>
