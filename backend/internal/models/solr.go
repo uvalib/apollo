@@ -270,9 +270,23 @@ func addIIIFMetadata(node *Node, fields *[]solrField, iiifURL string) {
 	}
 	*fields = append(*fields, solrField{Name: "format_facet", Value: "Online"})
 	*fields = append(*fields, solrField{Name: "feature_facet", Value: "iiif"})
-	*fields = append(*fields, solrField{Name: "iiif_presentation_metadata_display", Value: (iiifManifest)})
+	*fields = append(*fields, solrField{Name: "iiif_presentation_metadata_display", Value: iiifManifest})
 	*fields = append(*fields, solrField{Name: "feature_facet", Value: "pdf_service"})
 	*fields = append(*fields, solrField{Name: "pdf_url_display", Value: "http://pdfws.lib.virginia.edu:8088"})
+	*fields = append(*fields, solrField{Name: "thumbnail_url_display", Value: parseExemplar(iiifManifest)})
+}
+
+func parseExemplar(iiifManifest string) string {
+	// Looking for first line like this:
+	//  "thumbnail":"https://iiif.lib.virginia.edu/iiif/tsm:2601265/full/!200,200/0/default.jpg",
+	// Parse out the url from between the quotes
+	idxThumb := strings.Index(iiifManifest, "thumbnail")
+	fn := "default.jpg"
+	idxJPG := strings.Index(iiifManifest, fn)
+	line := iiifManifest[idxThumb : idxJPG+len(fn)+1]
+	colonIdx := strings.Index(line, ":")
+	quotedURL := line[colonIdx+1 : len(line)]
+	return strings.Replace(quotedURL, "\"", "", -1)
 }
 
 func escapeXML(src string) string {

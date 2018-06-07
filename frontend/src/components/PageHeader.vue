@@ -27,7 +27,7 @@
   div.page-header {
     border-bottom: 1px solid rgb(229, 114, 0);
     margin-bottom: 15px;
-    padding-bottom: 0px;
+    padding-bottom: 5px;
     position: relative;
   }
   span.user {
@@ -37,7 +37,7 @@
   }
   h2.page-header {
     color: rgb(229, 114, 0);
-    margin: 0 0 5px 0;
+    margin: 0;
   }
   p.page-header {
     margin: 0 0 0 30px;
