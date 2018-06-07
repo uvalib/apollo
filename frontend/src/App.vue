@@ -24,7 +24,7 @@ export default {
   },
   created: function () {
     if (this.$route.meta.requiresAuth ) {
-      axios.get("/api/authenticate").then((response)  =>  {
+      axios.get("/authenticate").then((response)  =>  {
         localStorage.setItem("user", response.data.firstName+" "+response.data.lastName)
         this.authorizing = false
       }).catch((error) => {

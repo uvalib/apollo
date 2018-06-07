@@ -16,6 +16,11 @@ module.exports = {
         target: process.env.APOLLO_API, // or 'http://localhost:8085',
         changeOrigin: true,
         logLevel: 'debug'
+      },
+      '/authenticate': {
+        target: process.env.APOLLO_API, // or 'http://localhost:8085',
+        changeOrigin: true,
+        logLevel: 'debug'
       }
    },
 

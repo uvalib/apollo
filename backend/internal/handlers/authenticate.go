@@ -13,10 +13,10 @@ import (
 // future to return auth tokens
 func (app *ApolloHandler) Authenticate(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	computingID := req.Header.Get("remote_user")
-	if len(app.DevAuthUser) > 0 {
+	if app.DevAuthUser != "" {
 		computingID = app.DevAuthUser
 	}
-	if len(computingID) == 0 {
+	if computingID == "" {
 		http.Error(rw, "You are not authorized to access this site", http.StatusForbidden)
 		return
 	}
@@ -26,6 +26,9 @@ func (app *ApolloHandler) Authenticate(rw http.ResponseWriter, req *http.Request
 		http.Error(rw, "You are not authorized to access this site", http.StatusForbidden)
 		return
 	}
+
+	// TODO generate an auth token and include with user?
+
 	log.Printf("User %s has successfully authorized", user.ComputingID)
 	json, _ := json.Marshal(user)
 	rw.Header().Set("Content-Type", "application/json")
