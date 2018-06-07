@@ -26,8 +26,8 @@
 <style scoped>
   div.page-header {
     border-bottom: 1px solid rgb(229, 114, 0);
-    margin-bottom: 20px;
-    padding-bottom: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 0px;
     position: relative;
   }
   span.user {

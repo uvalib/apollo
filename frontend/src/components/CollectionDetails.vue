@@ -24,12 +24,16 @@
               <a class="sirsi" :href="sirsiLink()" target="_blank">View Sirsi</a>
             </template>
             <span @click="publishClicked" class="publish">Publish</span>
+            <div v-if="published()" class="publication">
+              <span class="label">Last Published:</span><span class="date">{{ formattedPublishedDate() }}</span>
+            </div>
           </div>
 
           <ul class="collection">
             <details-node :model="collection" :depth="0"></details-node>
           </ul>
         </div>
+
         <div class="pure-u-15-24">
           <h4 class="do-header">Digitial Object Viewer</h4>
           <apollo-error v-if="viewerError" :message="viewerError"></apollo-error>
@@ -38,7 +42,6 @@
               <p id="view-placeholder" class="hint">Click 'View Digital Object' from the tree on the left to view it here.</p>
             </div>
             <div v-if="viewerVisible" id="viewer-tools">
-              <!-- <a class="do-button" href="#" target="_blank">PDF</a> -->
               <a class="do-button" :href="iiifManufestURL()" target="_blank">IIIF Manifest</a>
             </div>
           </div>
@@ -50,6 +53,7 @@
 
 <script>
   import axios from 'axios'
+  import moment from 'moment'
   import CollectionDetailsNode from './CollectionDetailsNode'
   import PageHeader from './PageHeader'
   import EventBus from './EventBus'
@@ -60,10 +64,12 @@
       'details-node': CollectionDetailsNode,
       'page-header': PageHeader
     },
+
     props: {
       id: String,
       title: String
     },
+
     data: function () {
       return {
         collection: {},
@@ -74,11 +80,11 @@
         activePID: ""
       }
     },
+
     created: function () {
       axios.get("/api/collections/"+this.id).then((response)  =>  {
         this.loading = false
         this.traverseDetails(response.data, this.collection)
-        // console.log(this.collection)
       }).catch((error) => {
         this.loading = false
         this.errorMsg =  error.response.data
@@ -86,11 +92,13 @@
         this.loading = false
       })
     },
+
     mounted: function (){
       EventBus.$on("viewer-clicked", this.handleViewerClicked)
       EventBus.$on("viewer-opened", this.handleViewerOpened)
       EventBus.$on("viewer-error", this.handleViewerError)
     },
+
     methods: {
       handleViewerClicked: function() {
         this.viewerError = null
@@ -104,6 +112,15 @@
       handleViewerError: function(msg) {
         this.viewerError = msg
         this.activePID = ""
+      },
+
+      published: function() {
+        return this.collection.publishedAt
+      },
+
+      formattedPublishedDate: function() {
+        let m = moment(this.collection.publishedAt)
+        return m.format("YYYY-MM-DD hh:mm a")
       },
 
       jsonLink: function() {
@@ -154,22 +171,14 @@
         return "https://tracksys.lib.virginia.edu:8080/"+this.activePID+"/manifest.json"
       },
 
-      // Comparator method used to sort nodes in ascending sequence order
-      compareNodes(a, b) {
-        if (a.sequence < b.sequence) {
-          return -1
-        }
-        if (a.sequence > b.sequence) {
-          return 1;
-        }
-        return 0;
-      },
-
       traverseDetails: function(json, currNode) {
         // every node has at least a PID and type obj (pid, name)
         currNode.pid = json.pid
         currNode.type = json.type
         currNode.sequence = json.sequence
+        if (json.publishedAt) {
+          currNode.publishedAt = json.publishedAt
+        }
 
         // If it does not have a corresponding VALUE attribute, it is a container node.
         // Container nodes contain attributes (simple name/value pairs) and children.
@@ -202,13 +211,6 @@
               }
             }
         }
-        // The node, children and attributes have been populated; return result
-        if (currNode.attributes) {
-          currNode.attributes.sort( this.compareNodes )
-        }
-        if (currNode.children) {
-          currNode.children.sort( this.compareNodes )
-        }
         return currNode
       }
     }
@@ -222,7 +224,15 @@
     text-align: right;
     margin: 0 0 0 20px;
     border-bottom: 1px solid #ccc;
-    padding: 0 5px 13px 0;
+    padding: 0 5px 8px 0;
+  }
+  .publication {
+    margin-top: 12px;
+    font-size: 0.9em;
+  }
+  .publication .label {
+    font-weight: bold;
+    margin-right: 10px;
   }
   .sirsi, .raw, .publish {
     padding: 2px 8px;
