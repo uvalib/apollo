@@ -17,15 +17,13 @@
           </h4>
 
           <div class="toolbar">
-            <template v-if="jsonLink()">
-              <a class="raw" :href="jsonLink()" target="_blank">View JSON</a>
-            </template>
-            <template v-if="sirsiLink()">
-              <a class="sirsi" :href="sirsiLink()" target="_blank">View Sirsi</a>
-            </template>
-            <span @click="publishClicked" class="publish">Publish</span>
+            <span @click="publishClicked" class="publish">Publish Collection</span>
+            <a class="raw" :href="jsonLink()" target="_blank">JSON</a>
+            <a class="sirsi" :href="sirsiLink()" target="_blank">Sirsi</a>
             <div v-if="published()" class="publication">
-              <span class="label">Last Published:</span><span class="date">{{ formattedPublishedDate() }}</span>
+              <span class="label">Last Published:</span>
+              <span class="date">{{ formattedPublishedDate() }}</span>
+              <a class="virgo" :href="virgoLink()" target="_blank">Virgo</a>
             </div>
           </div>
 
@@ -119,8 +117,20 @@
       },
 
       formattedPublishedDate: function() {
-        let m = moment(this.collection.publishedAt)
-        return m.format("YYYY-MM-DD hh:mm a")
+        let m = moment(this.collection.publishedAt, "YYYY-MM-DDTHH:mm:ssZ")
+        return m.utcOffset("+0000").format("YYYY-MM-DD hh:mma")
+      },
+
+      virgoLink: function() {
+        let extPid = ""
+        for (var idx in this.collection.attributes) {
+          let attr = this.collection.attributes[idx]
+          if (attr.type.name === "externalPID"){
+            extPid = attr.value
+            break
+          }
+        }
+        return "http://search.lib.virginia.edu/catalog/"+extPid
       },
 
       jsonLink: function() {
@@ -161,10 +171,13 @@
 
       publishClicked: function() {
         let resp = confirm("Publish this collection?")
-        // TODO make a modal that asks this question, then
-        // provides feedback - lublished, will be in virgo by tomorrow
-        // show published date
-        // show virgo link
+        if (!resp) return
+
+        axios.post("/api/publish/"+this.collection.pid).then((response)  =>  {
+          alert("The publication process has been started. The collection will appear in Virgo within 24 hours.")
+        }).catch((error) => {
+          alert("Unable to publish collection: "+error.response)
+        })
       },
 
       iiifManufestURL: function() {
@@ -234,8 +247,7 @@
     font-weight: bold;
     margin-right: 10px;
   }
-  .sirsi, .raw, .publish {
-    padding: 2px 8px;
+  .sirsi, .raw, .publish, .virgo  {
     border-radius: 10px;
     background: #0078e7;
     opacity: 0.75;
@@ -246,15 +258,19 @@
     padding: 3px 15px;
     border-radius: 10px;
     cursor: pointer;
+    margin-left: 5px;
   }
   .sirsi:hover, .raw:hover, .publish:hover {
     opacity: 1;
+  }
+  .virgo {
+    padding: 2px 10px;
   }
   .raw {
     background: rgb(240, 130, 40);
   }
   span.publish {
-    background: #5b5;
+    background: #3a3;
   }
   div#object-viewer {
     padding: 0px 20px;

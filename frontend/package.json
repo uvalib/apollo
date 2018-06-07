@@ -12,6 +12,7 @@
   "dependencies": {
     "axios": "^0.18.0",
     "moment": "^2.22.2",
+    "moment-timezone": "^0.5.17",
     "vue": "^2.5.2",
     "vue-router": "^3.0.1"
   },
