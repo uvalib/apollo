@@ -77,7 +77,9 @@ func main() {
 	router.GET("/api/values/:name", app.ValuesForName)
 	router.GET("/api/external/:pid", app.ExternalPIDLookup)
 	router.GET("/api/solr/:pid", app.GenerateSolr)
-	router.POST("/api/publish/:pid", app.PublishCollection)
+
+	// require the user auth info in headers for this one
+	router.POST("/api/publish/:pid", app.AuthMiddleware(app.PublishCollection))
 
 	// Create a standard go Mux to serve static files, and pass off
 	// all other stuff the the router. this allows static files to be

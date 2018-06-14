@@ -68,8 +68,9 @@ func (app *ApolloHandler) publishItems(IDs []models.ItemIDs, rootID int64) {
 	}
 
 	wg.Wait()
-	log.Printf("All goroutines done; publication complete")
+	log.Printf("All goroutines done; flagging publication complete by [%s]", app.AuthComputingID)
 	app.DB.NodePublished(rootID, app.AuthComputingID)
+	log.Printf("Publication COMPLETE")
 }
 
 func (app *ApolloHandler) processIDs(IDs []models.ItemIDs, wg *sync.WaitGroup) {
