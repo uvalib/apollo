@@ -3,7 +3,7 @@
 Apollo is a management system for digitized collections.
 
 ### System Requirements
-* GO version 1.9.2 or greater
+* GO version 1.10 or greater
 * DEP (https://golang.github.io/dep/) version 0.4.1 or greater
 * NPM version 6.0.0 or higher ( https://www.npmjs.com/get-npm )
 * Node version 8.11.1 or higher (https://nodejs.org/en/)

@@ -281,12 +281,21 @@ func parseExemplar(iiifManifest string) string {
 	//  "thumbnail":"https://iiif.lib.virginia.edu/iiif/tsm:2601265/full/!200,200/0/default.jpg",
 	// Parse out the url from between the quotes
 	idxThumb := strings.Index(iiifManifest, "thumbnail")
+	log.Printf("thumb idx %d", idxThumb)
 	fn := "default.jpg"
-	idxJPG := strings.Index(iiifManifest, fn)
+	idxJPG := strings.Index(iiifManifest[idxThumb:len(iiifManifest)], fn)
+	idxJPG += idxThumb
+	log.Printf("thumb JPG %d", idxJPG)
+	if idxThumb == -1 || idxJPG == -1 || idxThumb > idxJPG {
+		log.Printf("ERROR: Couldn't find thumbnail in IIIF")
+		return ""
+	}
 	line := iiifManifest[idxThumb : idxJPG+len(fn)+1]
 	colonIdx := strings.Index(line, ":")
 	quotedURL := line[colonIdx+1 : len(line)]
-	return strings.Replace(quotedURL, "\"", "", -1)
+	out := strings.Replace(quotedURL, "\"", "", -1)
+	log.Printf("Thumb %s", out)
+	return out
 }
 
 func escapeXML(src string) string {
