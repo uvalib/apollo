@@ -314,35 +314,91 @@ func (db *DB) CreateNodes(nodes []*Node) error {
 	}
 
 	for _, node := range nodes {
-		t := time.Now().Unix()
-		tmpPID := fmt.Sprintf("TMP-%d", t)
-		qs := "insert into nodes (pid, node_type_id, sequence, value, user_id, created_at) values (?,?,?,?,?,NOW())"
-		res, insertErr := tx.Exec(qs, tmpPID, node.Type.ID, node.Sequence, node.Value, node.User.ID)
-		if insertErr != nil {
-			tx.Rollback()
-			return insertErr
-		}
-
-		// update the PID using last insert ID
-		node.ID, _ = res.LastInsertId()
-		node.PID = fmt.Sprintf("uva-an%d", node.ID)
-		qs = "update nodes set pid=? where id=?"
-		res, insertErr = tx.Exec(qs, node.PID, node.ID)
-		if insertErr != nil {
-			tx.Rollback()
+		err := addNode(tx, node)
+		if err != nil {
 			return err
 		}
 
 		// add parent and ancestry if needed
 		if node.Parent != nil {
 			ancestry := generateAncestryString(node)
-			qs = "update nodes set parent_id=?, ancestry=? where id=?"
-			res, insertErr = tx.Exec(qs, node.Parent.ID, ancestry, node.ID)
+			qs := "update nodes set parent_id=?, ancestry=? where id=?"
+			_, insertErr := tx.Exec(qs, node.Parent.ID, ancestry, node.ID)
 			if insertErr != nil {
 				tx.Rollback()
 				return err
 			}
 		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return nil
+}
+
+func addNode(tx *sql.Tx, node *Node) error {
+	t := time.Now().Unix()
+	tmpPID := fmt.Sprintf("TMP-%d", t)
+	qs := "insert into nodes (pid, node_type_id, sequence, value, user_id, created_at) values (?,?,?,?,?,NOW())"
+	res, insertErr := tx.Exec(qs, tmpPID, node.Type.ID, node.Sequence, node.Value, node.User.ID)
+	if insertErr != nil {
+		tx.Rollback()
+		return insertErr
+	}
+
+	// update the PID using last insert ID
+	node.ID, _ = res.LastInsertId()
+	node.PID = fmt.Sprintf("uva-an%d", node.ID)
+	qs = "update nodes set pid=? where id=?"
+	_, insertErr = tx.Exec(qs, node.PID, node.ID)
+	if insertErr != nil {
+		tx.Rollback()
+		return insertErr
+	}
+	return nil
+}
+
+// AddNodes adds nodes to the specified parent starting with the specified sequence.
+// If in insert mode, all nodes after have their sequence increased by 1
+func (db *DB) AddNodes(mode string, nodes []*Node, parentID int64) error {
+	var parentAncestry string
+	db.QueryRow("select ancestry from nodes where id=?", parentID).Scan(&parentAncestry)
+	rootAncestry := parentAncestry
+	if parentAncestry != "" {
+		rootAncestry = fmt.Sprintf("%s/%d", parentAncestry, parentID)
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	for idx, node := range nodes {
+		err = addNode(tx, node)
+		if err != nil {
+			return err
+		}
+
+		ancestry := rootAncestry
+		nodeParentID := parentID
+		if idx != 0 {
+			nodeParentID = node.Parent.ID
+			ancestry = fmt.Sprintf("%s/%s", rootAncestry, generateAncestryString(node))
+		}
+
+		qs := "update nodes set parent_id=?, ancestry=? where id=?"
+		_, insertErr := tx.Exec(qs, nodeParentID, ancestry, node.ID)
+		if insertErr != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if mode == "insert" {
+		// TODO update sequences
 	}
 
 	err = tx.Commit()
