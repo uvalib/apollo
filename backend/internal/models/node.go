@@ -376,6 +376,19 @@ func (db *DB) AddNodes(mode string, nodes []*Node, parentID int64) error {
 		return err
 	}
 
+	if mode == "insert" {
+		insertedTypeID := nodes[0].Type.ID
+		sequenceStart := nodes[0].Sequence
+		qs := fmt.Sprintf(`update nodes set sequence=sequence+1
+			where node_type_id=%d and sequence >= %d and (id=%d or parent_id=%d or ancestry like "%%/%d"  or ancestry like "%%/%d/%%")`,
+			insertedTypeID, sequenceStart, parentID, parentID, parentID, parentID)
+		_, updateErr := tx.Exec(qs)
+		if updateErr != nil {
+			tx.Rollback()
+			return updateErr
+		}
+	}
+
 	for idx, node := range nodes {
 		err = addNode(tx, node)
 		if err != nil {
@@ -395,10 +408,6 @@ func (db *DB) AddNodes(mode string, nodes []*Node, parentID int64) error {
 			tx.Rollback()
 			return err
 		}
-	}
-
-	if mode == "insert" {
-		// TODO update sequences
 	}
 
 	err = tx.Commit()
