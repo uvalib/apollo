@@ -3,7 +3,7 @@ GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 
-build: build-darwin build-linux build-web
+build: build-darwin build-linux 
 
 all: deps build-darwin build-linux build-web deploy-web
 
