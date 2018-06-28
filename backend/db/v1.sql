@@ -74,7 +74,7 @@ CREATE TABLE controlled_values (
    node_type_id int(11) NOT NULL,
    value varchar(255) NOT NULL,
    value_uri varchar(255),
-   FOREIGN KEY (node_type_id) REFERENCES node_names(id) ON DELETE CASCADE,
+   FOREIGN KEY (node_type_id) REFERENCES node_types(id) ON DELETE CASCADE,
    UNIQUE KEY (pid),
    UNIQUE KEY (value)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -86,10 +86,9 @@ VALUES
 	('uva-acv4', 11, 'In Copyright Educational Use Permitted', 'http://rightsstatements.org/vocab/InC-EDU/1.0/'),
 	('uva-acv5', 11, 'In Copyright Non-Commercial Use Permitted', 'http://rightsstatements.org/vocab/InC-NC/1.0/'),
 	('uva-acv6', 11, 'In Copyright Rights Holder Unlocatable', 'http://rightsstatements.org/vocab/InC-RUU/1.0/'),
-	('uva-acv9', 11, 'No Copyright Other Known Legal Restrictions', 'http://rightsstatements.org/vocab/NoC-OKLR/1.0/'),
-	('uva-acv10', 11, 'No Copyright United States', 'http://rightsstatements.org/vocab/NoC-US/1.0/'),
-	('uva-acv11', 11, 'Copyright Undetermined', 'http://rightsstatements.org/vocab/UND/1.0/');
-
+	('uva-acv7', 11, 'No Copyright Other Known Legal Restrictions', 'http://rightsstatements.org/vocab/NoC-OKLR/1.0/'),
+	('uva-acv8', 11, 'No Copyright United States', 'http://rightsstatements.org/vocab/NoC-US/1.0/'),
+	('uva-acv9', 11, 'Copyright Undetermined', 'http://rightsstatements.org/vocab/UND/1.0/');
 
 
 --
