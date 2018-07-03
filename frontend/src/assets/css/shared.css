@@ -5,3 +5,35 @@ div#app {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+div#app td.data a.uri {
+  color: cornflowerblue;
+  text-decoration: none;
+  font-weight: bold;
+}
+div#app td.data a.uri:hover {
+  text-decoration: underline;
+}
+
+div#app i.fa-external-link-alt {
+  margin-left:5px;
+  color: #999;
+  opacity: 0.5;
+}
+
+div#app span.show-more {
+  padding: 0px 10px 1px 10px;
+  font-size: 0.8em;
+  border-radius: 10px;
+  background: #dedede;
+  border: 1px solid #dedede;
+  position: absolute;
+  bottom: 2px;
+  right: 0;
+  cursor:pointer;
+  opacity: 0.6;
+}
+div#app span.show-more:hover {
+  background: #d0d0d0;
+  opacity: 1;
+}

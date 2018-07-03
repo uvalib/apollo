@@ -14,19 +14,15 @@
       </tr>
       <tr v-for="(attribute, index) in model.attributes" class="attribute">
         <template v-if="attribute.type.name !='digitalObject'">
-          <template v-if="attribute.valueURI">
-            <td class="label">{{ attribute.type.name }}:</td>
-            <td class="data">
-              <a :href="attribute.valueURI" class="uri" target="_blank">{{ attribute.value }}&nbsp;<i class="fas fa-external-link-alt"></i></a>
-            </td>
-          </template>
-          <template v-else>
-            <td class="label">{{ attribute.type.name }}:</td><td class="data">{{ attribute.value }}</td>
-          </template>
+          <td class="label">{{ attribute.type.name }}:</td>
+          <td class="data">
+            <span v-html="renderAttributeValue(attribute)"></span>
+            <span v-if="showMore(attribute)" class='show-more' @click="moreClicked" >more</span>
+          </td>
         </template>
         <template v-else>
           <td class="label"></td>
-          <td :data-uri="attribute.value" @click="digitalObjectClicked" class="pure-button pure-button-primary data dobj">View Digitial Object</td>
+          <td :data-uri="attribute.values[0].value" @click="digitalObjectClicked" class="pure-button pure-button-primary data dobj">View Digitial Object</td>
         </template>
       </tr>
     </table>
@@ -60,19 +56,56 @@
     },
 
     mounted() {
-      window.addEventListener("scroll", this.handleScroll);
+      window.addEventListener("scroll", this.handleScroll)
     },
 
     destroyed() {
-      window.removeEventListener("scroll", this.handleScroll);
+      window.removeEventListener("scroll", this.handleScroll)
     },
 
     methods: {
+      showMore: function(attribute) {
+        if (attribute.values.length > 1) return false
+        return attribute.values[0].value.length > 150
+      },
+      moreClicked: function(event) {
+        let btn = $(event.currentTarget)
+        if (btn.text() == "more") {
+          let parent = $(event.currentTarget).closest("td")
+          let txt = parent.find(".long-val")
+          txt.text(txt.data("full"))
+          btn.text("less")
+        } else {
+          let parent = $(event.currentTarget).closest("td")
+          let txt = parent.find(".long-val")
+          txt.text(txt.data("full").substring(0,150)+"...")
+          btn.text("more")
+        }
+      },
+      renderAttributeValue: function(attribute) {
+        let out = ""
+        for (var idx in attribute.values) {
+          let val = attribute.values[idx]
+          if (out.length > 0) out += "<span>, </span>"
+          if (val.valueURI) {
+            out += "<a class='uri' href='"+val.valueURI+"' target='_blank'>"+val.value+"</a>"
+          } else {
+            if (val.value.length < 150) {
+              out += "<span>"+val.value+"</span>"
+            } else {
+              out += "<span class='long-val' data-full='"+val.value+"'>"+val.value.substring(0,150)
+              out += "...</span>"
+            }
+          }
+        }
+        return out
+      },
+
       externalPID: function() {
         for (var idx in this.model.attributes) {
           var attr = this.model.attributes[idx]
           if (attr.type.name === "externalPID") {
-            return attr.value
+            return attr.values[0].value
           }
         }
         return ""
@@ -82,6 +115,8 @@
         // Keep the viewer on screen as the user scrolls through
         // the (potentially) long list of nodes in the collection.
         var viewer = $('#viewer-wrapper')
+        if (viewer.length === 0 ) return
+
         let origVal = viewer.data("origTop")
         // console.log("OV: ["+origVal+"]")
         if ( !origVal ) {
@@ -139,19 +174,6 @@
 </script>
 
 <style scoped>
-  i.fa-external-link-alt {
-    margin-left:5px;
-    color: #999;
-    opacity: 0.5;
-  }
-  a.uri {
-    color: cornflowerblue;
-    text-decoration: none;
-    font-weight: bold;
-  }
-  a.uri:hover {
-    text-decoration: underline;
-  }
   table.node {
     padding: 5px 0 5px 5px;
     margin: 0;
@@ -194,6 +216,7 @@
     text-align: right;
     padding: 5px 10px 5px 10px;
     width: 35%;
+    min-width:90px;
   }
   div.content ul, div.content li {
     font-size: 14px;
@@ -221,5 +244,8 @@
   }
   span.icon.minus {
     background: url(../assets/minus.png);
+  }
+  td.data {
+    position: relative;
   }
 </style>

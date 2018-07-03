@@ -19,7 +19,7 @@
           <div class="toolbar">
             <span @click="publishClicked" class="publish">Publish Collection</span>
             <a class="raw" :href="jsonLink()" target="_blank">JSON</a>
-            <a class="sirsi" :href="sirsiLink()" target="_blank">Sirsi</a>
+            <a v-if="hasBarcode" class="sirsi" :href="sirsiLink()" target="_blank">Sirsi</a>
             <div v-if="published()" class="publication">
               <span class="label">Last Published:</span>
               <span class="date">{{ formattedPublishedDate() }}</span>
@@ -79,6 +79,16 @@
       }
     },
 
+    computed: {
+      hasBarcode: function() {
+        for (var idx in this.collection.attributes) {
+          let attr = this.collection.attributes[idx]
+          if (attr.type.name === "barcode") return true
+        }
+        return false
+      }
+    },
+
     created: function () {
       axios.get("/api/collections/"+this.id).then((response)  =>  {
         this.loading = false
@@ -121,28 +131,20 @@
         return m.utcOffset("+0000").format("YYYY-MM-DD hh:mma")
       },
 
+      jsonLink: function() {
+        return "/api/collections/"+this.collection.pid
+      },
+
       virgoLink: function() {
         let extPid = ""
         for (var idx in this.collection.attributes) {
           let attr = this.collection.attributes[idx]
           if (attr.type.name === "externalPID"){
-            extPid = attr.value
+            extPid = attr.values[0].value
             break
           }
         }
         return "http://search.lib.virginia.edu/catalog/"+extPid
-      },
-
-      jsonLink: function() {
-        // This should only return a URL for nodes that
-        // are top level. A top level node will have a barcode and/or key
-        for (var idx in this.collection.attributes) {
-          let attr = this.collection.attributes[idx]
-          if (attr.type.name === "barcode" || attr.type.name === "catalogKey") {
-            return "/api/collections/"+this.collection.pid
-          }
-        }
-        return ""
       },
 
       sirsiLink: function(model) {
@@ -153,10 +155,10 @@
         for (var idx in this.collection.attributes) {
           let attr = this.collection.attributes[idx]
           if (attr.type.name === "barcode"){
-            barcode = attr.value
+            barcode = attr.values[0].value
           }
           if (attr.type.name === "catalogKey") {
-            catalogKey = attr.value
+            catalogKey = attr.values[0].value
           }
         }
 
@@ -184,45 +186,68 @@
         return "https://tracksys.lib.virginia.edu:8080/"+this.activePID+"/manifest.json"
       },
 
-      traverseDetails: function(json, currNode) {
-        // every node has at least a PID and type obj (pid, name)
+      commonInit: function(json, currNode) {
         currNode.pid = json.pid
         currNode.type = json.type
         currNode.sequence = json.sequence
         if (json.publishedAt) {
           currNode.publishedAt = json.publishedAt
         }
+      },
 
-        // If it does not have a corresponding VALUE attribute, it is a container node.
-        // Container nodes contain attributes (simple name/value pairs) and children.
-        // NOTE: All container nodes should have a title attribute
-        // non-container nodes just contain attributes.
-        //     Ex: in our mountain work, issue is not a container. It has 2 attributes;
-        //         one for issue title and another a digitalObject with a link to the oEnbed viewer
-        if (json.value) {
-          // This node has a value; it is an attribute. just poulate value
-          currNode.value = json.value
-          if (json.valueURI) {
-            currNode.valueURI = json.valueURI
+      hasAttribute: function(attributes, tgtType) {
+        for (var idx in attributes) {
+          let attr = attributes[idx]
+          if (attr.type.name == tgtType.name) {
+            return true
           }
-        } else {
-            // This node has no value so it is a container.
-            // Walk children and build attributes and children arrays
-            for (var idx in json.children) {
-              var child = json.children[idx]
-              if (child.value) {
-                // This is an attribute traverse its detail and add it to the attributes list
-                if (!currNode.attributes) currNode.attributes = []
-                var sub = this.traverseDetails(child, {})
-                currNode.attributes.push( sub )
-              } else {
-                // This is another container. Traverse it and append results to children list
-                // If this is the first child encountered, create the blank array to hold the children.
-                if (!currNode.children) currNode.children = []
-                var sub = this.traverseDetails(child, {})
-                currNode.children.push( sub )
+        }
+        return false
+      },
+
+      traverseDetails: function(json, currNode) {
+        // init data that is common to all node types (and is single instance):
+        // pid, type, sequence and (if present) published date
+        this.commonInit(json,currNode)
+
+        // Detect and handle container nodes differently; recursively walk their children.
+        // Container nodes contain attributes (simple name/value pairs) and children.
+        // Examples of containers are collection, year and issue.
+        if (json.type.container === true) {
+          // Walk children and build attributes and children arrays
+          for (var idx in json.children) {
+            var child = json.children[idx]
+            if (child.type.container === false) {
+              // This is an attribute; just grab its value (and valueURI)
+              // Important: attributes can be multi-valued. Stuff all values
+              // in an array
+              if (child.type.name == "WslsTopic") {
+                console.log("WF")
               }
+              if (!currNode.attributes) currNode.attributes = []
+              if  (this.hasAttribute(currNode.attributes, child.type) === false ) {
+                // This is the first instance of this node type. Init a blank
+                // attribute with no values and add it to the list of attributes for this node
+                var attrNode = {}
+                this.commonInit(child, attrNode)
+                attrNode.values = []
+                currNode.attributes.push( attrNode )
+              }
+
+              // Now grab the value and add it to the array of values for the existing attrinute
+              var val = {value: child.value}
+              if (child.valueURI) {
+                val.valueURI = child.valueURI
+              }
+              attrNode.values.push(val)
+            } else {
+              // This is another container. Traverse it and append results to children list
+              // If this is the first child encountered, create the blank array to hold the children.
+              if (!currNode.children) currNode.children = []
+              var sub = this.traverseDetails(child, {})
+              currNode.children.push( sub )
             }
+          }
         }
         return currNode
       }
