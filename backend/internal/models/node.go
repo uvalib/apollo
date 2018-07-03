@@ -250,7 +250,7 @@ func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
 			id, _ := strconv.ParseInt(n.Value, 10, 64)
 			if cv, ok := controlledValues[id]; ok {
 				n.Value = cv.Value
-				n.ValueURI = cv.ValueURI
+				n.ValueURI = cv.ValueURI.String
 				// log.Printf("Use cached controlled value %d", id)
 			} else {
 				cv := db.GetControlledValueByID(id)
@@ -258,7 +258,7 @@ func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
 					log.Printf("ERROR: no controlled value match for %d", id)
 				} else {
 					n.Value = cv.Value
-					n.ValueURI = cv.ValueURI
+					n.ValueURI = cv.ValueURI.String
 					controlledValues[id] = cv
 					// log.Printf("Cache controlled value %d", id)
 				}

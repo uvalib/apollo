@@ -18,9 +18,10 @@ import (
 const Version = "1.0.0"
 
 type context struct {
-	db    *models.DB
-	types []models.NodeType
-	user  *models.User
+	db     *models.DB
+	types  []models.NodeType
+	values []models.ControlledValue
+	user   *models.User
 }
 
 /**
@@ -63,10 +64,10 @@ func main() {
 	}
 
 	// build a context for the ingest containing common data
-	ctx := context{db: db, user: user, types: db.AllTypes()}
+	ctx := context{db: db, user: user, types: db.AllTypes(), values: db.GetAllControlledValues()}
 
 	if mode == "create" {
-		// doIngest(&ctx, srcFile)
+		doIngest(&ctx, srcFile)
 	} else {
 		doUpdate(&ctx, srcFile)
 	}
@@ -290,8 +291,8 @@ func setNodeValue(ctx *context, node *models.Node, val string) {
 		log.Printf("   value: %s", val)
 		return
 	}
-	log.Printf("Look up controlled value %s", val)
-	cv := ctx.db.GetControlledValueByName(val)
+	log.Printf("Look up controlled value [%s]", val)
+	cv := findControlledValue(ctx.values, val)
 	if cv == nil {
 		log.Printf("WARN: no controlled value match found for %s. Just setting value directly.", val)
 		node.Value = val
@@ -303,4 +304,13 @@ func setNodeValue(ctx *context, node *models.Node, val string) {
 	}
 	log.Printf("Controlled value %s replaced with ID %d", val, cv.ID)
 	node.Value = fmt.Sprintf("%d", cv.ID)
+}
+
+func findControlledValue(values []models.ControlledValue, tgtVal string) *models.ControlledValue {
+	for _, val := range values {
+		if val.Value == tgtVal {
+			return &val
+		}
+	}
+	return nil
 }

@@ -1,16 +1,28 @@
 package models
 
 import (
+	"database/sql"
 	"log"
 )
 
 // ControlledValue is a controlled vocabulary for node values
 type ControlledValue struct {
-	ID       int64  `json:"-"`
-	PID      string `json:"pid"`
-	TypeID   int64  `db:"node_type_id" json:"-"`
-	Value    string `json:"value"`
-	ValueURI string `db:"value_uri" json:"valueURI"`
+	ID       int64          `json:"-"`
+	PID      string         `json:"pid"`
+	TypeID   int64          `db:"node_type_id" json:"-"`
+	Value    string         `json:"value"`
+	ValueURI sql.NullString `db:"value_uri" json:"valueURI"`
+}
+
+// GetAllControlledValues gets all controlled values
+func (db *DB) GetAllControlledValues() []ControlledValue {
+	var vals []ControlledValue
+	err := db.Select(&vals, "SELECT cv.* FROM controlled_values cv")
+	if err != nil {
+		log.Printf("Unable to get all controlled values: %s", err.Error())
+		return nil
+	}
+	return vals
 }
 
 // ListControlledValues gets all controlled values for a given name
