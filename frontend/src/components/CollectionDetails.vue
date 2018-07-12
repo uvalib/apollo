@@ -40,7 +40,7 @@
               <p id="view-placeholder" class="hint">Click 'View Digital Object' from the tree on the left to view it here.</p>
             </div>
             <div v-if="viewerVisible" id="viewer-tools">
-              <a class="do-button" :href="iiifManufestURL()" target="_blank">IIIF Manifest</a>
+              <a v-if="iiifAvailable" class="do-button" :href="iiifManufestURL()" target="_blank">IIIF Manifest</a>
             </div>
           </div>
         </div>
@@ -80,6 +80,13 @@
     },
 
     computed: {
+      iiifAvailable: function() {
+        // as of 7/2018 all items in Apollo that have barcodes are images
+        // and have IIIF available. WSLS does not have barcoces, and is not
+        // image-based. Easy check for now;
+        let iiif = this.hasBarcode
+        return iiif
+      },
       hasBarcode: function() {
         for (var idx in this.collection.attributes) {
           let attr = this.collection.attributes[idx]
