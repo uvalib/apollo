@@ -22,7 +22,7 @@
         </template>
         <template v-else>
           <td class="label"></td>
-          <td :data-uri="attribute.values[0].value" @click="digitalObjectClicked" class="pure-button pure-button-primary data dobj">View Digitial Object</td>
+          <td :data-uri="getDoViewerURL(attribute)" @click="digitalObjectClicked" class="pure-button pure-button-primary data dobj">View Digitial Object</td>
         </template>
       </tr>
     </table>
@@ -64,6 +64,17 @@
     },
 
     methods: {
+      getDoViewerURL: function(attribute) {
+        if (attribute.values[0].value.includes("https://")) {
+          return attribute.values[0].value
+        }
+        // conert JSON to something like this:
+        // https://doviewer.lib.virginia.edu/oembed?url=https%3A%2F%2Fdoviewer.lib.virginia.edu%2Fimages%2Fuva-lib%3A2528443
+        let json = JSON.parse(attribute.values[0].value)
+        let qp = encodeURIComponent(process.env.DOVIEWER_URL+"/"+json.type+"/"+json.id)
+        let url = process.env.DOVIEWER_URL+"/oembed?url="+qp
+        return url
+      },
       showMore: function(attribute) {
         if (attribute.values.length > 1) return false
         return attribute.values[0].value.length > 150
