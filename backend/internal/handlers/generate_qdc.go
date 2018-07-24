@@ -45,11 +45,13 @@ func (app *ApolloHandler) GenerateQDC(rw http.ResponseWriter, req *http.Request,
 
 	destFilename := fmt.Sprintf("%s/%s.xml", app.QdcDir, data.PID)
 	log.Printf("Open QDC results file: %s", destFilename)
-	outFile, err := os.OpenFile(destFilename, os.O_CREATE|os.O_WRONLY, 0777)
+	outFile, err := os.OpenFile(destFilename, os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		log.Printf("Unable to open destination QDC file %s: %s", destFilename, err.Error())
 		return
 	}
+	outFile.Truncate(0)
+	outFile.Seek(0, 0)
 	defer outFile.Close()
 
 	// NOTE text/templte must be used becatse html/template doesn't handle XML properly

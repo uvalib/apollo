@@ -24,10 +24,10 @@ func (res GzipResponseWriter) Write(b []byte) (int, error) {
 	return res.Writer.Write(b)
 }
 
-// GzipMiddleware will gzip responces
-func GzipMiddleware(fn httprouter.Handle, force bool) httprouter.Handle {
+// GzipMiddleware will gzip responces if possible
+func GzipMiddleware(fn httprouter.Handle) httprouter.Handle {
 	return func(res http.ResponseWriter, req *http.Request, pm httprouter.Params) {
-		if !strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") && !force {
+		if !strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
 			fn(res, req, pm)
 			return
 		}
@@ -35,7 +35,7 @@ func GzipMiddleware(fn httprouter.Handle, force bool) httprouter.Handle {
 		res.Header().Set("Content-Encoding", "gzip")
 		gz := gzip.NewWriter(res)
 		defer gz.Close()
-		log.Printf("Gzip API responce")
+		log.Printf("Gzipped API responce")
 		gzr := GzipResponseWriter{Writer: gz, ResponseWriter: res}
 		fn(gzr, req, pm)
 	}
