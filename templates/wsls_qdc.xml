@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="http://dplava.lib.virginia.edu/dplava.xsd"
+    type="application/xml" schematypens="http://purl.oclc.org/dsdl/schematron"?>
+<mdRecord xmlns="http://dplava.lib.virginia.edu"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:dcterms="http://purl.org/dc/terms/"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:edm="http://www.europeana.eu/schemas/edm/"
+    xsi:schemaLocation="http://dplava.lib.virginia.edu dplava.xsd">
+    <dcterms:identifier>{{.PID}}</dcterms:identifier>
+    <dcterms:provenance>University of Virginia Library</dcterms:provenance>
+    <dcterms:isPartOf>WSLS-TV (Roanoke, Va.) news film collection</dcterms:isPartOf>
+    <dcterms:title>{{.Title}}</dcterms:title>
+    <dcterms:description>{{.Description}}</dcterms:description>
+    <dcterms:created>{{.DateCreated}}</dcterms:created>
+    {{- if .Topics}}
+    {{- range $index, $val := .Topics}}
+    <dcterms:subject{{if .ValueURI}} valueURI="{{.ValueURI}}"{{end}}>{{.Value}}</dcterms:subject>
+    {{- end}}
+    {{- end}}
+    {{- if .Places}}
+    {{- range $index, $val := .Places}}
+    <dcterms:spatial{{if .ValueURI}} valueURI="{{.ValueURI}}"{{end}}>{{.Value}}</dcterms:spatial>
+    {{- end}}
+    {{- end}}
+    <dcterms:rights>{{.RightsURI}}</dcterms:rights>
+    <dcterms:language>English</dcterms:language>
+    <dcterms:type>Moving Image</dcterms:type>
+    <edm:hasType valueURI="http://vocab.getty.edu/aat/300136900">motion pictures (visual works)</edm:hasType>
+    <dcterms:extent>{{.Duration}}</dcterms:extent>
+    <dcterms:medium>{{.Color}}</dcterms:medium>
+    <dcterms:medium>{{.Tag}}</dcterms:medium>
+    <edm:isShownAt>http://search.lib.virginia.edu/catalog/{{.PID}}</edm:isShownAt>
+    <edm:preview>{{.Preview}}</edm:preview>
+</mdRecord>

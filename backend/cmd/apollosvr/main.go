@@ -26,7 +26,7 @@ func main() {
 	log.Printf("===> apollo staring up <===")
 	var port int
 	var https int
-	var key, crt, devUser, iiifServer, solrDir string
+	var key, crt, devUser, iiifServer, solrDir, qdcDir string
 	defPort, err := strconv.Atoi(os.Getenv("APOLLO_PORT"))
 	if err != nil {
 		defPort = 8080
@@ -42,6 +42,7 @@ func main() {
 	flag.StringVar(&devUser, "devuser", "", "Computing ID to use for fake authentication in dev mode")
 	flag.StringVar(&iiifServer, "iiif", "https://tracksys.lib.virginia.edu:8080", "IIIF Manifest service URL")
 	flag.StringVar(&solrDir, "solr_dir", "./tmp", "Dropoff dir for generated solr add docs")
+	flag.StringVar(&qdcDir, "qdc_dir", "./tmp/qdc", "Delivery dir for generated QDC files for DPLA")
 
 	dbCfg, err := models.GetConfig()
 	if err != nil {
@@ -58,7 +59,7 @@ func main() {
 
 	// Create the main handler object which has access to common
 	// config information, like the database
-	app := handlers.ApolloHandler{Version: Version, DB: db, DevAuthUser: devUser, IIIF: iiifServer, SolrDir: solrDir}
+	app := handlers.ApolloHandler{Version: Version, DB: db, DevAuthUser: devUser, IIIF: iiifServer, SolrDir: solrDir, QdcDir: qdcDir}
 
 	// Set routes and start server
 	// use julienschmidt router for all things API/version/health
@@ -78,8 +79,9 @@ func main() {
 	router.GET("/api/external/:pid", handlers.GzipMiddleware(app.ExternalPIDLookup, true))
 	router.GET("/api/solr/:pid", handlers.GzipMiddleware(app.GenerateSolr, true))
 
-	// require the user auth info in headers for this one
+	// require the user auth info in headers for these
 	router.POST("/api/publish/:pid", app.AuthMiddleware(app.PublishCollection))
+	router.POST("/api/qdc/:pid", app.AuthMiddleware(app.GenerateQDC))
 
 	// Create a standard go Mux to serve static files, and pass off
 	// all other stuff the the router. this allows static files to be

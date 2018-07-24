@@ -11,4 +11,5 @@ type ApolloHandler struct {
 	AuthComputingID string
 	IIIF            string
 	SolrDir         string
+	QdcDir          string
 }
