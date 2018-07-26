@@ -129,15 +129,27 @@ func (db *DB) GetCollections() []Collection {
 	return out
 }
 
-// GetCollectionItemIdentifiers returns all ancestors of the source node
-func (db *DB) GetCollectionItemIdentifiers(collectionID int64) ([]ItemIDs, error) {
+// GetCollectionContainerIdentifiers returns containers owned by the collection. The containerType parameter
+// controls which types of containers are returned. If you want everything, cet containerType to 'all'
+func (db *DB) GetCollectionContainerIdentifiers(collectionID int64, containerType string) ([]ItemIDs, error) {
 	var ids []ItemIDs
-	qs := fmt.Sprintf(`select n.id,n.pid from nodes n inner join node_types nt on nt.id = n.node_type_id
-			 where nt.container = 1 and ancestry regexp '^%d($|/.*)' order by n.id asc;`, collectionID)
-	err := db.Select(&ids, qs)
+	var err error
+	if containerType == "all" {
+		// Return ALL containers owned by the collection
+		qs := fmt.Sprintf(`select n.id,n.pid from nodes n inner join node_types nt on nt.id = n.node_type_id
+				 where nt.container = 1 and ancestry regexp '^%d($|/.*)' order by n.id asc;`, collectionID)
+		err = db.Select(&ids, qs)
+	} else {
+		// Return only a specific type of container
+		qs := fmt.Sprintf(`select n.id,n.pid from nodes n inner join node_types nt on nt.id = n.node_type_id
+				 where nt.container = 1 and nt.name=? and ancestry regexp '^%d($|/.*)' order by n.id asc;`, collectionID)
+		err = db.Select(&ids, qs, containerType)
+	}
+
 	if err != nil {
 		return ids, err
 	}
+
 	return ids, nil
 }
 
