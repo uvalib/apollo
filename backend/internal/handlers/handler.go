@@ -10,6 +10,7 @@ type ApolloHandler struct {
 	DevAuthUser     string
 	AuthComputingID string
 	IIIF            string
+	FedoraURL       string
 	SolrDir         string
 	QdcDir          string
 }

@@ -25,7 +25,7 @@ func (app *ApolloHandler) PublishCollection(rw http.ResponseWriter, req *http.Re
 
 	// Get a list of identifters for all items in this collection. This
 	// is a struct containing both PID and DB ID
-	ids, err := app.DB.GetCollectionItemIdentifiers(nodeID)
+	ids, err := app.DB.GetCollectionContainerIdentifiers(nodeID, "all")
 	if err != nil {
 		out := fmt.Sprintf("Unable to retrieve collection items %s", err.Error())
 		http.Error(rw, out, http.StatusInternalServerError)

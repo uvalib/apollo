@@ -26,7 +26,7 @@ func main() {
 	log.Printf("===> apollo staring up <===")
 	var port int
 	var https int
-	var key, crt, devUser, iiifServer, solrDir, qdcDir string
+	var key, crt, devUser, iiifServer, solrDir, qdcDir, fedoraURL string
 	defPort, err := strconv.Atoi(os.Getenv("APOLLO_PORT"))
 	if err != nil {
 		defPort = 8080
@@ -43,6 +43,7 @@ func main() {
 	flag.StringVar(&iiifServer, "iiif", "https://tracksys.lib.virginia.edu:8080", "IIIF Manifest service URL")
 	flag.StringVar(&solrDir, "solr_dir", "./tmp", "Dropoff dir for generated solr add docs")
 	flag.StringVar(&qdcDir, "qdc_dir", "./tmp/qdc", "Delivery dir for generated QDC files for DPLA")
+	flag.StringVar(&fedoraURL, "fedora", "http://fedora01.lib.virginia.edu", "Production Fedora instance")
 
 	dbCfg, err := models.GetConfig()
 	if err != nil {
@@ -58,8 +59,8 @@ func main() {
 	}
 
 	// Create the main handler object which has access to common
-	// config information, like the database
-	app := handlers.ApolloHandler{Version: Version, DB: db, DevAuthUser: devUser, IIIF: iiifServer, SolrDir: solrDir, QdcDir: qdcDir}
+	app := handlers.ApolloHandler{Version: Version, DB: db, DevAuthUser: devUser,
+		IIIF: iiifServer, FedoraURL: fedoraURL, SolrDir: solrDir, QdcDir: qdcDir}
 
 	// Set routes and start server
 	// use julienschmidt router for all things API/version/health
