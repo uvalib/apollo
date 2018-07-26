@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/julienschmidt/httprouter"
@@ -72,16 +74,21 @@ func (app *ApolloHandler) generateItemQDC(items []models.ItemIDs) {
 	for _, item := range items {
 		data := app.getItemData(item)
 
+		// Generate the nested directory structure needed to store the files...
+		pidSubdir := filepath.Join(app.QdcDir, generatePIDPath(data.PID))
+		os.MkdirAll(pidSubdir, os.ModePerm)
+
 		// open the destination file and truncate it to prepare for new content....
-		// TODO use PID to make a bunch of subdirs for the files
-		qdcFilename := fmt.Sprintf("%s/%s.xml", app.QdcDir, data.PID)
-		outFile, err := os.OpenFile(qdcFilename, os.O_CREATE|os.O_RDWR, 0666)
+		qdcFilename := fmt.Sprintf("%s.xml", data.PID)
+		outPath := filepath.Join(pidSubdir, qdcFilename)
+		outFile, err := os.OpenFile(outPath, os.O_CREATE|os.O_RDWR, 0666)
 		if err != nil {
-			log.Printf("ERROR: Unable to open destination QDC file %s: %s", qdcFilename, err.Error())
+			log.Printf("ERROR: Unable to open destination QDC file %s: %s", outPath, err.Error())
 			continue
 		}
 		outFile.Truncate(0)
 		outFile.Seek(0, 0)
+
 		log.Printf("Render results for %s", item.PID)
 		qdcTemplate.Execute(outFile, data)
 		outFile.Close()
@@ -89,6 +96,26 @@ func (app *ApolloHandler) generateItemQDC(items []models.ItemIDs) {
 		log.Printf("STOP AFTER 1")
 		break
 	}
+}
+
+// generatePIDPath will break a PID up into a set of directories using 2-digit segments
+// of the numeric portion of the PID
+func generatePIDPath(pid string) string {
+	parts := strings.Split(pid, ":")
+	out := parts[0]
+	numbers := parts[1]
+	var subdir string
+	for _, char := range numbers {
+		subdir += string(char)
+		if len(subdir) == 2 {
+			out = filepath.Join(out, subdir)
+			subdir = ""
+		}
+	}
+	if subdir != "" {
+		out = filepath.Join(out, subdir)
+	}
+	return out
 }
 
 func (app *ApolloHandler) getItemData(itemID models.ItemIDs) wslsQdcData {
