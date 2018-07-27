@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<update>
+  <append>
+    <wslsParent>0003_1</wslsParent>
+    <wslsRights>Local</wslsRights>
+    <dateCreated>1960-03-23</dateCreated>
+  </append>
+</update>
