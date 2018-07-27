@@ -28,6 +28,7 @@ func doUpdate(ctx *context, srcFile string) {
 	var parentID int64
 	var sequence int
 	var updateMode string
+	var lastWslsID string
 	var wslsCache map[string]int64
 	specialNodes := []string{"update", "insert", "append", "parent", "sequence", "wslsParent"}
 	for {
@@ -78,8 +79,13 @@ func doUpdate(ctx *context, srcFile string) {
 					if len(wslsCache) == 0 {
 						wslsCache = cacheWSLSItemIDs(ctx)
 					}
+					lastWslsID = val
 					parentID = wslsCache[val]
 					log.Printf("    Found ID: %d", parentID)
+					// if parentID == 0 {
+					// 	log.Printf("FATAL: 0 for parent is BAD")
+					// 	os.Exit(1)
+					// }
 				} else if valueNode == "sequence" {
 					sequence, err = strconv.Atoi(val)
 					if err != nil {
@@ -101,14 +107,18 @@ func doUpdate(ctx *context, srcFile string) {
 					sequenceNodes(nodes[0])
 					nodes[0].Sequence = sequence
 				}
-				log.Printf("Add nodes....")
-				// log.Printf("MODE: %s, parent: %d data %#v", updateMode, parentID, *nodes[0])
-				err := ctx.db.AddNodes(updateMode, nodes, parentID)
-				if err != nil {
-					log.Printf("FATAL: Unable to insert nodes: %s", err.Error())
-					os.Exit(1)
+				if parentID == 0 {
+					log.Printf("WARN: Skipping %s; not found in DB", lastWslsID)
+				} else {
+					log.Printf("Add nodes....")
+					//log.Printf("MODE: %s, parent: %d data %#v", updateMode, parentID, *nodes[0])
+					err := ctx.db.AddNodes(updateMode, nodes, parentID)
+					if err != nil {
+						log.Printf("FATAL: Unable to insert nodes: %s", err.Error())
+						os.Exit(1)
+					}
+					log.Printf("Update completed")
 				}
-				log.Printf("Update completed")
 				nodes = nil // reset to start again
 			}
 		}
