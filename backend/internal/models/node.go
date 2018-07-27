@@ -383,11 +383,19 @@ func (db *DB) AddNodes(mode string, nodes []*Node, parentID int64) error {
 		rootAncestry = fmt.Sprintf("%s/%d", parentAncestry, parentID)
 	}
 
+	currSequence := nodes[0].Sequence
+	if mode == "append" && currSequence == 0 {
+		// in append mode, but no sequence speified, just pick a big sequence to start from
+		currSequence = 25
+	}
+
 	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
 
+	// NOTE: Inserting a bunch of individual attribute nodes does NOT work
+	//
 	if mode == "insert" {
 		insertedTypeID := nodes[0].Type.ID
 		sequenceStart := nodes[0].Sequence
@@ -402,6 +410,10 @@ func (db *DB) AddNodes(mode string, nodes []*Node, parentID int64) error {
 	}
 
 	for idx, node := range nodes {
+		if mode == "append" && node.Sequence == 0 {
+			node.Sequence = currSequence
+			currSequence++
+		}
 		err = addNode(tx, node)
 		if err != nil {
 			return err
@@ -409,7 +421,7 @@ func (db *DB) AddNodes(mode string, nodes []*Node, parentID int64) error {
 
 		ancestry := rootAncestry
 		nodeParentID := parentID
-		if idx != 0 {
+		if idx != 0 && node.Parent != nil {
 			nodeParentID = node.Parent.ID
 			ancestry = fmt.Sprintf("%s/%s", rootAncestry, generateAncestryString(node))
 		}

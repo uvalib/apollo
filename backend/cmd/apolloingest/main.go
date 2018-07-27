@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -67,101 +66,9 @@ func main() {
 	ctx := context{db: db, user: user, types: db.AllTypes(), values: db.GetAllControlledValues()}
 
 	if mode == "create" {
-		doIngest(&ctx, srcFile)
+		// doIngest(&ctx, srcFile)
 	} else {
 		doUpdate(&ctx, srcFile)
-	}
-}
-
-// Ingest the XML UPDATE file contained in the config data
-func doUpdate(ctx *context, srcFile string) {
-	log.Printf("Start ingest of %s...", srcFile)
-	xmlFile, err := os.Open(srcFile)
-	if err != nil {
-		log.Printf("ERROR: Unable to read source file %s: %s", srcFile, err.Error())
-		return
-	}
-	defer xmlFile.Close()
-
-	decoder := xml.NewDecoder(xmlFile)
-	nodeStack := []*models.Node{}
-	nodes := []*models.Node{}
-	var valueNode string
-	var parentID int64
-	var sequence int
-	var updateMode string
-	specialNodes := []string{"update", "insert", "append", "parent", "sequence"}
-	for {
-		token, terr := decoder.Token()
-		if terr == io.EOF {
-			break
-		} else if terr != nil {
-			log.Printf("ERROR: unable to parse file: %s", terr.Error())
-			return
-		}
-
-		switch tok := token.(type) {
-		case xml.StartElement:
-			valueNode = ""
-			if tok.Name.Local == "update" {
-				log.Printf("Start of update data...")
-				continue
-			}
-			if tok.Name.Local == "insert" || tok.Name.Local == "append" {
-				updateMode = tok.Name.Local
-				log.Printf("Update mode=%s", updateMode)
-				continue
-			}
-			if tok.Name.Local == "parent" || tok.Name.Local == "sequence" {
-				valueNode = tok.Name.Local
-				log.Printf("Start of value for %s", valueNode)
-				continue
-			}
-			node, err := startNode(ctx, tok.Name.Local, nodeStack)
-			if err != nil {
-				log.Printf("FATAL: unable to start node for %s: %s", tok.Name.Local, err.Error())
-				os.Exit(1)
-			} else {
-				nodeStack = append(nodeStack, node)
-				nodes = append(nodes, node) //  add to sequental list of all nodes
-			}
-		case xml.CharData:
-			val := strings.TrimSpace(string(tok))
-			if len(val) > 0 {
-				if valueNode == "parent" {
-					parentID, err = strconv.ParseInt(val, 10, 64)
-					if err != nil {
-						log.Printf("FATAL: unable to parse parentID %s: %s", val, err.Error())
-						os.Exit(1)
-					}
-				} else if valueNode == "sequence" {
-					sequence, err = strconv.Atoi(val)
-					if err != nil {
-						log.Printf("FATAL: unable to parse sequence %s: %s", val, err.Error())
-						os.Exit(1)
-					}
-				} else {
-					node := nodeStack[len(nodeStack)-1]
-					setNodeValue(ctx, node, val)
-				}
-			}
-		case xml.EndElement:
-			if includes(specialNodes, tok.Name.Local) == false {
-				nodeStack = nodeStack[:len(nodeStack)-1]
-			} else if tok.Name.Local == updateMode {
-				log.Printf("===> %s node. Parent: %d, Sequence: %d", updateMode, parentID, sequence)
-				sequenceNodes(nodes[0])
-				nodes[0].Sequence = sequence
-				log.Printf("Add nodes....")
-				err := ctx.db.AddNodes(updateMode, nodes, parentID)
-				if err != nil {
-					log.Printf("FATAL: Unable to insert nodes: %s", err.Error())
-					os.Exit(1)
-				}
-				log.Printf("Update completed")
-				nodes = nil // reset to start again
-			}
-		}
 	}
 }
 
