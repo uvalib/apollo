@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -41,6 +42,10 @@ type wslsQdcData struct {
 // NOTE: Test with this: curl --header "remote_user: lf6f" -X POST http://localhost:8085/api/qdc/[PID]
 func (app *ApolloHandler) GenerateQDC(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	pid := params.ByName("pid")
+	limit, err := strconv.Atoi(req.URL.Query().Get("limit"))
+	if err != nil {
+		limit = -1
+	}
 
 	// HACK for now, only WSLS is an option. Choke on all other pids
 	if pid != "uva-an109873" {
@@ -64,12 +69,12 @@ func (app *ApolloHandler) GenerateQDC(rw http.ResponseWriter, req *http.Request,
 	}
 
 	// kick off the generation of QDC in a goroutine...
-	go app.generateQDCForItems(nodeID, ids)
+	go app.generateQDCForItems(nodeID, ids, limit)
 
 	fmt.Fprintf(rw, "QDC is being generated to %s...", app.QdcDir)
 }
 
-func (app *ApolloHandler) generateQDCForItems(collectionID int64, items []models.ItemIDs) {
+func (app *ApolloHandler) generateQDCForItems(collectionID int64, items []models.ItemIDs, limit int) {
 	log.Printf("Generating QDC for %d items in collection", len(items))
 	qdcTemplate := template.Must(template.ParseFiles("./templates/wsls_qdc.xml"))
 	collection, _ := app.DB.GetTree(collectionID)
@@ -111,8 +116,15 @@ func (app *ApolloHandler) generateQDCForItems(collectionID int64, items []models
 		qdcTemplate.Execute(outFile, data)
 		outFile.Close()
 		gen++
+		if limit >= 0 && gen >= limit {
+			log.Printf("Stopping after requested limit %d", limit)
+			break
+		}
 	}
-	log.Printf("QDC generation done; %d records generated from %d total items", gen, cnt)
+
+	if limit <= 0 {
+		log.Printf("QDC generation done; %d records generated from %d total items", gen, cnt)
+	}
 }
 
 // generatePIDPath will break a PID up into a set of directories using 2-digit segments
