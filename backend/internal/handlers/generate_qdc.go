@@ -63,16 +63,35 @@ func (app *ApolloHandler) GenerateQDC(rw http.ResponseWriter, req *http.Request,
 		return
 	}
 
-	app.generateItemQDC(ids)
-	fmt.Fprintf(rw, "QDC generated")
+	// kick off the generation of QDC in a goroutine...
+	go app.generateQDCForItems(nodeID, ids)
+
+	fmt.Fprintf(rw, "QDC is being generated to %s...", app.QdcDir)
 }
 
-func (app *ApolloHandler) generateItemQDC(items []models.ItemIDs) {
+func (app *ApolloHandler) generateQDCForItems(collectionID int64, items []models.ItemIDs) {
 	log.Printf("Generating QDC for %d items in collection", len(items))
 	qdcTemplate := template.Must(template.ParseFiles("./templates/wsls_qdc.xml"))
+	collection, _ := app.DB.GetTree(collectionID)
 
+	cnt := 0
+	gen := 0
 	for _, item := range items {
-		data := app.getItemData(item)
+		cnt++
+		itemNode := findItemByID(item.ID, collection)
+		if itemNode == nil {
+			log.Printf("ERROR: Unable to find nodeID %d. SKIPPING", item.ID)
+			continue
+		}
+
+		// Grab details for this item. Some items have not been published to the DL
+		// and will not have an externalPID defined. Do not generate QDC for them.
+		log.Printf("Item %s : %.2f%% complete.", item.PID, float32(cnt)/float32(len(items))*100.0)
+		data := app.getItemQDCData(itemNode)
+		if data.PID == "" {
+			log.Printf("Item %d:%s has no external PID and hasn't been published to DL. SKIPPING", item.ID, item.PID)
+			continue
+		}
 
 		// Generate the nested directory structure needed to store the files...
 		pidSubdir := filepath.Join(app.QdcDir, generatePIDPath(data.PID))
@@ -89,13 +108,11 @@ func (app *ApolloHandler) generateItemQDC(items []models.ItemIDs) {
 		outFile.Truncate(0)
 		outFile.Seek(0, 0)
 
-		log.Printf("Render results for %s", item.PID)
 		qdcTemplate.Execute(outFile, data)
 		outFile.Close()
-
-		log.Printf("STOP AFTER 1")
-		break
+		gen++
 	}
+	log.Printf("QDC generation done; %d records generated from %d total items", gen, cnt)
 }
 
 // generatePIDPath will break a PID up into a set of directories using 2-digit segments
@@ -118,16 +135,25 @@ func generatePIDPath(pid string) string {
 	return out
 }
 
-func (app *ApolloHandler) getItemData(itemID models.ItemIDs) wslsQdcData {
-	var data wslsQdcData
-
-	itemNode, err := app.DB.GetChildren(itemID.ID)
-	if err != nil {
-		log.Printf("ERROR: Unable to get children for item %d", itemID.ID)
-		return data
+// findItemByID will walk the cached collection tree and find the item level
+// node that has the same ID as the target
+func findItemByID(tgtID int64, currNode *models.Node) *models.Node {
+	if currNode.ID == tgtID {
+		return currNode
 	}
 
+	for _, child := range currNode.Children {
+		hit := findItemByID(tgtID, child)
+		if hit != nil {
+			return hit
+		}
+	}
+	return nil
+}
+
+func (app *ApolloHandler) getItemQDCData(itemNode *models.Node) wslsQdcData {
 	// Walk the child attributes and pluck out the ones we want
+	var data wslsQdcData
 	for _, child := range itemNode.Children {
 		switch name := child.Type.Name; name {
 		case "externalPID":
