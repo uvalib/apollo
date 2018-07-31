@@ -42,7 +42,7 @@ func main() {
 	flag.StringVar(&devUser, "devuser", "", "Computing ID to use for fake authentication in dev mode")
 	flag.StringVar(&iiifServer, "iiif", "https://tracksys.lib.virginia.edu:8080", "IIIF Manifest service URL")
 	flag.StringVar(&solrDir, "solr_dir", "./tmp", "Dropoff dir for generated solr add docs")
-	flag.StringVar(&qdcDir, "qdc_dir", "./tmp/qdc", "Delivery dir for generated QDC files for DPLA")
+	flag.StringVar(&qdcDir, "qdc_dir", "/digiserv-delivery/patron/dpla/qdc", "Delivery dir for generated QDC files for DPLA")
 	flag.StringVar(&fedoraURL, "fedora", "http://fedora01.lib.virginia.edu", "Production Fedora instance")
 
 	dbCfg, err := models.GetConfig()
@@ -61,6 +61,7 @@ func main() {
 	// Create the main handler object which has access to common
 	app := handlers.ApolloHandler{Version: Version, DB: db, DevAuthUser: devUser,
 		IIIF: iiifServer, FedoraURL: fedoraURL, SolrDir: solrDir, QdcDir: qdcDir}
+	log.Printf("Config: %#v", app)
 
 	// Set routes and start server
 	// use julienschmidt router for all things API/version/health
