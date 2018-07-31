@@ -38,6 +38,13 @@ type wslsQdcData struct {
 	Preview     string
 }
 
+func (d wslsQdcData) CleanXMLSting(val string) string {
+	out := strings.Replace(val, "&", "&amp;", -1)
+	out = strings.Replace(out, "<", "&lt;", -1)
+	out = strings.Replace(out, ">", "&gt;", -1)
+	return out
+}
+
 // GenerateQDC generates the QDC XML documents needed to publish to the DPLA
 // NOTE: Test with this: curl --header "remote_user: lf6f" -X POST http://localhost:8085/api/qdc/[PID]
 func (app *ApolloHandler) GenerateQDC(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
@@ -113,6 +120,7 @@ func (app *ApolloHandler) generateQDCForItems(collectionID int64, items []models
 		outFile.Truncate(0)
 		outFile.Seek(0, 0)
 
+		log.Printf("Rendering QDC file %s", outPath)
 		qdcTemplate.Execute(outFile, data)
 		outFile.Close()
 		gen++
@@ -173,22 +181,24 @@ func (app *ApolloHandler) getItemQDCData(itemNode *models.Node) wslsQdcData {
 		case "wslsID":
 			data.Preview = fmt.Sprintf("%s/wsls/%s/%s-thumbnail.jpg", app.FedoraURL, child.Value, child.Value)
 		case "title":
-			data.Title = child.Value
+			data.Title = data.CleanXMLSting(child.Value)
 		case "abstract":
-			data.Description = child.Value
+			data.Description = data.CleanXMLSting(child.Value)
 		case "dateCreated":
 			data.DateCreated = child.Value
 		case "duration":
-			data.Duration = child.Value
+			if child.Value != "mag" {
+				data.Duration = child.Value
+			}
 		case "wslsColor":
 			data.Color = child.Value
 		case "wslsTag":
 			data.Tag = child.Value
 		case "wslsTopic":
-			cv := qdcControlledValue{Value: child.Value, ValueURI: child.ValueURI}
+			cv := qdcControlledValue{Value: data.CleanXMLSting(child.Value), ValueURI: child.ValueURI}
 			data.Topics = append(data.Topics, cv)
 		case "wslsPlace":
-			cv := qdcControlledValue{Value: child.Value, ValueURI: child.ValueURI}
+			cv := qdcControlledValue{Value: data.CleanXMLSting(child.Value), ValueURI: child.ValueURI}
 			data.Places = append(data.Places, cv)
 		}
 	}
