@@ -83,7 +83,7 @@ func main() {
 
 	// require the user auth info in headers for these
 	router.POST("/api/publish/:pid", app.AuthMiddleware(app.PublishCollection))
-	router.POST("/api/qdc/:pid", app.AuthMiddleware(app.GenerateQDC))
+	router.POST("/api/qdc/:pid", app.GenerateQDC)
 
 	// Create a standard go Mux to serve static files, and pass off
 	// all other stuff the the router. this allows static files to be

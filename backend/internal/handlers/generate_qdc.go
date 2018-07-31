@@ -171,7 +171,7 @@ func (app *ApolloHandler) getItemQDCData(itemNode *models.Node) wslsQdcData {
 		case "externalPID":
 			data.PID = child.Value
 		case "wslsID":
-			data.Preview = fmt.Sprintf("%s/wsls/%s-thumbnail.jpg", app.FedoraURL, child.Value)
+			data.Preview = fmt.Sprintf("%s/wsls/%s/%s-thumbnail.jpg", app.FedoraURL, child.Value, child.Value)
 		case "title":
 			data.Title = child.Value
 		case "abstract":
