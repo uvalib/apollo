@@ -12,8 +12,12 @@
     <dcterms:provenance>University of Virginia Library</dcterms:provenance>
     <dcterms:isPartOf>WSLS-TV (Roanoke, Va.) news film collection</dcterms:isPartOf>
     <dcterms:title>{{.Title}}</dcterms:title>
-    {{- if .Description}}<dcterms:description>{{.Description}}</dcterms:description>{{- end}}
-    {{- if .DateCreated}}<dcterms:created>{{.DateCreated}}</dcterms:created>{{- end}}
+    {{- if .Description}}
+    <dcterms:description>{{.Description}}</dcterms:description>
+    {{- end}}
+    {{- if .DateCreated}}
+    <dcterms:created>{{.DateCreated}}</dcterms:created>
+    {{- end}}
     {{- if .Topics}}
     {{- range $index, $val := .Topics}}
     <dcterms:subject{{if .ValueURI}} valueURI="{{.ValueURI}}"{{end}}>{{.Value}}</dcterms:subject>
@@ -28,9 +32,15 @@
     <dcterms:language>English</dcterms:language>
     <dcterms:type>Moving Image</dcterms:type>
     <edm:hasType valueURI="http://vocab.getty.edu/aat/300136900">motion pictures (visual works)</edm:hasType>
-    {{- if .Duration}}<dcterms:extent>{{.Duration}}</dcterms:extent>{{- end}}
-    {{- if .Color}}<dcterms:medium>{{.Color}}</dcterms:medium>{{- end}}
-    {{- if .Tag}}<dcterms:medium>{{.Tag}}</dcterms:medium>{{- end}}
+    {{- if .Duration}}
+    <dcterms:extent>{{.Duration}}</dcterms:extent>
+    {{- end}}
+    {{- if .Color}}
+    <dcterms:medium>{{.Color}}</dcterms:medium>
+    {{- end}}
+    {{- if .Tag}}
+    <dcterms:medium>{{.Tag}}</dcterms:medium>
+    {{- end}}
     <edm:isShownAt>http://search.lib.virginia.edu/catalog/{{.PID}}</edm:isShownAt>
     <edm:preview>{{.Preview}}</edm:preview>
 </mdRecord>

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"text/template"
@@ -45,10 +46,19 @@ func (d wslsQdcData) CleanXMLSting(val string) string {
 	return out
 }
 
+func (d wslsQdcData) FixDate(origDate string) string {
+	r := regexp.MustCompile("^0/0/")
+	out := r.ReplaceAllString(origDate, "U/U/")
+	r = regexp.MustCompile("/0/")
+	out = r.ReplaceAllString(out, "/U/")
+	return out
+}
+
 // GenerateQDC generates the QDC XML documents needed to publish to the DPLA
-// NOTE: Test with this: curl --header "remote_user: lf6f" -X POST http://localhost:8085/api/qdc/[PID]
+// NOTE: Test with this: curl -X POST http://localhost:8085/api/qdc/[PID]
 func (app *ApolloHandler) GenerateQDC(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 	pid := params.ByName("pid")
+	tgtPID := req.URL.Query().Get("item")
 	limit, err := strconv.Atoi(req.URL.Query().Get("limit"))
 	if err != nil {
 		limit = -1
@@ -75,10 +85,45 @@ func (app *ApolloHandler) GenerateQDC(rw http.ResponseWriter, req *http.Request,
 		return
 	}
 
-	// kick off the generation of QDC in a goroutine...
-	go app.generateQDCForItems(nodeID, ids, limit)
+	if tgtPID != "" {
+		app.generateSingleQDCRecord(nodeID, tgtPID)
+	} else {
+		// kick off the generation of QDC in a goroutine...
+		go app.generateQDCForItems(nodeID, ids, limit)
+	}
 
 	fmt.Fprintf(rw, "QDC is being generated to %s...", app.QdcDir)
+}
+
+func (app *ApolloHandler) generateSingleQDCRecord(collectionID int64, tgtPID string) {
+	log.Printf("Generating QDC for Item %s", tgtPID)
+	tgtApollpPID, _ := app.DB.ExternalPIDLookup(tgtPID)
+	tgtItemID, err := app.DB.GetNodeIDFromPID(tgtApollpPID)
+	if err != nil {
+		log.Printf("ERROR: Unable to find target PID %s.", tgtPID)
+		return
+	}
+	qdcTemplate := template.Must(template.ParseFiles("./templates/wsls_qdc.xml"))
+	collection, _ := app.DB.GetTree(collectionID)
+	itemNode := findItemByID(tgtItemID, collection)
+	if itemNode == nil {
+		log.Printf("ERROR: Unable to find nodeID %d. SKIPPING", tgtItemID)
+		return
+	}
+	data := app.getItemQDCData(itemNode)
+	if data.PID == "" {
+		log.Printf("Item %d:%s has no external PID and hasn't been published to DL. SKIPPING", tgtItemID, tgtPID)
+		return
+	}
+	if data.Title == "" {
+		log.Printf("Item %d:%s has no Title. SKIPPING", tgtItemID, tgtPID)
+		return
+	}
+
+	fileErr := app.writeQDCFile(data, qdcTemplate)
+	if fileErr != nil {
+		log.Printf("%s", fileErr.Error())
+	}
 }
 
 func (app *ApolloHandler) generateQDCForItems(collectionID int64, items []models.ItemIDs, limit int) {
@@ -98,31 +143,24 @@ func (app *ApolloHandler) generateQDCForItems(collectionID int64, items []models
 
 		// Grab details for this item. Some items have not been published to the DL
 		// and will not have an externalPID defined. Do not generate QDC for them.
-		log.Printf("Item %s : %.2f%% complete.", item.PID, float32(cnt)/float32(len(items))*100.0)
+		if cnt%1000 == 0 {
+			log.Printf("Item %s : %.2f%% complete.", item.PID, float32(cnt)/float32(len(items))*100.0)
+		}
 		data := app.getItemQDCData(itemNode)
 		if data.PID == "" {
 			log.Printf("Item %d:%s has no external PID and hasn't been published to DL. SKIPPING", item.ID, item.PID)
 			continue
 		}
-
-		// Generate the nested directory structure needed to store the files...
-		pidSubdir := filepath.Join(app.QdcDir, generatePIDPath(data.PID))
-		os.MkdirAll(pidSubdir, os.ModePerm)
-
-		// open the destination file and truncate it to prepare for new content....
-		qdcFilename := fmt.Sprintf("%s.xml", data.PID)
-		outPath := filepath.Join(pidSubdir, qdcFilename)
-		outFile, err := os.OpenFile(outPath, os.O_CREATE|os.O_RDWR, 0666)
-		if err != nil {
-			log.Printf("ERROR: Unable to open destination QDC file %s: %s", outPath, err.Error())
+		if data.Title == "" {
+			log.Printf("Item %d:%s has no Title. SKIPPING", item.ID, item.PID)
 			continue
 		}
-		outFile.Truncate(0)
-		outFile.Seek(0, 0)
 
-		log.Printf("Rendering QDC file %s", outPath)
-		qdcTemplate.Execute(outFile, data)
-		outFile.Close()
+		fileErr := app.writeQDCFile(data, qdcTemplate)
+		if fileErr != nil {
+			log.Printf("%s", fileErr.Error())
+			continue
+		}
 		gen++
 		if limit >= 0 && gen >= limit {
 			log.Printf("Stopping after requested limit %d", limit)
@@ -133,6 +171,27 @@ func (app *ApolloHandler) generateQDCForItems(collectionID int64, items []models
 	if limit <= 0 {
 		log.Printf("QDC generation done; %d records generated from %d total items", gen, cnt)
 	}
+}
+
+func (app *ApolloHandler) writeQDCFile(data wslsQdcData, qdcTemplate *template.Template) error {
+	// Generate the nested directory structure needed to store the files...
+	pidSubdir := filepath.Join(app.QdcDir, generatePIDPath(data.PID))
+	os.MkdirAll(pidSubdir, os.ModePerm)
+
+	// open the destination file and truncate it to prepare for new content....
+	qdcFilename := fmt.Sprintf("%s.xml", data.PID)
+	outPath := filepath.Join(pidSubdir, qdcFilename)
+	outFile, err := os.OpenFile(outPath, os.O_CREATE|os.O_RDWR, 0666)
+	if err != nil {
+		return fmt.Errorf("ERROR: Unable to open destination QDC file %s: %s", outPath, err.Error())
+	}
+	outFile.Truncate(0)
+	outFile.Seek(0, 0)
+
+	// log.Printf("Rendering QDC file %s", outPath)
+	qdcTemplate.Execute(outFile, data)
+	outFile.Close()
+	return nil
 }
 
 // generatePIDPath will break a PID up into a set of directories using 2-digit segments
@@ -185,7 +244,7 @@ func (app *ApolloHandler) getItemQDCData(itemNode *models.Node) wslsQdcData {
 		case "abstract":
 			data.Description = data.CleanXMLSting(child.Value)
 		case "dateCreated":
-			data.DateCreated = child.Value
+			data.DateCreated = data.FixDate(child.Value)
 		case "duration":
 			if child.Value != "mag" {
 				data.Duration = child.Value
