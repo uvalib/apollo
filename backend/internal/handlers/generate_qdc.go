@@ -47,10 +47,27 @@ func (d wslsQdcData) CleanXMLSting(val string) string {
 }
 
 func (d wslsQdcData) FixDate(origDate string) string {
+	if strings.Contains(origDate, "/") == false {
+		return origDate
+	}
+	log.Printf("NOTICE: Date with slashes %s", origDate)
 	r := regexp.MustCompile("^0/0/")
-	out := r.ReplaceAllString(origDate, "U/U/")
+	if r.MatchString(origDate) {
+		yr := strings.Split(origDate, "/")[2]
+		log.Printf("   Fixed: %s", yr)
+		return yr
+	}
 	r = regexp.MustCompile("/0/")
-	out = r.ReplaceAllString(out, "/U/")
+	out := r.ReplaceAllString(origDate, "/uu/")
+	bits := strings.Split(out, "/")
+	if len(bits) == 2 {
+		d := bits[1][0:2]
+		y := bits[1][2:6]
+		out = fmt.Sprintf("%s-%s-%s", y, bits[0], d)
+	} else {
+		out = fmt.Sprintf("%s-%s-%s", bits[2], bits[0], bits[1])
+	}
+	log.Printf("   Fixed: %s", out)
 	return out
 }
 
