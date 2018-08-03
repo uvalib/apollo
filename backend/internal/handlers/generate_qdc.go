@@ -65,7 +65,11 @@ func (d wslsQdcData) FixDate(origDate string) string {
 		y := bits[1][2:6]
 		out = fmt.Sprintf("%s-%s-%s", y, bits[0], d)
 	} else {
-		out = fmt.Sprintf("%s-%s-%s", bits[2], bits[0], bits[1])
+		m := bits[0]
+		if len(m) < 2 {
+			m = fmt.Sprintf("0%s", m)
+		}
+		out = fmt.Sprintf("%s-%s-%s", bits[2], m, bits[1])
 	}
 	log.Printf("   Fixed: %s", out)
 	return out
@@ -165,11 +169,11 @@ func (app *ApolloHandler) generateQDCForItems(collectionID int64, items []models
 		}
 		data := app.getItemQDCData(itemNode)
 		if data.PID == "" {
-			log.Printf("Item %d:%s has no external PID and hasn't been published to DL. SKIPPING", item.ID, item.PID)
+			// log.Printf("Item %d:%s has no external PID and hasn't been published to DL. SKIPPING", item.ID, item.PID)
 			continue
 		}
 		if data.Title == "" {
-			log.Printf("Item %d:%s has no Title. SKIPPING", item.ID, item.PID)
+			// log.Printf("Item %d:%s has no Title. SKIPPING", item.ID, item.PID)
 			continue
 		}
 
