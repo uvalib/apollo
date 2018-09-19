@@ -54,3 +54,14 @@ Change directory to the frontend and add another ENV variable:
 
 Run the frontend in development mode with `npm run dev` from the frontend directory. All API resests from the frontend will be rediected to the local instance of the backend services.
 
+To run the backend in dev mode (without Shibboleth) you will also need to supply a fake devuser identifer with the launch command: `./apollosvr.linux -port 8085 -devuser x5ht`
+
+### Solr Generation
+
+To generate the Solr Add Xml documents, start up the server and front end. Navigate to the target collection. Click the green Publish Collection button and all of the Solr docs will be generated in the directory specified by the `solr_dir` param. By default this is ./tmp. 
+
+### QDC Generation (WSLS Only)
+
+QDC generation is handle via a POST to an API endpoint using curl. The command: `curl -X POST http://server.name/api/qdc/uva-an109873`. The files will be generated in the directory specifed by the `qdc_dir` param which defaults to `/digiserv-delivery/patron/dpla/qdc`
+
+
