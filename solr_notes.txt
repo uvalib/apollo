@@ -1,0 +1,14 @@
+The nightly build system is set up to look in the directory
+/lib_content23/record_source_for_solr_cores/apollo/data/record_dropbox
+and add any records found there to the "apollo" core of both the test
+and dev index.
+
+Additionally it will submit a delete-by-id  to the "dl" core of the
+associated index.
+
+There is now a separate directory named
+
+/lib_content23/record_source_for_solr_cores/apollo/data/record_dropbox_prod
+
+which will be used as the source for items to be sent to the "apollo"
+core of  the production index.
