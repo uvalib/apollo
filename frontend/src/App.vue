@@ -27,7 +27,7 @@ export default {
       axios.get("/authenticate").then((response)  =>  {
         localStorage.setItem("user", response.data.firstName+" "+response.data.lastName)
         this.authorizing = false
-      }).catch((error) => {
+      }).catch(() => {
         this.authorizing = false
         localStorage.removeItem("user")
         this.$router.push({ path: 'unauthorized' })

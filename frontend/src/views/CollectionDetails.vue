@@ -52,9 +52,9 @@
 <script>
   import axios from 'axios'
   import moment from 'moment'
-  import CollectionDetailsNode from './CollectionDetailsNode'
-  import PageHeader from './PageHeader'
-  import EventBus from './EventBus'
+  import CollectionDetailsNode from '@/components/CollectionDetailsNode'
+  import PageHeader from '@/components/PageHeader'
+  import EventBus from '@/components/EventBus'
 
   export default {
     name: 'collection-details',
@@ -154,7 +154,7 @@
         return "http://search.lib.virginia.edu/catalog/"+extPid
       },
 
-      sirsiLink: function(model) {
+      sirsiLink: function() {
         // This should only return a URL for nodes that
         // are top level. A top level node will have a barcode and/or key
         let barcode=""
@@ -182,7 +182,7 @@
         let resp = confirm("Publish this collection?")
         if (!resp) return
 
-        axios.post("/api/publish/"+this.collection.pid).then((response)  =>  {
+        axios.post("/api/publish/"+this.collection.pid).then(()  =>  {
           alert("The publication process has been started. The collection will appear in Virgo within 24 hours.")
         }).catch((error) => {
           alert("Unable to publish collection: "+error.response)
