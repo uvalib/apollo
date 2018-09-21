@@ -12,7 +12,7 @@
           {{ model.type.name }}
         </td>
       </tr>
-      <tr v-for="(attribute, index) in model.attributes" class="attribute">
+      <tr v-for="attribute in model.attributes" :key="attribute.pid" class="attribute">
         <template v-if="attribute.type.name !='digitalObject'">
           <td class="label">{{ attribute.type.name }}:</td>
           <td class="data">
@@ -27,8 +27,8 @@
       </tr>
     </table>
     <ul v-if="open" v-show="open">
-      <template v-for="(child, index) in model.children">
-        <details-node :model="child" :depth="depth+1"></details-node>
+      <template v-for="child in model.children">
+        <details-node :key="child.pid" :model="child" :depth="depth+1"></details-node>
       </template>
     </ul>
   </li>
@@ -71,8 +71,8 @@
         // conert JSON to something like this:
         // https://doviewer.lib.virginia.edu/oembed?url=https%3A%2F%2Fdoviewer.lib.virginia.edu%2Fimages%2Fuva-lib%3A2528443
         let json = JSON.parse(attribute.values[0].value)
-        let qp = encodeURIComponent(process.env.DOVIEWER_URL+"/"+json.type+"/"+json.id)
-        let url = process.env.DOVIEWER_URL+"/oembed?url="+qp
+        let qp = encodeURIComponent(process.env.VUE_APP_DOVIEWER_URL+"/"+json.type+"/"+json.id)
+        let url = process.env.VUE_APP_DOVIEWER_URL+"/oembed?url="+qp
         return url
       },
       showMore: function(attribute) {
@@ -122,7 +122,7 @@
         return ""
       },
 
-      handleScroll: function(event) {
+      handleScroll: function() {
         // Keep the viewer on screen as the user scrolls through
         // the (potentially) long list of nodes in the collection.
         var viewer = $('#viewer-wrapper')
@@ -140,8 +140,7 @@
 
         // var isPositionFixed = ($el.css('position') == 'fixed');
         if ( scrollTop >= 252 ) {
-           let xxx = $('#viewer-wrapper').offset().top
-           // console.log("VIEW TOP" +xxx)
+           // console.log("VIEW TOP" +$('#viewer-wrapper').offset().top)
            viewer.offset({top: scrollTop+15});
         } else {
            viewer.offset({top: viewer.data("origTop")});

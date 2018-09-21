@@ -8,8 +8,8 @@
     <loading-spinner v-if="loading" message="Loading collections"/>
     <div v-else class="content">
       <table class="collection-list">
-        <tr><th></th><th class="right">PID</td><th>Title</th></tr>
-        <tr v-for="item in collections">
+        <tr><th></th><th class="right">PID</th><th>Title</th></tr>
+        <tr v-for="item in collections" :key="item.pid">
           <td class="icon">
             <router-link :to="{ name: 'collections', params: {id: item.pid, title: item.title}}">
               <img class="detail" src="../assets/detail.png"/>
@@ -25,7 +25,7 @@
 
 <script>
   import axios from 'axios'
-  import PageHeader from './PageHeader'
+  import PageHeader from '@/components/PageHeader'
 
   export default {
     name: 'collection-list',

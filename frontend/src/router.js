@@ -1,8 +1,8 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import CollectionList from '@/components/CollectionList'
-import CollectionDetails from '@/components/CollectionDetails'
-import ApolloError from '@/components/ApolloError'
+import CollectionList from './views/CollectionList'
+import CollectionDetails from './views/CollectionDetails'
+import ApolloError from './views/ApolloError'
 
 Vue.use(Router)
 
