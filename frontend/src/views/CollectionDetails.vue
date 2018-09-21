@@ -98,6 +98,7 @@
 
     created: function () {
       axios.get("/api/collections/"+this.id).then((response)  =>  {
+        // parse json tree response into the collection model
         this.loading = false
         this.traverseDetails(response.data, this.collection)
       }).catch((error) => {
@@ -193,6 +194,7 @@
         return "https://tracksys.lib.virginia.edu:8080/"+this.activePID+"/manifest.json"
       },
 
+      // initialize data elements common to both attribue and container nodes
       commonInit: function(json, currNode) {
         currNode.pid = json.pid
         currNode.type = json.type
@@ -202,6 +204,8 @@
         }
       },
 
+      // See of the list of attributes already includes an attribute of
+      // the target type specified in tgtType
       hasAttribute: function(attributes, tgtType) {
         for (var idx in attributes) {
           let attr = attributes[idx]
@@ -227,11 +231,9 @@
             if (child.type.container === false) {
               // This is an attribute; just grab its value (and valueURI)
               // Important: attributes can be multi-valued. Stuff all values
-              // in an array
-              if (child.type.name == "WslsTopic") {
-                console.log("WF")
-              }
+              // in an array. Init attribues as a blank array of it doesn't exist
               if (!currNode.attributes) currNode.attributes = []
+
               if  (this.hasAttribute(currNode.attributes, child.type) === false ) {
                 // This is the first instance of this node type. Init a blank
                 // attribute with no values and add it to the list of attributes for this node

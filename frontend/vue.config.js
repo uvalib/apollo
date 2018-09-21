@@ -15,5 +15,12 @@ module.exports = {
         logLevel: 'debug'
       }
     }
+  },
+  configureWebpack: {
+    performance: {
+      // bump max sizes to 512k
+      maxEntrypointSize: 512000,
+      maxAssetSize: 512000
+    }
   }
 }

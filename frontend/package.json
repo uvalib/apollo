@@ -1,6 +1,8 @@
 {
-  "name": "frontend",
-  "version": "0.1.0",
+  "name": "Apollo",
+  "version": "1.0.1",
+  "description": "Digitized serials management system",
+  "author": "Lou Foster <lf6f@virginia.edu>",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
