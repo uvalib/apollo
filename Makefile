@@ -17,7 +17,7 @@ deploy-templates:
 
 build-web:
 	mkdir -p bin/
-	cd frontend/; npm run build
+	cd frontend/; yarn build
 
 deploy-web:
 	mv frontend/dist bin/public

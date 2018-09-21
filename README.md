@@ -5,14 +5,15 @@ Apollo is a management system for digitized collections.
 ### System Requirements
 * GO version 1.10 or greater
 * DEP (https://golang.github.io/dep/) version 0.4.1 or greater
-* NPM version 6.0.0 or higher ( https://www.npmjs.com/get-npm )
 * Node version 8.11.1 or higher (https://nodejs.org/en/)
-* Vue 2.0 or greater
+* Yarn version 1.9.3 or greater 
+* vue-cli 3 version 3.0.3 or greater
+* Vue 2.5 or greater
 * MySQL 5.0 or greater
 
 ### Build Instructions
 
-1. After clone, `cd frontend` and execute `npm install` to prepare the front end
+1. After clone, `cd frontend` and execute `yarn install` to prepare the front end
 2. Create a new MySQL database/user to hold the apollo data tables (apollo/apollo is expected)
 3. Initilize the schema: `mysql apollo < db/v1.sql` (assuming the instance is named apollo)
 4. Run the default Makefile target to build binaries for linux, darwin and the front end.  All results will be in the bin directory.
@@ -52,7 +53,9 @@ Change directory to the frontend and add another ENV variable:
 
 * `APOLLO_API` - set to localhost at the port from above.
 
-Run the frontend in development mode with `npm run dev` from the frontend directory. All API resests from the frontend will be rediected to the local instance of the backend services.
+Other environment variables are set in ./frontent/.env (production) and ./frontend/.env.development (dev overrides)
+
+Run the frontend in development mode with `yarn serve` from the frontend directory. All API resests from the frontend will be rediected to the local instance of the backend services.
 
 To run the backend in dev mode (without Shibboleth) you will also need to supply a fake devuser identifer with the launch command: `./apollosvr.linux -port 8085 -devuser x5ht`
 
