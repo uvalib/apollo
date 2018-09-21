@@ -25,7 +25,11 @@ export default new Router({
       path: '/collections/:id',
       component: CollectionDetails,
       meta: { requiresAuth: true },
-      props: true
+      props: (route) => ({
+        id: route.params.id,          // pass the id and title params from the
+        title: route.params.title,    // <router-link< tag in CollectionsList
+        tgtItem: route.query.item,
+      })
     },
     {
       path: "/unauthorized",

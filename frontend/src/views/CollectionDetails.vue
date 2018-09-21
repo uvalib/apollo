@@ -18,12 +18,12 @@
 
           <div class="toolbar">
             <span @click="publishClicked" class="publish">Publish Collection</span>
-            <a class="raw" :href="jsonLink()" target="_blank">JSON</a>
-            <a v-if="hasBarcode" class="sirsi" :href="sirsiLink()" target="_blank">Sirsi</a>
-            <div v-if="published()" class="publication">
+            <a class="raw" :href="jsonLink" target="_blank">JSON</a>
+            <a v-if="hasBarcode" class="sirsi" :href="sirsiLink" target="_blank">Sirsi</a>
+            <div v-if="published" class="publication">
               <span class="label">Last Published:</span>
-              <span class="date">{{ formattedPublishedDate() }}</span>
-              <a class="virgo" :href="virgoLink()" target="_blank">Virgo</a>
+              <span class="date">{{ formattedPublishedDate }}</span>
+              <a class="virgo" :href="virgoLink" target="_blank">Virgo</a>
             </div>
           </div>
 
@@ -40,7 +40,7 @@
               <p id="view-placeholder" class="hint">Click 'View Digital Object' from the tree on the left to view it here.</p>
             </div>
             <div v-if="viewerVisible" id="viewer-tools">
-              <a v-if="iiifAvailable" class="do-button" :href="iiifManufestURL()" target="_blank">IIIF Manifest</a>
+              <a v-if="iiifAvailable" class="do-button" :href="iiifManufestURL" target="_blank">IIIF Manifest</a>
             </div>
           </div>
         </div>
@@ -65,7 +65,8 @@
 
     props: {
       id: String,
-      title: String
+      title: String,
+      tgtItem: String
     },
 
     data: function () {
@@ -93,68 +94,17 @@
           if (attr.type.name === "barcode") return true
         }
         return false
-      }
-    },
-
-    created: function () {
-      axios.get("/api/collections/"+this.id).then((response)  =>  {
-        // parse json tree response into the collection model
-        this.loading = false
-        this.traverseDetails(response.data, this.collection)
-      }).catch((error) => {
-        this.loading = false
-        this.errorMsg =  error.response.data
-      }).finally(() => {
-        this.loading = false
-      })
-    },
-
-    mounted: function (){
-      EventBus.$on("viewer-clicked", this.handleViewerClicked)
-      EventBus.$on("viewer-opened", this.handleViewerOpened)
-      EventBus.$on("viewer-error", this.handleViewerError)
-    },
-
-    methods: {
-      handleViewerClicked: function() {
-        this.viewerError = null
-        this.activePID = ""
       },
-      handleViewerOpened: function(pid) {
-        this.viewerVisible = true
-        this.activePID = pid
-      },
-
-      handleViewerError: function(msg) {
-        this.viewerError = msg
-        this.activePID = ""
-      },
-
       published: function() {
         return this.collection.publishedAt
       },
-
       formattedPublishedDate: function() {
         let m = moment(this.collection.publishedAt, "YYYY-MM-DDTHH:mm:ssZ")
         return m.utcOffset("+0000").format("YYYY-MM-DD hh:mma")
       },
-
       jsonLink: function() {
         return "/api/collections/"+this.collection.pid
       },
-
-      virgoLink: function() {
-        let extPid = ""
-        for (var idx in this.collection.attributes) {
-          let attr = this.collection.attributes[idx]
-          if (attr.type.name === "externalPID"){
-            extPid = attr.values[0].value
-            break
-          }
-        }
-        return "http://search.lib.virginia.edu/catalog/"+extPid
-      },
-
       sirsiLink: function() {
         // This should only return a URL for nodes that
         // are top level. A top level node will have a barcode and/or key
@@ -178,7 +128,56 @@
         }
         return ""
       },
+      virgoLink: function() {
+        let extPid = ""
+        for (var idx in this.collection.attributes) {
+          let attr = this.collection.attributes[idx]
+          if (attr.type.name === "externalPID"){
+            extPid = attr.values[0].value
+            break
+          }
+        }
+        return "http://search.lib.virginia.edu/catalog/"+extPid
+      },
+      iiifManufestURL: function() {
+        return "https://tracksys.lib.virginia.edu:8080/"+this.activePID+"/manifest.json"
+      }
+    },
 
+    created: function () {
+      axios.get("/api/collections/"+this.id).then((response)  =>  {
+        // parse json tree response into the collection model
+        this.loading = false
+        this.traverseDetails(response.data, this.collection)
+      }).catch((error) => {
+        this.loading = false
+        this.errorMsg =  error.response.data
+      }).finally(() => {
+        this.loading = false
+      })
+    },
+
+    mounted: function (){
+      EventBus.$on("viewer-clicked", this.handleViewerClicked)
+      EventBus.$on("viewer-opened", this.handleViewerOpened)
+      EventBus.$on("viewer-error", this.handleViewerError)
+      console.log("TARGET ITEM: "+this.tgtItem )
+    },
+
+    methods: {
+      handleViewerClicked: function() {
+        this.viewerError = null
+        this.activePID = ""
+      },
+      handleViewerOpened: function(pid) {
+        this.viewerVisible = true
+        this.activePID = pid
+      },
+
+      handleViewerError: function(msg) {
+        this.viewerError = msg
+        this.activePID = ""
+      },
       publishClicked: function() {
         let resp = confirm("Publish this collection?")
         if (!resp) return
@@ -188,10 +187,6 @@
         }).catch((error) => {
           alert("Unable to publish collection: "+error.response)
         })
-      },
-
-      iiifManufestURL: function() {
-        return "https://tracksys.lib.virginia.edu:8080/"+this.activePID+"/manifest.json"
       },
 
       // initialize data elements common to both attribue and container nodes
