@@ -1,5 +1,5 @@
 <template>
-  <li>
+  <li :id="model.pid">
     <span v-if="isFolder" class="icon" @click="toggle" :class="{ plus: open==false, minus: open==true}"></span>
     <table class="node">
       <tr class="attribute">
@@ -56,7 +56,9 @@
     },
 
     mounted() {
+      EventBus.$on("expand-node", this.handleExpandNodeEvent)
       window.addEventListener("scroll", this.handleScroll)
+      EventBus.$emit('node-mounted', this.model.pid)
     },
 
     destroyed() {
@@ -64,6 +66,13 @@
     },
 
     methods: {
+      handleExpandNodeEvent: function(pid) {
+        if ( this.model.pid == pid) {
+          if ( this.isFolder && this.open == false ) {
+            this.toggle()
+          }
+        }
+      },
       getDoViewerURL: function(attribute) {
         if (attribute.values[0].value.includes("https://")) {
           return attribute.values[0].value
@@ -257,5 +266,8 @@
   }
   td.data {
     position: relative;
+  }
+  td.dobj {
+    float:right;
   }
 </style>

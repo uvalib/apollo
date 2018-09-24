@@ -66,7 +66,7 @@
     props: {
       id: String,
       title: String,
-      tgtItem: String
+      targetPID: String
     },
 
     data: function () {
@@ -76,7 +76,8 @@
         viewerVisible: false,
         errorMsg: null,
         viewerError: null,
-        activePID: ""
+        activePID: "",
+        ancestry: []
       }
     },
 
@@ -147,11 +148,23 @@
     created: function () {
       axios.get("/api/collections/"+this.id).then((response)  =>  {
         // parse json tree response into the collection model
-        this.loading = false
         this.traverseDetails(response.data, this.collection)
+        if (this.targetPID) {
+          // A target was specified; get a list of ancestor nodes
+          // that can be used to expand the display tree to that item
+          this.getAncestry(this.collection)
+          this.ancestry.reverse()
+
+          // NOTE: for the first case, need to wait for one more node; the root itself
+          // mount events come in for each child followed by one for root node
+          this.ancestry[0].childNodeCount+=1
+        }
       }).catch((error) => {
-        this.loading = false
-        this.errorMsg =  error.response.data
+        if (error.response ) {
+          this.errorMsg =  error.response.data
+        } else {
+          this.errorMsg =  error
+        }
       }).finally(() => {
         this.loading = false
       })
@@ -161,14 +174,55 @@
       EventBus.$on("viewer-clicked", this.handleViewerClicked)
       EventBus.$on("viewer-opened", this.handleViewerOpened)
       EventBus.$on("viewer-error", this.handleViewerError)
-      console.log("TARGET ITEM: "+this.tgtItem )
+      EventBus.$on('node-mounted', this.handleNodeMounted)
     },
 
     methods: {
+      // Walk the collection data and find the targetPID specified by the query params
+      // Populate an array of ancestry data including node counts for the relevant tree branches
+      getAncestry: function(currNode) {
+        if ( this.targetPID.length == 0) return;
+
+        if ( currNode.pid === this.targetPID ) {
+          // its a match. Return true to start unwinding the recursion
+          return true
+        } else {
+          // Nope; walk the child nodes...
+          for (var idx in currNode.children) {
+            if ( this.getAncestry(currNode.children[idx]) ) {
+              // the target was hit in this branch. Add to ancestors and exit
+              this.ancestry.push( {pid: currNode.pid, childNodeCount: currNode.children.length} )
+              return true
+            }
+          }
+        }
+        // Child branch traversed with no hits; return false
+        return false
+      },
+
+      handleNodeMounted: function() {
+        // only care about this event if a target was specified in the query params
+        if (this.targetPID && this.ancestry.length > 0) {
+          // Wait for each child of the ancestry node to be mounted
+          this.ancestry[0].childNodeCount -= 1
+          if ( this.ancestry[0].childNodeCount <= 0) {
+            // Once all are mounted, toss the head of the list and
+            // open the next ancestor - or scrolll to target if all are open
+            this.ancestry.shift()
+            if ( this.ancestry.length == 0) {
+              this.scrollToTarget()
+            } else {
+              EventBus.$emit("expand-node", this.ancestry[0].pid)
+            }
+          }
+        }
+      },
+
       handleViewerClicked: function() {
         this.viewerError = null
         this.activePID = ""
       },
+
       handleViewerOpened: function(pid) {
         this.viewerVisible = true
         this.activePID = pid
@@ -178,6 +232,7 @@
         this.viewerError = msg
         this.activePID = ""
       },
+
       publishClicked: function() {
         let resp = confirm("Publish this collection?")
         if (!resp) return
@@ -254,6 +309,16 @@
           }
         }
         return currNode
+      },
+
+      scrollToTarget: function() {
+        let ele = $("li#"+this.targetPID)
+        let doViewerBtn = ele.find("td.pure-button.dobj")
+        doViewerBtn.trigger("click")
+
+        $([document.documentElement, document.body]).animate({
+          scrollTop: ele.offset().top-5
+        }, 100);
       }
     }
   }

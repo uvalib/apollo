@@ -28,7 +28,7 @@ export default new Router({
       props: (route) => ({
         id: route.params.id,          // pass the id and title params from the
         title: route.params.title,    // <router-link< tag in CollectionsList
-        tgtItem: route.query.item,
+        targetPID: route.query.item,
       })
     },
     {
