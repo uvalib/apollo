@@ -11,7 +11,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/gin-gonic/gin"
 	"github.com/uvalib/apollo/backend/internal/models"
 )
 
@@ -77,10 +77,10 @@ func (d wslsQdcData) FixDate(origDate string) string {
 
 // GenerateQDC generates the QDC XML documents needed to publish to the DPLA
 // NOTE: Test with this: curl -X POST http://localhost:8085/api/qdc/[PID]
-func (app *ApolloHandler) GenerateQDC(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	pid := params.ByName("pid")
-	tgtPID := req.URL.Query().Get("item")
-	limit, err := strconv.Atoi(req.URL.Query().Get("limit"))
+func (app *ApolloHandler) GenerateQDC(c *gin.Context) {
+	pid := c.Param("pid")
+	tgtPID := c.Query("item")
+	limit, err := strconv.Atoi(c.Query("limit"))
 	if err != nil {
 		limit = -1
 	}
@@ -88,7 +88,7 @@ func (app *ApolloHandler) GenerateQDC(rw http.ResponseWriter, req *http.Request,
 	// HACK for now, only WSLS is an option. Choke on all other pids
 	if pid != "uva-an109873" {
 		out := fmt.Sprintf("QDC generation is not supported for %s", pid)
-		http.Error(rw, out, http.StatusBadRequest)
+		c.String(http.StatusBadRequest, out)
 		return
 	}
 
@@ -102,7 +102,7 @@ func (app *ApolloHandler) GenerateQDC(rw http.ResponseWriter, req *http.Request,
 	ids, err := app.DB.GetCollectionContainerIdentifiers(nodeID, "item")
 	if err != nil {
 		out := fmt.Sprintf("Unable to retrieve collection items %s", err.Error())
-		http.Error(rw, out, http.StatusInternalServerError)
+		c.String(http.StatusInternalServerError, out)
 		return
 	}
 
@@ -113,7 +113,7 @@ func (app *ApolloHandler) GenerateQDC(rw http.ResponseWriter, req *http.Request,
 		go app.generateQDCForItems(nodeID, ids, limit)
 	}
 
-	fmt.Fprintf(rw, "QDC is being generated to %s...", app.QdcDir)
+	c.String(http.StatusOK, "QDC is being generated to %s...", app.QdcDir)
 }
 
 func (app *ApolloHandler) generateSingleQDCRecord(collectionID int64, tgtPID string) {

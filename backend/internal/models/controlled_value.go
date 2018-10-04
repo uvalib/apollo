@@ -29,7 +29,7 @@ func (db *DB) GetAllControlledValues() []ControlledValue {
 func (db *DB) ListControlledValues(name string) []ControlledValue {
 	var vals []ControlledValue
 	err := db.Select(&vals,
-		"SELECT cv.* FROM controlled_values cv inner join node_types nt on nt.id = cv.node_type_id WHERE nt.value=?", name)
+		"SELECT cv.* FROM controlled_values cv inner join node_types nt on nt.id = cv.node_type_id WHERE nt.name=?", name)
 	if err != nil {
 		log.Printf("Unable to find controlled values for %s: %s", name, err.Error())
 		return nil

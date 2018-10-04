@@ -2,15 +2,14 @@ package handlers
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/julienschmidt/httprouter"
 	"github.com/uvalib/apollo/backend/internal/models"
 )
 
@@ -23,8 +22,9 @@ func TestNoAuth(t *testing.T) {
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
 	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
 
-	router := httprouter.New()
-	router.GET("/api/dummy", app.AuthMiddleware(dummyHandler))
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
+	router.GET("/api/dummy", app.AuthMiddleware, dummyHandler)
 
 	req, _ := http.NewRequest("GET", "/api/dummy", nil)
 	rr := httptest.NewRecorder()
@@ -50,8 +50,9 @@ func TestGoodAuth(t *testing.T) {
 		AddRow(1, "lf6f", "Lou", "Foster", "lf6f")
 	mock.ExpectQuery("SELECT").WillReturnRows(rows)
 
-	router := httprouter.New()
-	router.GET("/api/dummy", app.AuthMiddleware(dummyHandler))
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
+	router.GET("/api/dummy", app.AuthMiddleware, dummyHandler)
 
 	req, _ := http.NewRequest("GET", "/api/dummy", nil)
 	rr := httptest.NewRecorder()
@@ -80,8 +81,9 @@ func TestBadAuth(t *testing.T) {
 
 	mock.ExpectQuery("SELECT").WillReturnError(errors.New("You are not authorized to access this site"))
 
-	router := httprouter.New()
-	router.GET("/api/dummy", app.AuthMiddleware(dummyHandler))
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
+	router.GET("/api/dummy", app.AuthMiddleware, dummyHandler)
 
 	req, _ := http.NewRequest("GET", "/api/dummy", nil)
 	rr := httptest.NewRecorder()
@@ -94,6 +96,6 @@ func TestBadAuth(t *testing.T) {
 	}
 }
 
-func dummyHandler(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	fmt.Fprintf(rw, "accessed")
+func dummyHandler(c *gin.Context) {
+	c.String(http.StatusOK, "accessed")
 }

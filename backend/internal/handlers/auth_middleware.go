@@ -4,32 +4,30 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/gin-gonic/gin"
 )
 
 // AuthMiddleware is middleware that will enforce user authentication based on Shibboleth headers
 //
-func (app *ApolloHandler) AuthMiddleware(next httprouter.Handle) httprouter.Handle {
-	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-		// log.Printf("HEADERS: %s", req.Header)
-		app.AuthComputingID = req.Header.Get("remote_user")
-		if len(app.DevAuthUser) > 0 && app.AuthComputingID == "" {
-			log.Printf("Authenticating using devMode user")
-			app.AuthComputingID = app.DevAuthUser
-		}
-		log.Printf("Authenticating request; remote_user [%s]", app.AuthComputingID)
-		if app.AuthComputingID == "" {
-			http.Error(w, "You are not authorized to access this site", http.StatusForbidden)
-			return
-		}
-		user, err := app.DB.FindUserBy("computing_id", app.AuthComputingID)
-		if err != nil {
-			http.Error(w, "You are not authorized to access this site", http.StatusForbidden)
-			return
-		}
-		log.Printf("User %s is authorized for %s", user.ComputingID, req.RequestURI)
-		w.Header().Set("cache-control", "private, max-age=0, no-cache")
-
-		next(w, req, ps)
+func (app *ApolloHandler) AuthMiddleware(c *gin.Context) {
+	// log.Printf("HEADERS: %s", req.Header)
+	app.AuthComputingID = c.GetHeader("remote_user")
+	if len(app.DevAuthUser) > 0 && app.AuthComputingID == "" {
+		log.Printf("Authenticating using devMode user")
+		app.AuthComputingID = app.DevAuthUser
 	}
+	log.Printf("Authenticating request; remote_user [%s]", app.AuthComputingID)
+	if app.AuthComputingID == "" {
+		c.String(http.StatusForbidden, "You are not authorized to access this site")
+		return
+	}
+	user, err := app.DB.FindUserBy("computing_id", app.AuthComputingID)
+	if err != nil {
+		c.String(http.StatusForbidden, "You are not authorized to access this site")
+		return
+	}
+	log.Printf("User %s is authorized for %s", user.ComputingID, c.Request.RequestURI)
+	c.Header("cache-control", "private, max-age=0, no-cache")
+
+	c.Next()
 }

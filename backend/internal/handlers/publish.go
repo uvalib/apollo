@@ -8,18 +8,18 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/gin-gonic/gin"
 	"github.com/uvalib/apollo/backend/internal/models"
 )
 
 // PublishCollection generates the solr documents for all sections of the collection
 // and tags the collection as having been published
-func (app *ApolloHandler) PublishCollection(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	log.Printf("Publish collection '%s' to %s", params.ByName("pid"), app.SolrDir)
-	nodeID, err := app.DB.GetNodeIDFromPID(params.ByName("pid"))
+func (app *ApolloHandler) PublishCollection(c *gin.Context) {
+	log.Printf("Publish collection '%s' to %s", c.Param("pid"), app.SolrDir)
+	nodeID, err := app.DB.GetNodeIDFromPID(c.Param("pid"))
 	if err != nil {
-		out := fmt.Sprintf("Collection %s not found", params.ByName("pid"))
-		http.Error(rw, out, http.StatusNotFound)
+		out := fmt.Sprintf("Collection %s not found", c.Param("pid"))
+		c.String(http.StatusNotFound, out)
 		return
 	}
 
@@ -28,16 +28,16 @@ func (app *ApolloHandler) PublishCollection(rw http.ResponseWriter, req *http.Re
 	ids, err := app.DB.GetCollectionContainerIdentifiers(nodeID, "all")
 	if err != nil {
 		out := fmt.Sprintf("Unable to retrieve collection items %s", err.Error())
-		http.Error(rw, out, http.StatusInternalServerError)
+		c.String(http.StatusInternalServerError, out)
 		return
 	}
 
-	ids = append(ids, models.ItemIDs{ID: nodeID, PID: params.ByName("pid")})
+	ids = append(ids, models.ItemIDs{ID: nodeID, PID: c.Param("pid")})
 
 	// kick off the walk of tree and generate of solr in a goroutine
 	go app.publishItems(ids, nodeID)
 
-	fmt.Fprintf(rw, "Publication of collection %s started", params.ByName("pid"))
+	c.String(http.StatusOK, "Publication of collection %s started", c.Param("pid"))
 }
 
 func (app *ApolloHandler) publishItems(IDs []models.ItemIDs, rootID int64) {

@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/julienschmidt/httprouter"
 	"github.com/uvalib/apollo/backend/internal/models"
 )
 
@@ -23,25 +23,28 @@ func TestCollectionsIndex(t *testing.T) {
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
 	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
 
-	req, _ := http.NewRequest("GET", "/api/collections", nil)
-	rr := httptest.NewRecorder()
-
 	rows := sqlmock.NewRows([]string{"id", "pid"}).AddRow(1, "an666")
 	mock.ExpectQuery("select id,pid from nodes").WillReturnRows(rows)
 	titleRows := sqlmock.NewRows([]string{"value"}).AddRow("test")
 	mock.ExpectQuery("select value from nodes").WithArgs(1, 2).WillReturnRows(titleRows)
 
-	app.CollectionsIndex(rr, req, httprouter.Params{})
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
+	router.GET("/api/collections", app.CollectionsIndex)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/collections", nil)
+	router.ServeHTTP(w, req)
 
 	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
+	if status := w.Code; status != http.StatusOK {
 		t.Errorf("Wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
 	// Check the response body is what we expect.
 	expected := `[{"pid":"an666","title":"test"}]`
-	if strings.TrimSpace(rr.Body.String()) != expected {
-		t.Errorf("Unexpected response: got [%s] want [%s]", rr.Body.String(), expected)
+	if strings.TrimSpace(w.Body.String()) != expected {
+		t.Errorf("Unexpected response: got [%s] want [%s]", w.Body.String(), expected)
 	}
 }
 
@@ -55,14 +58,16 @@ func TestBadCollectionShow(t *testing.T) {
 	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
 	mock.ExpectQuery("SELECT").WillReturnError(errors.New("Collection not found"))
 
-	req, _ := http.NewRequest("GET", "/api/collection", nil)
-	rr := httptest.NewRecorder()
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
+	router.GET("/api/collections/:pid", app.CollectionsShow)
 
-	params := httprouter.Params{httprouter.Param{"pid", "bad123"}}
-	app.CollectionsShow(rr, req, params)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/collections/bad123", nil)
+	router.ServeHTTP(w, req)
 
 	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusNotFound {
+	if status := w.Code; status != http.StatusNotFound {
 		t.Errorf("Wrong status code: got %v want %v", status, http.StatusNotFound)
 	}
 }
@@ -87,22 +92,24 @@ func TestCollectionShow(t *testing.T) {
 		AddRow(1, nil, nil, 0, tgt, "woof", nil, nil, "uva-ann1", "collection", 0, 1)
 	mock.ExpectQuery("SELECT n.id").WithArgs(1).WillReturnRows(rows)
 
-	req, _ := http.NewRequest("GET", "/api/collection", nil)
-	rr := httptest.NewRecorder()
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
+	router.GET("/api/collections/:pid", app.CollectionsShow)
 
-	params := httprouter.Params{httprouter.Param{"pid", tgt}}
-	app.CollectionsShow(rr, req, params)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/collections/uva-an1", nil)
+	router.ServeHTTP(w, req)
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 
 	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
+	if status := w.Code; status != http.StatusOK {
 		t.Errorf("Wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	if strings.Contains(strings.TrimSpace(rr.Body.String()), "uva-an1") == false {
-		t.Errorf("Response %s does not contain searched PID: %s", rr.Body.String(), tgt)
+	if strings.Contains(strings.TrimSpace(w.Body.String()), "uva-an1") == false {
+		t.Errorf("Response %s does not contain searched PID: %s", w.Body.String(), tgt)
 	}
 }

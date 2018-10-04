@@ -1,41 +1,26 @@
 package handlers
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/gin-gonic/gin"
 )
 
 // UsersIndex returns a list of  Apollo users.
 //
-func (app *ApolloHandler) UsersIndex(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+func (app *ApolloHandler) UsersIndex(c *gin.Context) {
 	users := app.DB.AllUsers()
-	var buffer bytes.Buffer
-	for _, user := range users {
-		json := fmt.Sprintf(`{"id": %d, "email": "%s"}`, user.ID, user.Email)
-		if buffer.Len() > 0 {
-			buffer.WriteString(",")
-		}
-		buffer.WriteString(json)
-	}
-	rw.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(rw, fmt.Sprintf("[%s]", buffer.String()))
+	c.JSON(http.StatusOK, users)
 }
 
 // UsersShow : return json detail for a user
 //
-func (app *ApolloHandler) UsersShow(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	user, err := app.DB.FindUserBy("id", params.ByName("id"))
+func (app *ApolloHandler) UsersShow(c *gin.Context) {
+	user, err := app.DB.FindUserBy("id", c.Param("id"))
 	if err != nil {
-		out := fmt.Sprintf("User %s not found", params.ByName("id"))
-		http.Error(rw, out, http.StatusNotFound)
+		c.String(http.StatusNotFound, "User %s not found", c.Param("id"))
 		return
 	}
 
-	json, _ := json.Marshal(user)
-	rw.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(rw, string(json))
+	c.JSON(http.StatusOK, user)
 }

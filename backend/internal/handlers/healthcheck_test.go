@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/julienschmidt/httprouter"
 	"github.com/uvalib/apollo/backend/internal/models"
 )
 
@@ -21,7 +21,8 @@ func TestHealthCheckFail(t *testing.T) {
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
 	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
 
-	router := httprouter.New()
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
 	router.GET("/healthcheck", app.HealthCheck)
 
 	req, _ := http.NewRequest("GET", "/healthcheck", nil)
@@ -35,7 +36,7 @@ func TestHealthCheckFail(t *testing.T) {
 	}
 
 	// Check the response body is what we expect.
-	expected := `{"alive": true, "mysql": false}`
+	expected := `{"alive":"true","mysql":"false"}`
 	if strings.TrimSpace(rr.Body.String()) != expected {
 		t.Errorf("Unexpected response: got [%s] want [%s]", rr.Body.String(), expected)
 	}
@@ -51,7 +52,8 @@ func TestHealthCheckPass(t *testing.T) {
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
 	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
 
-	router := httprouter.New()
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
 	router.GET("/healthcheck", app.HealthCheck)
 
 	req, _ := http.NewRequest("GET", "/healthcheck", nil)
@@ -65,7 +67,7 @@ func TestHealthCheckPass(t *testing.T) {
 	}
 
 	// Check the response body is what we expect.
-	expected := `{"alive": true, "mysql": true}`
+	expected := `{"alive":"true","mysql":"true"}`
 	if strings.TrimSpace(rr.Body.String()) != expected {
 		t.Errorf("Unexpected response: got [%s] want [%s]", rr.Body.String(), expected)
 	}

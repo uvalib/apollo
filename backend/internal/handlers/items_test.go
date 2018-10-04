@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
+	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/julienschmidt/httprouter"
 	"github.com/uvalib/apollo/backend/internal/models"
 )
 
@@ -24,14 +24,16 @@ func TestBadItemShow(t *testing.T) {
 	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
 	mock.ExpectQuery("SELECT").WillReturnError(errors.New("Item not found"))
 
-	req, _ := http.NewRequest("GET", "/api/items", nil)
-	rr := httptest.NewRecorder()
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
+	router.GET("/api/items/:pid", app.ItemShow)
 
-	params := httprouter.Params{httprouter.Param{"pid", "bad123"}}
-	app.ItemShow(rr, req, params)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/items/bad123", nil)
+	router.ServeHTTP(w, req)
 
 	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusNotFound {
+	if status := w.Code; status != http.StatusNotFound {
 		t.Errorf("Wrong status code: got %v want %v", status, http.StatusNotFound)
 	}
 }
@@ -64,22 +66,24 @@ func TestItemShow(t *testing.T) {
 		AddRow(1, nil, nil, 0, "uva-an1", "PARENT", nil, nil, "uva-ant1", "collection", 0, 1)
 	mock.ExpectQuery("SELECT n.id").WithArgs(1).WillReturnRows(collectionRows)
 
-	req, _ := http.NewRequest("GET", "/api/items", nil)
-	rr := httptest.NewRecorder()
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
+	router.GET("/api/items/:pid", app.ItemShow)
 
-	params := httprouter.Params{httprouter.Param{"pid", tgt}}
-	app.ItemShow(rr, req, params)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/items/uva-an10", nil)
+	router.ServeHTTP(w, req)
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
 
 	// Check the status code is what we expect.
-	if status := rr.Code; status != http.StatusOK {
+	if status := w.Code; status != http.StatusOK {
 		t.Errorf("Wrong status code: got %v want %v", status, http.StatusOK)
 	}
 
-	if strings.Contains(strings.TrimSpace(rr.Body.String()), tgt) == false {
-		t.Errorf("Response %s does not contain searched PID: %s", rr.Body.String(), tgt)
+	if strings.Contains(strings.TrimSpace(w.Body.String()), tgt) == false {
+		t.Errorf("Response %s does not contain searched PID: %s", w.Body.String(), tgt)
 	}
 }

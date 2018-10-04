@@ -1,20 +1,19 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/gin-gonic/gin"
 )
 
 // HealthCheck : report health of this and associated services
 //
-func (h *ApolloHandler) HealthCheck(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	rw.Header().Set("Content-Type", "application/json")
+func (h *ApolloHandler) HealthCheck(c *gin.Context) {
 	_, err := h.DB.Query("SELECT 1")
 	if err != nil {
-		http.Error(rw, `{"alive": true, "mysql": false}`, http.StatusInternalServerError)
+		// gin.H is a shortcut for map[string]interface{}
+		c.JSON(http.StatusInternalServerError, gin.H{"alive": "true", "mysql": "false"})
 		return
 	}
-	fmt.Fprintf(rw, `{"alive": true, "mysql": true}`)
+	c.JSON(http.StatusOK, gin.H{"alive": "true", "mysql": "true"})
 }

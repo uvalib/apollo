@@ -1,20 +1,18 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/gin-gonic/gin"
 )
 
 // ExternalPIDLookup find an external system PID and return the corresponding Apollo PID
 //
-func (app *ApolloHandler) ExternalPIDLookup(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-	pid, err := app.DB.ExternalPIDLookup(params.ByName("pid"))
+func (app *ApolloHandler) ExternalPIDLookup(c *gin.Context) {
+	pid, err := app.DB.ExternalPIDLookup(c.Param("pid"))
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusNotFound)
+		c.String(http.StatusNotFound, err.Error())
 		return
 	}
-	rw.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(rw, pid)
+	c.String(http.StatusOK, pid)
 }

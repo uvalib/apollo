@@ -4,14 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
-	"time"
 
+	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/gzip"
+	"github.com/gin-gonic/contrib/static"
+	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/julienschmidt/httprouter"
-	"github.com/rs/cors"
 	"github.com/uvalib/apollo/backend/internal/handlers"
 	"github.com/uvalib/apollo/backend/internal/models"
 )
@@ -64,53 +64,40 @@ func main() {
 	log.Printf("Config: %#v", app)
 
 	// Set routes and start server
-	// use julienschmidt router for all things API/version/health
-	// These handlers are accessed thru the ApolloHandler which provides some
-	// shared configuration info; DB, versions, authUser
-	router := httprouter.New()
+	router := gin.Default()
+	router.Use(static.Serve("/", static.LocalFile("./public", true)))
 	router.GET("/version", app.VersionInfo)
 	router.GET("/healthcheck", app.HealthCheck)
 	router.GET("/authenticate", app.Authenticate)
-	router.GET("/api/collections", handlers.GzipMiddleware(app.CollectionsIndex))
-	router.GET("/api/collections/:pid", handlers.GzipMiddleware(app.CollectionsShow))
-	router.GET("/api/items/:pid", handlers.GzipMiddleware(app.ItemShow))
-	router.GET("/api/users", handlers.GzipMiddleware(app.UsersIndex))
-	router.GET("/api/users/:id", handlers.GzipMiddleware(app.UsersShow))
-	router.GET("/api/types", handlers.GzipMiddleware(app.TypesIndex))
-	router.GET("/api/values/:name", handlers.GzipMiddleware(app.ValuesForName))
-	router.GET("/api/external/:pid", handlers.GzipMiddleware(app.ExternalPIDLookup))
-	router.GET("/api/solr/:pid", handlers.GzipMiddleware(app.GenerateSolr))
 
-	// require the user auth info in headers for these
-	router.POST("/api/publish/:pid", app.AuthMiddleware(app.PublishCollection))
-	router.POST("/api/qdc/:pid", app.GenerateQDC)
+	// create an api routing group and gzip all of its responses
+	api := router.Group("/api")
+	// TODO add cors upport with gin middleware
+	api.Use(gzip.Gzip(gzip.DefaultCompression))
+	api.Use(cors.Default())
+	{
+		api.GET("/aries/:id", app.AriesLookup)
+		api.GET("/collections", app.CollectionsIndex)
+		api.GET("/collections/:pid", app.CollectionsShow)
+		api.GET("/external/:pid", app.ExternalPIDLookup)
+		api.GET("/items/:pid", app.ItemShow)
+		api.GET("/qdc/:pid", app.GenerateQDC)
+		api.GET("/solr/:pid", app.GenerateSolr)
+		api.GET("/types", app.TypesIndex)
+		api.GET("/users", app.UsersIndex)
+		api.GET("/users/:id", app.UsersShow)
+		api.GET("/values/:name", app.ValuesForName)
 
-	// Create a standard go Mux to serve static files, and pass off
-	// all other stuff the the router. this allows static files to be
-	// served from /, and other stuff to be served under /api
-	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir("public")))
-	mux.Handle("/authenticate", router)
-	mux.Handle("/version", router)
-	mux.Handle("/healthcheck", router)
-	mux.Handle("/api/", cors.Default().Handler(router))
+		// require the user auth info in headers for these
+		api.POST("/publish/:pid", app.AuthMiddleware, app.PublishCollection)
+	}
 
-	// Serve the mux with cors and logging enabled
 	portStr := fmt.Sprintf(":%d", port)
 	if https == 1 {
 		log.Printf("Start HTTPS service on port %s with CORS support enabled", portStr)
-		log.Fatal(http.ListenAndServeTLS(portStr, crt, key, loggingHandler(mux)))
+		log.Fatal(router.RunTLS(portStr, crt, key))
 	} else {
 		log.Printf("Start HTTP service on port %s with CORS support enabled", portStr)
-		log.Fatal(http.ListenAndServe(portStr, loggingHandler(mux)))
+		log.Fatal(router.Run(portStr))
 	}
-}
-
-func loggingHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		log.Printf("Started %s %s", r.Method, r.RequestURI)
-		next.ServeHTTP(w, r)
-		log.Printf("COMPLETED %s %s in %s", r.Method, r.RequestURI, time.Since(start))
-	})
 }

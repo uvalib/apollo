@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/julienschmidt/httprouter"
 	"github.com/uvalib/apollo/backend/internal/models"
 )
 
@@ -23,7 +23,8 @@ func TestMissingAuthenticate(t *testing.T) {
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
 	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
 
-	router := httprouter.New()
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
 	router.GET("/api/authenticate", app.Authenticate)
 
 	req, _ := http.NewRequest("GET", "/api/authenticate", nil)
@@ -51,7 +52,8 @@ func TestGoodAuthenticate(t *testing.T) {
 		AddRow(1, "lf6f", "Lou", "Foster", "lf6f")
 	mock.ExpectQuery("SELECT").WillReturnRows(rows)
 
-	router := httprouter.New()
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
 	router.GET("/api/authenticate", app.Authenticate)
 
 	req, _ := http.NewRequest("GET", "/api/authenticate", nil)
@@ -77,7 +79,8 @@ func TestBadAuthenticate(t *testing.T) {
 
 	mock.ExpectQuery("SELECT").WillReturnError(errors.New("You are not authorized to access this site"))
 
-	router := httprouter.New()
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
 	router.GET("/api/authenticate", app.Authenticate)
 
 	req, _ := http.NewRequest("GET", "/api/authenticate", nil)
