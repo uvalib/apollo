@@ -75,6 +75,7 @@ func main() {
 
 	// Set routes and start server
 	router := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
 	router.Use(static.Serve("/", static.LocalFile("./public", true)))
 	router.GET("/version", app.VersionInfo)
 	router.GET("/healthcheck", app.HealthCheck)
@@ -100,6 +101,13 @@ func main() {
 		// require the user auth info in headers for these
 		api.POST("/publish/:pid", app.AuthMiddleware, app.PublishCollection)
 	}
+
+	// add a catchall route that renders the index page.
+	// based on no-history config setup info here:
+	//    https://router.vuejs.org/guide/essentials/history-mode.html#example-server-configurations
+	router.NoRoute(func(c *gin.Context) {
+		c.File("./public/index.html")
+	})
 
 	portStr := fmt.Sprintf(":%d", port)
 	if https == 1 {
