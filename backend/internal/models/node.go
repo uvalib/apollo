@@ -211,7 +211,7 @@ func (db *DB) GetTree(rootID int64) (*Node, error) {
 	// any nodes that contain the ID as part of their ancestry (this is necessary for subtrees)
 	log.Printf("Get tree rooted at ID %d", rootID)
 	qs := fmt.Sprintf(`
-		%s WHERE deleted=0 and current=1 AND (n.id=? or ancestry REGEXP '(^.*/|^)%d($|/.*)')
+		%s WHERE deleted=0 and current=1 AND (n.id=? or ancestry REGEXP '(^.+/|^)%d($|/.+)')
 		ORDER BY n.id ASC`,
 		getNodeSelect(), rootID)
 	return db.queryNodes(qs, rootID)
@@ -221,7 +221,7 @@ func (db *DB) GetTree(rootID int64) (*Node, error) {
 func (db *DB) GetChildren(nodeID int64) (*Node, error) {
 	// now get all children with the above PID as the end of their ancestry
 	qs := fmt.Sprintf(`
-		%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '(^.*/|^)%d$' and n.value <> "")
+		%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '(^.+/|^)%d$' and n.value <> "")
 		ORDER BY n.id ASC`,
 		getNodeSelect(), nodeID)
 	return db.queryNodes(qs, nodeID)
@@ -326,9 +326,9 @@ func (db *DB) CreateNodes(nodes []*Node) error {
 	}
 
 	for _, node := range nodes {
-		err := addNode(tx, node)
-		if err != nil {
-			return err
+		addErr := addNode(tx, node)
+		if addErr != nil {
+			return addErr
 		}
 
 		// add parent and ancestry if needed
