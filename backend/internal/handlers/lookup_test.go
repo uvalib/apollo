@@ -20,7 +20,7 @@ func TestBadLookup(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
+	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
 
 	mock.ExpectQuery("SELECT np.pid").WillReturnError(errors.New("Not Found"))
 
@@ -44,7 +44,7 @@ func TestLookup(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
+	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
 
 	rows := sqlmock.NewRows([]string{"pid"}).AddRow("uva-an1")
 	mock.ExpectQuery("SELECT np.pid").WillReturnRows(rows) // Query is CASE SENSITIVE

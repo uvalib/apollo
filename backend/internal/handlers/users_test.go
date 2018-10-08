@@ -20,7 +20,7 @@ func TestUsersIndex(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
+	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
 
 	router := gin.Default()
 	router.GET("/api/users", app.UsersIndex)
@@ -52,7 +52,7 @@ func TestBadUserShow(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
+	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
 	mock.ExpectQuery("select").WillReturnError(errors.New("User not found"))
 
 	gin.SetMode(gin.ReleaseMode)
@@ -76,7 +76,7 @@ func TestUserShow(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
+	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
 
 	rows := sqlmock.NewRows([]string{"id", "computing_id", "first_name", "last_name", "email"}).
 		AddRow(1, "test1", "test", "user", "test1@virginia.edu")

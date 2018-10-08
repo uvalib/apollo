@@ -21,7 +21,7 @@ func TestCollectionsIndex(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
+	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
 
 	rows := sqlmock.NewRows([]string{"id", "pid"}).AddRow(1, "an666")
 	mock.ExpectQuery("select id,pid from nodes").WillReturnRows(rows)
@@ -55,7 +55,7 @@ func TestBadCollectionShow(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
+	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
 	mock.ExpectQuery("SELECT").WillReturnError(errors.New("Collection not found"))
 
 	gin.SetMode(gin.ReleaseMode)
@@ -80,7 +80,7 @@ func TestCollectionShow(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
+	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
 
 	tgt := "uva-an1"
 	rowsPid := sqlmock.NewRows([]string{"id"}).AddRow(1)

@@ -19,7 +19,7 @@ func TestTypesIndex(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
+	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
 
 	rows := sqlmock.NewRows([]string{"pid", "name"}).
 		AddRow("uva-ann1", "collection").AddRow("uva-ann2", "title")

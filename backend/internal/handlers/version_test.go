@@ -18,7 +18,7 @@ func TestVersion(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
+	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()

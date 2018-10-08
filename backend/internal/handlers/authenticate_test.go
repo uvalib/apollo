@@ -21,7 +21,7 @@ func TestMissingAuthenticate(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}}
+	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
@@ -46,7 +46,7 @@ func TestGoodAuthenticate(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}, DevAuthUser: "lf6f"}
+	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}, DevAuthUser: "lf6f"}
 
 	rows := sqlmock.NewRows([]string{"id", "computing_id", "first_name", "last_name", "email"}).
 		AddRow(1, "lf6f", "Lou", "Foster", "lf6f")
@@ -75,7 +75,7 @@ func TestBadAuthenticate(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{sqlxDB}, DevAuthUser: "wrong"}
+	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}, DevAuthUser: "wrong"}
 
 	mock.ExpectQuery("SELECT").WillReturnError(errors.New("You are not authorized to access this site"))
 
