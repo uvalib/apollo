@@ -17,7 +17,7 @@ import (
 )
 
 // Version of the service
-const Version = "1.0.0"
+const Version = "1.1.0"
 
 /**
  * MAIN
@@ -26,7 +26,7 @@ func main() {
 	log.Printf("===> apollo staring up <===")
 	var port int
 	var https int
-	var key, crt, devUser, iiifServer, solrDir, qdcDir, fedoraURL string
+	var key, crt, devUser, iiifServer, solrDir, qdcDir, fedoraURL, apolloHost string
 	defPort, err := strconv.Atoi(os.Getenv("APOLLO_PORT"))
 	if err != nil {
 		defPort = 8080
@@ -35,6 +35,11 @@ func main() {
 	if err != nil {
 		defHTTPS = 0
 	}
+	defHost := os.Getenv("APOLLO_HOST")
+	if defHost == "" {
+		defHost = "apollo.lib.virginia.edu"
+	}
+
 	flag.IntVar(&port, "port", defPort, "Port to offer service on (default 8080)")
 	flag.IntVar(&https, "https", defHTTPS, "Use HTTPS? (default 0)")
 	flag.StringVar(&key, "key", os.Getenv("APOLLO_KEY"), "Key for https connection")
@@ -44,6 +49,7 @@ func main() {
 	flag.StringVar(&solrDir, "solr_dir", "./tmp", "Dropoff dir for generated solr add docs")
 	flag.StringVar(&qdcDir, "qdc_dir", "/digiserv-delivery/patron/dpla/qdc", "Delivery dir for generated QDC files for DPLA")
 	flag.StringVar(&fedoraURL, "fedora", "http://fedora01.lib.virginia.edu", "Production Fedora instance")
+	flag.StringVar(&apolloHost, "host", defHost, "Apollo Hostname")
 
 	dbCfg, err := models.GetConfig()
 	if err != nil {
@@ -59,8 +65,12 @@ func main() {
 	}
 
 	// Create the main handler object which has access to common
+	apolloURL := fmt.Sprintf("https://%s", apolloHost)
+	if https == 0 {
+		apolloURL = fmt.Sprintf("http://%s", apolloHost)
+	}
 	app := handlers.ApolloHandler{Version: Version, DB: db, DevAuthUser: devUser,
-		IIIF: iiifServer, FedoraURL: fedoraURL, SolrDir: solrDir, QdcDir: qdcDir}
+		IIIF: iiifServer, FedoraURL: fedoraURL, SolrDir: solrDir, QdcDir: qdcDir, URL: apolloURL}
 	log.Printf("Config: %#v", app)
 
 	// Set routes and start server
@@ -72,7 +82,6 @@ func main() {
 
 	// create an api routing group and gzip all of its responses
 	api := router.Group("/api")
-	// TODO add cors upport with gin middleware
 	api.Use(gzip.Gzip(gzip.DefaultCompression))
 	api.Use(cors.Default())
 	{

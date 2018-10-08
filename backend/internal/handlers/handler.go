@@ -6,6 +6,7 @@ import "github.com/uvalib/apollo/backend/internal/models"
 // It contains common config information and services, like the DB
 type ApolloHandler struct {
 	Version         string
+	URL             string
 	DB              *models.DB
 	DevAuthUser     string
 	AuthComputingID string
