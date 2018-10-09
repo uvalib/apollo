@@ -63,7 +63,7 @@ func main() {
 	}
 
 	// build a context for the ingest containing common data
-	ctx := context{db: db, user: user, types: db.AllTypes(), values: db.GetAllControlledValues()}
+	ctx := context{db: db, user: user, types: db.ListNodeTypes(), values: db.ListAllControlledValues()}
 
 	if mode == "create" {
 		// doIngest(&ctx, srcFile)

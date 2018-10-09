@@ -14,14 +14,14 @@ import (
 // the same name attribute
 func (app *ApolloHandler) GenerateSolr(c *gin.Context) {
 	log.Printf("Generate Solr Add for '%s'", c.Param("pid"))
-	apolloID, err := app.DB.GetNodeIDFromPID(c.Param("pid"))
+	ids, err := app.DB.Lookup(c.Param("pid"))
 	if err != nil {
 		out := fmt.Sprintf("Unable to find PID %s : %s", c.Param("pid"), err.Error())
 		c.String(http.StatusNotFound, out)
 		return
 	}
 
-	xmlOut, err := app.DB.GetSolrXML(apolloID, app.IIIF)
+	xmlOut, err := app.DB.GetSolrXML(ids.ID, app.IIIF)
 	if err != nil {
 		out := fmt.Sprintf("Unable to generate Solr doc for %s: %s", c.Param("pid"), err.Error())
 		c.String(http.StatusNotFound, out)

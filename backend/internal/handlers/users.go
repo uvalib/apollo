@@ -9,7 +9,7 @@ import (
 // UsersIndex returns a list of  Apollo users.
 //
 func (app *ApolloHandler) UsersIndex(c *gin.Context) {
-	users := app.DB.AllUsers()
+	users := app.DB.ListUsers()
 	c.JSON(http.StatusOK, users)
 }
 

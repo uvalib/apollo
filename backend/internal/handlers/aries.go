@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -25,15 +24,8 @@ type Aries struct {
 // AriesLookup will query apollo for information on the supplied identifer
 func (h *ApolloHandler) AriesLookup(c *gin.Context) {
 	passedPID := c.Param("id")
-	apolloPID, err := h.DB.ExternalPIDLookup(passedPID)
+	ids, err := h.DB.Lookup(passedPID)
 	if err != nil {
-		log.Printf("Identifer %s is not an external PID; assume Apollo PID", passedPID)
-		apolloPID = passedPID
-	} else {
-		log.Printf("ID: %s is an external PID referring to ApolloPID: %s", passedPID, apolloPID)
-	}
-	nodeID, _ := h.DB.GetNodeIDFromPID(apolloPID)
-	if nodeID == 0 {
 		c.String(http.StatusNotFound, "%s not found", passedPID)
 		return
 	}
@@ -41,12 +33,12 @@ func (h *ApolloHandler) AriesLookup(c *gin.Context) {
 	// Get the referenced node and the containing collection. No need
 	// for error handlign because the PID was already matched up to a
 	// node ID; just getting the rest of the data
-	node, _ := h.DB.GetChildren(nodeID)
+	node, _ := h.DB.GetChildren(ids.ID)
 	collection, _ := h.DB.GetParentCollection(node)
 
 	var out Aries
-	out.Identifiers = append(out.Identifiers, apolloPID)
-	if apolloPID != passedPID {
+	out.Identifiers = append(out.Identifiers, ids.PID)
+	if ids.PID != passedPID {
 		out.Identifiers = append(out.Identifiers, passedPID)
 	} else {
 		// this passed PID was apollo. See if an external PID exists
@@ -56,10 +48,10 @@ func (h *ApolloHandler) AriesLookup(c *gin.Context) {
 		}
 	}
 
-	if apolloPID != collection.PID {
+	if ids.PID != collection.PID {
 		// This is not the collection level node. Use the admin URL that links
 		// directly to the item and do not include an iiif presentation service
-		out.AdminURL = append(out.AdminURL, fmt.Sprintf("%s/#/collections/%s?item=%s", h.URL, collection.PID, apolloPID))
+		out.AdminURL = append(out.AdminURL, fmt.Sprintf("%s/#/collections/%s?item=%s", h.URL, collection.PID, ids.PID))
 	} else {
 		out.AdminURL = append(out.AdminURL, fmt.Sprintf("%s/#/collections/%s", h.URL, collection.PID))
 	}
@@ -72,7 +64,7 @@ func (h *ApolloHandler) AriesLookup(c *gin.Context) {
 			AriesService{URL: fmt.Sprintf("%s/%s", h.IIIF, dObjPID), Protocol: "iiif-presentation"})
 	}
 	out.Services = append(out.Services,
-		AriesService{URL: fmt.Sprintf("%s/api/collections/%s", h.URL, apolloPID), Protocol: "json-metadata"})
+		AriesService{URL: fmt.Sprintf("%s/api/collections/%s", h.URL, ids.PID), Protocol: "json-metadata"})
 
 	c.JSON(http.StatusOK, out)
 }

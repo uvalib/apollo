@@ -74,8 +74,8 @@ func main() {
 	log.Printf("Config: %#v", app)
 
 	// Set routes and start server
-	router := gin.Default()
 	gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
 	router.Use(static.Serve("/", static.LocalFile("./public", true)))
 	router.GET("/version", app.VersionInfo)
 	router.GET("/healthcheck", app.HealthCheck)
@@ -89,7 +89,6 @@ func main() {
 		api.GET("/aries/:id", app.AriesLookup)
 		api.GET("/collections", app.CollectionsIndex)
 		api.GET("/collections/:pid", app.CollectionsShow)
-		api.GET("/external/:pid", app.ExternalPIDLookup)
 		api.GET("/items/:pid", app.ItemShow)
 		api.GET("/qdc/:pid", app.GenerateQDC)
 		api.GET("/solr/:pid", app.GenerateSolr)

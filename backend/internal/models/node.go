@@ -85,28 +85,33 @@ func (n *Node) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// ExternalPIDLookup will find an ApolloPID for an external PID
-func (db *DB) ExternalPIDLookup(externalPID string) (string, error) {
-	var apolloPID string
-	qs := `SELECT np.pid FROM nodes ns
-		INNER JOIN nodes np ON np.id = ns.parent_id
- 		WHERE ns.value=?`
-	db.QueryRow(qs, externalPID).Scan(&apolloPID)
-	if len(apolloPID) == 0 {
-		return "", fmt.Errorf("Unable to find match for legacy PID %s", externalPID)
-	}
-	return apolloPID, nil
-}
+// Lookup will accept an external PID, apollo PID, barcode or catalog key
+// and find a matching apollo item. That items apollo identifiers will be returned
+func (db *DB) Lookup(identifier string) (*ItemIDs, error) {
+	log.Printf("Lookup identifier %s", identifier)
 
-// GetNodeIDFromPID takes a PID and returns the corresponding node ID
-func (db *DB) GetNodeIDFromPID(pid string) (int64, error) {
-	log.Printf("Get node ID for PID %s", pid)
+	// First easy case; the identifier is an apollo PID
 	var nodeID int64
-	db.QueryRow("select id from nodes where pid=?", pid).Scan(&nodeID)
+	db.QueryRow("select id from nodes where pid=?", identifier).Scan(&nodeID)
 	if nodeID > 0 {
-		return nodeID, nil
+		log.Printf("%s is an ApolloPID. ID: %d", identifier, nodeID)
+		return &ItemIDs{PID: identifier, ID: nodeID}, nil
 	}
-	return 0, fmt.Errorf("PID %s was not found", pid)
+
+	// Next case; See if it is an externalPID
+	var apolloPID string
+	qs := `SELECT np.id, np.pid FROM nodes ns INNER JOIN nodes np ON np.id = ns.parent_id
+	 		 WHERE ns.value=?`
+	db.QueryRow(qs, identifier).Scan(&nodeID, &apolloPID)
+	if apolloPID != "" {
+		log.Printf("%s is an External PID. ApolloPID: %s ID: %d",
+			identifier, apolloPID, nodeID)
+		return &ItemIDs{PID: apolloPID, ID: nodeID}, nil
+	}
+
+	// Hardest case: barcode or catalog key
+
+	return nil, fmt.Errorf("%s was not found", identifier)
 }
 
 // GetCollections returns a list of all collections. Data is PID/Title

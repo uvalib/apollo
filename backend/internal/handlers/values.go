@@ -11,6 +11,6 @@ import (
 //
 func (app *ApolloHandler) ValuesForName(c *gin.Context) {
 	log.Printf("Get controlled values for '%s'", c.Param("name"))
-	values := app.DB.ListControlledValues(c.Param("name"))
+	values := app.DB.ListControlledValuesFoName(c.Param("name"))
 	c.JSON(http.StatusOK, values)
 }

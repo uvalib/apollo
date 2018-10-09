@@ -16,8 +16,8 @@ type NodeType struct {
 	Container       bool   `json:"container"`
 }
 
-// AllTypes returns a list of all available names
-func (db *DB) AllTypes() []NodeType {
+// ListNodeTypes returns a list of all available names
+func (db *DB) ListNodeTypes() []NodeType {
 	names := []NodeType{}
 	db.Select(&names, "select * from node_types order by name asc")
 	return names

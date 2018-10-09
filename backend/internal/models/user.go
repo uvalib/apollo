@@ -17,9 +17,9 @@ type User struct {
 	UpdatedAt   time.Time `db:"updated_at" json:"-"`
 }
 
-// AllUsers returns a pointer to a list of all users
+// ListUsers returns a pointer to a list of all users
 //
-func (db *DB) AllUsers() []User {
+func (db *DB) ListUsers() []User {
 	users := []User{}
 	db.Select(&users, "select * from users order by last_name asc")
 	return users

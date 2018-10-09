@@ -14,8 +14,8 @@ type ControlledValue struct {
 	ValueURI sql.NullString `db:"value_uri" json:"valueURI"`
 }
 
-// GetAllControlledValues gets all controlled values
-func (db *DB) GetAllControlledValues() []ControlledValue {
+// ListAllControlledValues gets all controlled values
+func (db *DB) ListAllControlledValues() []ControlledValue {
 	var vals []ControlledValue
 	err := db.Select(&vals, "SELECT cv.* FROM controlled_values cv")
 	if err != nil {
@@ -25,8 +25,8 @@ func (db *DB) GetAllControlledValues() []ControlledValue {
 	return vals
 }
 
-// ListControlledValues gets all controlled values for a given name
-func (db *DB) ListControlledValues(name string) []ControlledValue {
+// ListControlledValuesFoName gets all controlled values for a given name
+func (db *DB) ListControlledValuesFoName(name string) []ControlledValue {
 	var vals []ControlledValue
 	err := db.Select(&vals,
 		"SELECT cv.* FROM controlled_values cv inner join node_types nt on nt.id = cv.node_type_id WHERE nt.name=?", name)

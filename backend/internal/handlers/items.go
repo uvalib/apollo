@@ -14,14 +14,14 @@ import (
 // belongs to.
 func (app *ApolloHandler) ItemShow(c *gin.Context) {
 	pid := c.Param("pid")
-	itemID, dbErr := app.DB.GetNodeIDFromPID(pid)
+	itemIDs, dbErr := app.DB.Lookup(pid)
 	if dbErr != nil {
 		log.Printf("ERROR: %s", dbErr.Error())
 		c.String(http.StatusNotFound, dbErr.Error())
 		return
 	}
 
-	item, dbErr := app.DB.GetChildren(itemID)
+	item, dbErr := app.DB.GetChildren(itemIDs.ID)
 	if dbErr != nil {
 		log.Printf("ERROR: %s", dbErr.Error())
 		c.String(http.StatusNotFound, dbErr.Error())

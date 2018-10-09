@@ -16,7 +16,7 @@ import (
 // and tags the collection as having been published
 func (app *ApolloHandler) PublishCollection(c *gin.Context) {
 	log.Printf("Publish collection '%s' to %s", c.Param("pid"), app.SolrDir)
-	nodeID, err := app.DB.GetNodeIDFromPID(c.Param("pid"))
+	collectionIDs, err := app.DB.Lookup(c.Param("pid"))
 	if err != nil {
 		out := fmt.Sprintf("Collection %s not found", c.Param("pid"))
 		c.String(http.StatusNotFound, out)
@@ -25,17 +25,17 @@ func (app *ApolloHandler) PublishCollection(c *gin.Context) {
 
 	// Get a list of identifters for all items in this collection. This
 	// is a struct containing both PID and DB ID
-	ids, err := app.DB.GetCollectionContainerIdentifiers(nodeID, "all")
+	itemIDs, err := app.DB.GetCollectionContainerIdentifiers(collectionIDs.ID, "all")
 	if err != nil {
 		out := fmt.Sprintf("Unable to retrieve collection items %s", err.Error())
 		c.String(http.StatusInternalServerError, out)
 		return
 	}
 
-	ids = append(ids, models.ItemIDs{ID: nodeID, PID: c.Param("pid")})
+	itemIDs = append(itemIDs, models.ItemIDs{ID: collectionIDs.ID, PID: c.Param("pid")})
 
 	// kick off the walk of tree and generate of solr in a goroutine
-	go app.publishItems(ids, nodeID)
+	go app.publishItems(itemIDs, collectionIDs.ID)
 
 	c.String(http.StatusOK, "Publication of collection %s started", c.Param("pid"))
 }

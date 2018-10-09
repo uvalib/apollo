@@ -9,6 +9,6 @@ import (
 // TypesIndex will return a list of controlled vocabulary types
 //
 func (app *ApolloHandler) TypesIndex(c *gin.Context) {
-	types := app.DB.AllTypes()
+	types := app.DB.ListNodeTypes()
 	c.JSON(http.StatusOK, types)
 }

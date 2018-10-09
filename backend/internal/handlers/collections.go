@@ -19,19 +19,19 @@ func (app *ApolloHandler) CollectionsIndex(c *gin.Context) {
 func (app *ApolloHandler) CollectionsShow(c *gin.Context) {
 	pid := c.Param("pid")
 	log.Printf("Get collection for PID %s", pid)
-	rootID, dbErr := app.DB.GetNodeIDFromPID(pid)
+	rootID, dbErr := app.DB.Lookup(pid)
 	if dbErr != nil {
 		log.Printf("ERROR: %s", dbErr.Error())
 		c.String(http.StatusNotFound, dbErr.Error())
 		return
 	}
 
-	root, dbErr := app.DB.GetTree(rootID)
+	root, dbErr := app.DB.GetTree(rootID.ID)
 	if dbErr != nil {
 		log.Printf("ERROR: %s", dbErr.Error())
 		c.String(http.StatusInternalServerError, dbErr.Error())
 		return
 	}
-	root.PublishedAt = app.DB.GetLatestPublication(rootID)
+	root.PublishedAt = app.DB.GetLatestPublication(rootID.ID)
 	c.JSON(http.StatusOK, root)
 }

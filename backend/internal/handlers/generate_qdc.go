@@ -92,14 +92,17 @@ func (app *ApolloHandler) GenerateQDC(c *gin.Context) {
 		return
 	}
 
-	// Convert the PID to a nodeID. Given the above, it is safe to ignore
-	// errors as the pid is known to exist
-	nodeID, _ := app.DB.GetNodeIDFromPID(pid)
+	// lookup identifiers for the passed PID
+	ids, err := app.DB.Lookup(pid)
+	if err != nil {
+		c.String(http.StatusNotFound, "%s not found", pid)
+		return
+	}
 
 	// Get a list of identifters for all items in this collection. This
 	// is a struct containing both PID and DB ID. Items are the only thing
 	// that goes to DPLA
-	ids, err := app.DB.GetCollectionContainerIdentifiers(nodeID, "item")
+	itemIDs, err := app.DB.GetCollectionContainerIdentifiers(ids.ID, "item")
 	if err != nil {
 		out := fmt.Sprintf("Unable to retrieve collection items %s", err.Error())
 		c.String(http.StatusInternalServerError, out)
@@ -107,10 +110,10 @@ func (app *ApolloHandler) GenerateQDC(c *gin.Context) {
 	}
 
 	if tgtPID != "" {
-		app.generateSingleQDCRecord(nodeID, tgtPID)
+		app.generateSingleQDCRecord(ids.ID, tgtPID)
 	} else {
 		// kick off the generation of QDC in a goroutine...
-		go app.generateQDCForItems(nodeID, ids, limit)
+		go app.generateQDCForItems(ids.ID, itemIDs, limit)
 	}
 
 	c.String(http.StatusOK, "QDC is being generated to %s...", app.QdcDir)
@@ -118,26 +121,25 @@ func (app *ApolloHandler) GenerateQDC(c *gin.Context) {
 
 func (app *ApolloHandler) generateSingleQDCRecord(collectionID int64, tgtPID string) {
 	log.Printf("Generating QDC for Item %s", tgtPID)
-	tgtApollpPID, _ := app.DB.ExternalPIDLookup(tgtPID)
-	tgtItemID, err := app.DB.GetNodeIDFromPID(tgtApollpPID)
+	tgtIDs, err := app.DB.Lookup(tgtPID)
 	if err != nil {
 		log.Printf("ERROR: Unable to find target PID %s.", tgtPID)
 		return
 	}
 	qdcTemplate := template.Must(template.ParseFiles("./templates/wsls_qdc.xml"))
 	collection, _ := app.DB.GetTree(collectionID)
-	itemNode := findItemByID(tgtItemID, collection)
+	itemNode := findItemByID(tgtIDs.ID, collection)
 	if itemNode == nil {
-		log.Printf("ERROR: Unable to find nodeID %d. SKIPPING", tgtItemID)
+		log.Printf("ERROR: Unable to find nodeID %d. SKIPPING", tgtIDs.ID)
 		return
 	}
 	data := app.getItemQDCData(itemNode)
 	if data.PID == "" {
-		log.Printf("Item %d:%s has no external PID and hasn't been published to DL. SKIPPING", tgtItemID, tgtPID)
+		log.Printf("Item %d:%s has no external PID and hasn't been published to DL. SKIPPING", tgtIDs.ID, tgtPID)
 		return
 	}
 	if data.Title == "" {
-		log.Printf("Item %d:%s has no Title. SKIPPING", tgtItemID, tgtPID)
+		log.Printf("Item %d:%s has no Title. SKIPPING", tgtIDs.ID, tgtPID)
 		return
 	}
 
