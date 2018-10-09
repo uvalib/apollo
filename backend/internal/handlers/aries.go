@@ -38,22 +38,17 @@ func (h *ApolloHandler) AriesLookup(c *gin.Context) {
 
 	var out Aries
 	out.Identifiers = append(out.Identifiers, ids.PID)
-	if ids.PID != passedPID {
-		out.Identifiers = append(out.Identifiers, passedPID)
-	} else {
-		// this passed PID was apollo. See if an external PID exists
-		extPID := getExternalPID(node)
-		if extPID != "" {
-			out.Identifiers = append(out.Identifiers, extPID)
-		}
+	extIds := getExternalIdentifiers(node)
+	if len(extIds) > 0 {
+		out.Identifiers = append(out.Identifiers, extIds...)
 	}
 
 	if ids.PID != collection.PID {
 		// This is not the collection level node. Use the admin URL that links
 		// directly to the item and do not include an iiif presentation service
-		out.AdminURL = append(out.AdminURL, fmt.Sprintf("%s/#/collections/%s?item=%s", h.URL, collection.PID, ids.PID))
+		out.AdminURL = append(out.AdminURL, fmt.Sprintf("%s/collections/%s?item=%s", h.URL, collection.PID, ids.PID))
 	} else {
-		out.AdminURL = append(out.AdminURL, fmt.Sprintf("%s/#/collections/%s", h.URL, collection.PID))
+		out.AdminURL = append(out.AdminURL, fmt.Sprintf("%s/collections/%s", h.URL, collection.PID))
 	}
 
 	// Get the PID for adigital object owned directly by this node
@@ -69,13 +64,17 @@ func (h *ApolloHandler) AriesLookup(c *gin.Context) {
 	c.JSON(http.StatusOK, out)
 }
 
-func getExternalPID(node *models.Node) string {
+func getExternalIdentifiers(node *models.Node) []string {
+	var identifiers []string
+	keys := []string{"externalPID", "barcode", "catalogKey", "wslsID"}
 	for _, child := range node.Children {
-		if child.Type.Name == "externalPID" {
-			return child.Value
+		for _, key := range keys {
+			if child.Type.Name == key {
+				identifiers = append(identifiers, child.Value)
+			}
 		}
 	}
-	return ""
+	return identifiers
 }
 
 func digitalObjectPID(node *models.Node) string {

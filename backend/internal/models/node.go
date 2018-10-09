@@ -21,10 +21,10 @@ type Collection struct {
 	Title string `json:"title"`
 }
 
-// ItemIDs holds identifiers for an item
+// ItemIDs holds the primary apollo IDs for an item; PID and ID
 type ItemIDs struct {
-	PID string
 	ID  int64
+	PID string
 }
 
 // Node is a single element in a tree of metadata. This is the smallest unit
@@ -98,18 +98,18 @@ func (db *DB) Lookup(identifier string) (*ItemIDs, error) {
 		return &ItemIDs{PID: identifier, ID: nodeID}, nil
 	}
 
-	// Next case; See if it is an externalPID
+	// Next case; See if it is an externalPID, barcode, catalog key or WSLS ID
 	var apolloPID string
-	qs := `SELECT np.id, np.pid FROM nodes ns INNER JOIN nodes np ON np.id = ns.parent_id
-	 		 WHERE ns.value=?`
-	db.QueryRow(qs, identifier).Scan(&nodeID, &apolloPID)
+	var idType string
+	qs := `SELECT t.name, np.id, np.pid FROM nodes ns INNER JOIN nodes np ON np.id = ns.parent_id
+			 inner join node_types t on t.id = ns.node_type_id
+	 		 WHERE ns.value=? and t.id in (5,9,10,23)`
+	db.QueryRow(qs, identifier).Scan(&idType, &nodeID, &apolloPID)
 	if apolloPID != "" {
-		log.Printf("%s is an External PID. ApolloPID: %s ID: %d",
-			identifier, apolloPID, nodeID)
+		log.Printf("%s matches type %s. ApolloPID: %s ID: %d",
+			identifier, idType, apolloPID, nodeID)
 		return &ItemIDs{PID: apolloPID, ID: nodeID}, nil
 	}
-
-	// Hardest case: barcode or catalog key
 
 	return nil, fmt.Errorf("%s was not found", identifier)
 }
