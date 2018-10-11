@@ -21,6 +21,12 @@ type Aries struct {
 	Services    []AriesService `json:"service_url,omitempty"`
 }
 
+// AriesPing handles requests to the aries endpoint with no params.
+// Just returns and alive message
+func (h *ApolloHandler) AriesPing(c *gin.Context) {
+	c.String(http.StatusOK, "Apollo Aries API")
+}
+
 // AriesLookup will query apollo for information on the supplied identifer
 func (h *ApolloHandler) AriesLookup(c *gin.Context) {
 	passedPID := c.Param("id")

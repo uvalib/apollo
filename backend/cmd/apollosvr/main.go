@@ -86,6 +86,7 @@ func main() {
 	api.Use(gzip.Gzip(gzip.DefaultCompression))
 	api.Use(cors.Default())
 	{
+		api.GET("/aries", app.AriesPing)
 		api.GET("/aries/:id", app.AriesLookup)
 		api.GET("/collections", app.CollectionsIndex)
 		api.GET("/collections/:pid", app.CollectionsShow)
