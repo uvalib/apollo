@@ -13,7 +13,7 @@
        <a href="http://www.library.virginia.edu/site-search/">Site Search</a> | <a href="http://www.library.virginia.edu/hours/">Hours</a> | <a href="http://www.library.virginia.edu/map/">Map</a> | <a href="http://www.library.virginia.edu/policies/">Policies</a> | <a href="http://www.library.virginia.edu/press/">Press</a> | <a href="http://www.library.virginia.edu/jobs/">Jobs</a><br>
        <a href="http://www2.lib.virginia.edu/campaign/">Give to the Library</a>
        <p class="copy">
-          © 2017 by the Rector and Visitors of the <a href="http://www.virginia.edu/">University of Virginia</a>
+          © 2018 by the Rector and Visitors of the <a href="http://www.virginia.edu/">University of Virginia</a>
        </p>
     </div>
     <div class="legal">
@@ -24,7 +24,6 @@
 
 <script>
   export default {
-    name: 'apollo-footer'
   }
   </script>
 

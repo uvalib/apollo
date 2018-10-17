@@ -10,7 +10,7 @@ require('./assets/css/shared.css');
 Vue.config.productionTip = false;
 
 // global register some components thar all pages use
-Vue.component("loading-spinner", LoadingSpinner)
+Vue.component(LoadingSpinner)
 
 new Vue({
    router,

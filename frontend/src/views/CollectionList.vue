@@ -1,11 +1,11 @@
 <template>
-  <apollo-error v-if="errorMsg" :message="errorMsg"></apollo-error>
+  <ApolloError v-if="errorMsg" :message="errorMsg"/>
   <div v-else class="collections">
-    <page-header
+    <PageHeader
       main="Collections"
       sub="The following are all of the digitized serials managed by Apollo:"
-      :back="false"></page-header>
-    <loading-spinner v-if="loading" message="Loading collections"/>
+      :back="false"/>
+    <LoadingSpinner v-if="loading" message="Loading collections"/>
     <div v-else class="content">
       <table class="collection-list">
         <tr><th></th><th class="right">PID</th><th>Title</th></tr>
@@ -28,9 +28,8 @@
   import PageHeader from '@/components/PageHeader'
 
   export default {
-    name: 'collection-list',
     components: {
-      'page-header': PageHeader
+      PageHeader
     },
     data: function () {
       return {

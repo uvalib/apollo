@@ -8,7 +8,6 @@
 
 <script>
 export default {
-  name: 'apollo-header'
 }
 </script>
 

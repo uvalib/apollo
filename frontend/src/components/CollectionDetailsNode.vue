@@ -39,7 +39,6 @@
   import EventBus from './EventBus'
 
   export default {
-    name: 'details-node',
     props: {
       model: Object,
       depth: Number

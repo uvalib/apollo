@@ -1,12 +1,12 @@
 <template>
   <div class="detail-wrapper">
-    <apollo-error v-if="errorMsg" :message="errorMsg"></apollo-error>
+    <ApolloError v-if="errorMsg" :message="errorMsg"/>
     <template v-else>
-      <page-header
+      <PageHeader
         main="Collection Details"
         :sub="title"
-        :back="true"></page-header>
-      <loading-spinner v-if="loading" message="Loading collection details"/>
+        :back="true"/>
+      <LoadingSpinner v-if="loading" message="Loading collection details"/>
       <div v-else-if="Object.keys(collection).length === 0" class="content">
         <h4>No data found!</h4>
       </div>
@@ -28,13 +28,13 @@
           </div>
 
           <ul class="collection">
-            <details-node :model="collection" :depth="0"></details-node>
+            <CollectionDetailsNode :model="collection" :depth="0"/>
           </ul>
         </div>
 
         <div class="pure-u-15-24">
           <h4 class="do-header">Digitial Object Viewer</h4>
-          <apollo-error v-if="viewerError" :message="viewerError"></apollo-error>
+          <ApolloError v-if="viewerError" :message="viewerError"/>
           <div v-else id="viewer-wrapper">
             <div id="object-viewer">
               <p id="view-placeholder" class="hint">Click 'View Digital Object' from the tree on the left to view it here.</p>
@@ -57,10 +57,9 @@
   import EventBus from '@/components/EventBus'
 
   export default {
-    name: 'collection-details',
     components: {
-      'details-node': CollectionDetailsNode,
-      'page-header': PageHeader
+      CollectionDetailsNode,
+      PageHeader
     },
 
     props: {

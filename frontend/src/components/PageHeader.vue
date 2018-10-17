@@ -9,7 +9,6 @@
 
 <script>
   export default {
-    name: 'page-header',
     props: {
       main: String,
       sub: String,

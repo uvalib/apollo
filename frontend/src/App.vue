@@ -1,9 +1,9 @@
 <template>
   <div id="app">
-    <apollo-header/>
-    <loading-spinner v-if="authorizing" message="Authorizing"/>
+    <ApolloHeader/>
+    <LoadingSpinner v-if="authorizing" message="Authorizing"/>
     <router-view v-else></router-view>
-    <apollo-footer/>
+    <ApolloFooter/>
   </div>
 </template>
 
@@ -14,8 +14,8 @@ import axios from 'axios'
 
 export default {
   components: {
-    'apollo-header': ApolloHeader,
-    'apollo-footer': ApolloFooter
+    ApolloHeader,
+    ApolloFooter
   },
   data: function () {
     return {
