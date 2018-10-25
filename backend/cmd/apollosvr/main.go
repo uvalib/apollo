@@ -17,13 +17,13 @@ import (
 )
 
 // Version of the service
-const Version = "1.1.0"
+const Version = "1.2.0"
 
 /**
  * MAIN
  */
 func main() {
-	log.Printf("===> apollo staring up <===")
+	log.Printf("===> Apollo staring up <===")
 	var port int
 	var https int
 	var key, crt, devUser, iiifServer, solrDir, qdcDir, fedoraURL, apolloHost string
@@ -75,6 +75,7 @@ func main() {
 
 	// Set routes and start server
 	gin.SetMode(gin.ReleaseMode)
+	gin.DisableConsoleColor()
 	router := gin.Default()
 	router.Use(static.Serve("/", static.LocalFile("./public", true)))
 	router.GET("/version", app.VersionInfo)
