@@ -57,9 +57,9 @@ func doUpdate(ctx *context, srcFile string) {
 				log.Printf("Start of value for %s", valueNode)
 				continue
 			}
-			node, err := startNode(ctx, tok.Name.Local, nodeStack)
-			if err != nil {
-				log.Printf("FATAL: unable to start node for %s: %s", tok.Name.Local, err.Error())
+			node, startErr := startNode(ctx, tok.Name.Local, nodeStack)
+			if startErr != nil {
+				log.Printf("FATAL: unable to start node for %s: %s", tok.Name.Local, startErr.Error())
 				os.Exit(1)
 			} else {
 				nodeStack = append(nodeStack, node)

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
@@ -24,43 +23,39 @@ const Version = "1.2.0"
  */
 func main() {
 	log.Printf("===> Apollo staring up <===")
-	var port int
-	var https int
+	var port, https int
 	var key, crt, devUser, iiifServer, solrDir, qdcDir, fedoraURL, apolloHost string
-	defPort, err := strconv.Atoi(os.Getenv("APOLLO_PORT"))
-	if err != nil {
-		defPort = 8080
-	}
-	defHTTPS, err := strconv.Atoi(os.Getenv("APOLLO_HTTPS"))
-	if err != nil {
-		defHTTPS = 0
-	}
-	defHost := os.Getenv("APOLLO_HOST")
-	if defHost == "" {
-		defHost = "apollo.lib.virginia.edu"
-	}
+	var dbCfg models.DBConfig
+	flag.StringVar(&dbCfg.Host, "dbhost", os.Getenv("APOLLO_DB_HOST"), "DB Host (required)")
+	flag.StringVar(&dbCfg.Database, "dbname", os.Getenv("APOLLO_DB_NAME"), "DB Name (required)")
+	flag.StringVar(&dbCfg.User, "dbuser", os.Getenv("APOLLO_DB_USER"), "DB User (required)")
+	flag.StringVar(&dbCfg.Pass, "dbpass", os.Getenv("APOLLO_DB_PASS"), "DB Password (required)")
 
-	flag.IntVar(&port, "port", defPort, "Port to offer service on (default 8080)")
-	flag.IntVar(&https, "https", defHTTPS, "Use HTTPS? (default 0)")
-	flag.StringVar(&key, "key", os.Getenv("APOLLO_KEY"), "Key for https connection")
-	flag.StringVar(&crt, "crt", os.Getenv("APOLLO_CRT"), "Crt for https connection")
+	flag.IntVar(&port, "port", 8080, "Port to offer service on (default 8080)")
+	flag.IntVar(&https, "https", 0, "Use HTTPS? (default 0)")
+	flag.StringVar(&key, "key", "", "Key for https connection")
+	flag.StringVar(&crt, "crt", "", "Crt for https connection")
 	flag.StringVar(&devUser, "devuser", "", "Computing ID to use for fake authentication in dev mode")
-	flag.StringVar(&iiifServer, "iiif", "https://tracksys.lib.virginia.edu:8080", "IIIF Manifest service URL")
+	flag.StringVar(&iiifServer, "iiif", "https://iiifman.lib.virginia.edu/pid", "IIIF Manifest service URL")
 	flag.StringVar(&solrDir, "solr_dir", "./tmp", "Dropoff dir for generated solr add docs")
 	flag.StringVar(&qdcDir, "qdc_dir", "/digiserv-delivery/patron/dpla/qdc", "Delivery dir for generated QDC files for DPLA")
 	flag.StringVar(&fedoraURL, "fedora", "http://fedora01.lib.virginia.edu", "Production Fedora instance")
-	flag.StringVar(&apolloHost, "host", defHost, "Apollo Hostname")
+	flag.StringVar(&apolloHost, "host", "apollo.lib.virginia.edu", "Apollo Hostname")
 
-	dbCfg, err := models.GetConfig()
-	if err != nil {
-		log.Printf("FATAL: %s", err.Error())
+	flag.Parse()
+
+	// if anything is still not set, die
+	if len(dbCfg.Host) == 0 || len(dbCfg.User) == 0 ||
+		len(dbCfg.Pass) == 0 || len(dbCfg.Database) == 0 {
+		flag.Usage()
+		log.Printf("FATAL: Missing DB configuration")
 		os.Exit(1)
 	}
 
 	// Use cfg to connect DB
 	db, err := models.ConnectDB(&dbCfg)
 	if err != nil {
-		log.Printf("FATAL: %s", err.Error())
+		log.Printf("FATAL: Unable to connect DB: %s", err.Error())
 		os.Exit(1)
 	}
 

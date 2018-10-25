@@ -32,15 +32,23 @@ func main() {
 	// Get configuration
 	// note: need to define all cmd line flags before calling GetConfig
 	// as this calls flag.Parse(), and it requires all flags to be pre-defined
-	var srcFile string
-	var userID string
-	var mode string
+	var srcFile, userID, mode string
+	var dbCfg models.DBConfig
 	flag.StringVar(&srcFile, "src", "", "File to ingest")
 	flag.StringVar(&userID, "user", "lf6f", "File to ingest")
 	flag.StringVar(&mode, "mode", "create", "Ingest mode [create|update] Default: create")
-	dbCfg, err := models.GetConfig()
-	if err != nil {
-		log.Printf("FATAL: %s", err.Error())
+	flag.StringVar(&dbCfg.Host, "dbhost", os.Getenv("APOLLO_DB_HOST"), "DB Host (required)")
+	flag.StringVar(&dbCfg.Database, "dbname", os.Getenv("APOLLO_DB_NAME"), "DB Name (required)")
+	flag.StringVar(&dbCfg.User, "dbuser", os.Getenv("APOLLO_DB_USER"), "DB User (required)")
+	flag.StringVar(&dbCfg.Pass, "dbpass", os.Getenv("APOLLO_DB_PASS"), "DB Password (required)")
+
+	flag.Parse()
+
+	// if anything is still not set, die
+	if len(dbCfg.Host) == 0 || len(dbCfg.User) == 0 ||
+		len(dbCfg.Pass) == 0 || len(dbCfg.Database) == 0 {
+		flag.Usage()
+		log.Printf("FATAL: Missing DB configuration")
 		os.Exit(1)
 	}
 
@@ -86,9 +94,9 @@ func includes(data []string, tgt string) bool {
  */
 func doIngest(ctx *context, srcFile string) {
 	log.Printf("Start ingest of %s...", srcFile)
-	xmlFile, err := os.Open(srcFile)
-	if err != nil {
-		log.Printf("ERROR: Unable to read source file %s: %s", srcFile, err.Error())
+	xmlFile, xmlErr := os.Open(srcFile)
+	if xmlErr != nil {
+		log.Printf("ERROR: Unable to read source file %s: %s", srcFile, xmlErr.Error())
 		return
 	}
 	defer xmlFile.Close()
@@ -134,9 +142,9 @@ func doIngest(ctx *context, srcFile string) {
 
 	// Create all nodes now
 	log.Printf("Creating all nodes...")
-	err = ctx.db.CreateNodes(nodes)
-	if err != nil {
-		log.Printf("ERROR: Unable to create nodes: %s", err.Error())
+	createErr := ctx.db.CreateNodes(nodes)
+	if createErr != nil {
+		log.Printf("ERROR: Unable to create nodes: %s", createErr.Error())
 	}
 	log.Printf("==> DONE <==")
 }
