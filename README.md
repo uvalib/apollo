@@ -19,19 +19,12 @@ Apollo is a management system for digitized collections.
 
 There are two commands built; the server itself (apollosvr) and a data ingest utility (apolloingest). Both require several environment variables to run:
 
-Params for both:
-
 * `APOLLO_DB_HOST` - the host where MySQL is running (including port)
 * `APOLLO_DB_NAME` - the name of the apollo db instance (usually appollo)
 * `APPOLO_DB_USER` - MySQL user with full permission on the DB
 * `APOLLO_DB_PASS` - MySQL user password
 
-Params for service only:
-
-* `APOLLO_PORT` - The port at which to run the service (optional; default 8080)
-* `APOLLO_HTTPS` -  0 to serve over http, 1 to serve https
-* `APOLLO_KEY` - SSH Key to use if HTTPS is enabled
-* `APOLLO_CRT` - SSH Cxrt to use if HTTPS is enabled
+All of these env variables can be passed as command-line args too. The are - dbhost, dbname, dbuser and dbpass.
 
 Before running the server, run apolloingest with one or more of the data files from db/data to provide some starting data.
 For example: `./bin/apolloingest.darwin -src=db/data/mountainwork.xml`
@@ -44,6 +37,8 @@ For example: `./bin/apolloingest.darwin -src=db/data/mountainwork.xml`
 * GET /api/users/:ID : Get json details for a user
 * GET /api/collections : get a json list of collections
 * GET /api/collections/:PID : Get full details for the specified collection as json
+* GET /api/aries : Aries ping request 
+* GET /api/aries/:ID : return apollo info for the specified ID
 
 ### Notes
 
