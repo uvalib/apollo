@@ -5,7 +5,7 @@ GOTEST=$(GOCMD) test
 
 build: darwin-srv deploy-templates web
 
-linux-service: linux-srv deploy-templates web
+linux-full: linux-srv deploy-templates web
 
 all: darwin-srv linux-srv darwin-tools linux-tools web deploy-templates
 

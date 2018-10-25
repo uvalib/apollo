@@ -57,13 +57,6 @@ func (h *ApolloHandler) AriesLookup(c *gin.Context) {
 		out.AdminURL = append(out.AdminURL, fmt.Sprintf("%s/collections/%s", h.URL, collection.PID))
 	}
 
-	// Get the PID for adigital object owned directly by this node
-	// If one is found, add the IIIF manifest URL as a service
-	dObjPID := digitalObjectPID(node)
-	if dObjPID != "" {
-		out.Services = append(out.Services,
-			AriesService{URL: fmt.Sprintf("%s/%s", h.IIIF, dObjPID), Protocol: "iiif-presentation"})
-	}
 	out.Services = append(out.Services,
 		AriesService{URL: fmt.Sprintf("%s/api/collections/%s", h.URL, ids.PID), Protocol: "json-metadata"})
 
