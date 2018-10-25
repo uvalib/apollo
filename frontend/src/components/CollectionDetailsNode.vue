@@ -28,7 +28,7 @@
     </table>
     <ul v-if="open" v-show="open">
       <template v-for="child in model.children">
-        <details-node :key="child.pid" :model="child" :depth="depth+1"></details-node>
+        <CollectionDetailsNode :key="child.pid" :model="child" :depth="depth+1"/>
       </template>
     </ul>
   </li>
@@ -39,6 +39,7 @@
   import EventBus from './EventBus'
 
   export default {
+    name: 'CollectionDetailsNode',
     props: {
       model: Object,
       depth: Number

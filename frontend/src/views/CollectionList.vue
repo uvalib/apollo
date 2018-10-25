@@ -26,10 +26,12 @@
 <script>
   import axios from 'axios'
   import PageHeader from '@/components/PageHeader'
+  import LoadingSpinner from '@/components/LoadingSpinner'
 
   export default {
     components: {
-      PageHeader
+      PageHeader,
+      LoadingSpinner
     },
     data: function () {
       return {

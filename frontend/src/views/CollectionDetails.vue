@@ -52,12 +52,14 @@
 <script>
   import axios from 'axios'
   import moment from 'moment'
+  import LoadingSpinner from '@/components/LoadingSpinner'
   import CollectionDetailsNode from '@/components/CollectionDetailsNode'
   import PageHeader from '@/components/PageHeader'
   import EventBus from '@/components/EventBus'
 
   export default {
     components: {
+      LoadingSpinner,
       CollectionDetailsNode,
       PageHeader
     },

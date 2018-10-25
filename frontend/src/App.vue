@@ -10,10 +10,12 @@
 <script>
 import ApolloHeader from './components/ApolloHeader'
 import ApolloFooter from './components/ApolloFooter'
+import LoadingSpinner from './components/LoadingSpinner'
 import axios from 'axios'
 
 export default {
   components: {
+    LoadingSpinner,
     ApolloHeader,
     ApolloFooter
   },
