@@ -142,7 +142,7 @@
         return "http://search.lib.virginia.edu/catalog/"+extPid
       },
       iiifManufestURL: function() {
-        return "https://tracksys.lib.virginia.edu:8080/"+this.activePID+"/manifest.json"
+        return "https://iiifman.lib.virginia.edu/pid/"+this.activePID+"/manifest.json"
       }
     },
 

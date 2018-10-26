@@ -57,6 +57,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	if devUser != "" {
+		log.Printf("Running in dev mode with devUser=%s", devUser)
+	}
+
 	// Create the main handler object which has access to common
 	app := handlers.ApolloHandler{Version: Version, DB: db, DevAuthUser: devUser,
 		IIIF: iiifServer, FedoraURL: fedoraURL, SolrDir: solrDir, QdcDir: qdcDir, ApolloHost: apolloHost}
