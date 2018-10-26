@@ -38,7 +38,7 @@ func (app *ApolloHandler) PublishCollection(c *gin.Context) {
 	// setup a subdir for the dropoff, if it doesn already exist
 	tgtPath := fmt.Sprintf("%s/%s", app.SolrDir, c.Param("pid"))
 	if _, err := os.Stat(tgtPath); os.IsNotExist(err) {
-		os.Mkdir(tgtPath, 0777)
+		os.Mkdir(tgtPath, 0644)
 	} else {
 		os.Chown(tgtPath, 118698, 10708) // libsnlocal:	libr-snlocal
 	}
@@ -90,7 +90,7 @@ func (app *ApolloHandler) processIDs(collectionPID string, IDs []models.ItemIDs,
 		} else {
 			filename := fmt.Sprintf("%s/%s/%s.xml", app.SolrDir, collectionPID, ID.PID)
 			log.Printf("Write file %s", filename)
-			ioutil.WriteFile(filename, []byte(xml), 0777)
+			ioutil.WriteFile(filename, []byte(xml), 0644)
 			os.Chown(filename, 118698, 10708) // libsnlocal:	libr-snlocal
 		}
 	}
