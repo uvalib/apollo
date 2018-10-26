@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -34,13 +35,18 @@ func (app *ApolloHandler) PublishCollection(c *gin.Context) {
 
 	itemIDs = append(itemIDs, models.ItemIDs{ID: collectionIDs.ID, PID: c.Param("pid")})
 
+	// setup a subdir for the dropoff, if it doesn already exist
+	tgtPath := fmt.Sprintf("%s/%s", app.SolrDir, c.Param("pid"))
+	if _, err := os.Stat(tgtPath); os.IsNotExist(err) {
+		os.Mkdir(tgtPath, 0777)
+	}
 	// kick off the walk of tree and generate of solr in a goroutine
-	go app.publishItems(itemIDs, collectionIDs.ID)
+	go app.publishItems(c.Param("pid"), itemIDs, collectionIDs.ID)
 
 	c.String(http.StatusOK, "Publication of collection %s started", c.Param("pid"))
 }
 
-func (app *ApolloHandler) publishItems(IDs []models.ItemIDs, rootID int64) {
+func (app *ApolloHandler) publishItems(collectionPID string, IDs []models.ItemIDs, rootID int64) {
 	// chop up id list into blocks chunks that can be executed concurrenty
 	// limit the maximum number of concurrrent generation threads to 50
 	// to avoid choking the DB, tracksys or IIIF manifest service
@@ -64,7 +70,7 @@ func (app *ApolloHandler) publishItems(IDs []models.ItemIDs, rootID int64) {
 
 	// Kick off  generation of each block of IDs in a goroutine
 	for _, chunk := range chunks {
-		go app.processIDs(chunk, &wg)
+		go app.processIDs(collectionPID, chunk, &wg)
 	}
 
 	wg.Wait()
@@ -73,16 +79,16 @@ func (app *ApolloHandler) publishItems(IDs []models.ItemIDs, rootID int64) {
 	log.Printf("Publication COMPLETE")
 }
 
-func (app *ApolloHandler) processIDs(IDs []models.ItemIDs, wg *sync.WaitGroup) {
+func (app *ApolloHandler) processIDs(collectionPID string, IDs []models.ItemIDs, wg *sync.WaitGroup) {
 	log.Printf("GOROUTINE: Process %v", IDs)
 	for _, ID := range IDs {
 		xml, err := app.DB.GetSolrXML(ID.ID, app.IIIF)
 		if err != nil {
-			log.Printf("ERROR: Unable to generate solr xml for %d: %s", ID.ID, err.Error())
+			log.Printf("ERROR: Unable to generate solr xml for collection %s %d: %s", collectionPID, ID.ID, err.Error())
 		} else {
-			filename := fmt.Sprintf("%s/%s.xml", app.SolrDir, ID.PID)
+			filename := fmt.Sprintf("%s/%s/%s.xml", app.SolrDir, collectionPID, ID.PID)
 			log.Printf("Write file %s", filename)
-			ioutil.WriteFile(filename, []byte(xml), 0644)
+			ioutil.WriteFile(filename, []byte(xml), 0777)
 		}
 	}
 	wg.Done()
