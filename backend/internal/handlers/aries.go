@@ -36,6 +36,13 @@ func (h *ApolloHandler) AriesLookup(c *gin.Context) {
 		return
 	}
 
+	// set the URL to Apollo; default to https. Make HTTP if TLS is not
+	// set in request
+	apollorURL := fmt.Sprintf("https://%s", h.ApolloHost)
+	if c.Request.TLS == nil {
+		apollorURL = fmt.Sprintf("http://%s", h.ApolloHost)
+	}
+
 	// Get the referenced node and the containing collection. No need
 	// for error handlign because the PID was already matched up to a
 	// node ID; just getting the rest of the data
@@ -52,13 +59,13 @@ func (h *ApolloHandler) AriesLookup(c *gin.Context) {
 	if ids.PID != collection.PID {
 		// This is not the collection level node. Use the admin URL that links
 		// directly to the item and do not include an iiif presentation service
-		out.AdminURL = append(out.AdminURL, fmt.Sprintf("%s/collections/%s?item=%s", h.URL, collection.PID, ids.PID))
+		out.AdminURL = append(out.AdminURL, fmt.Sprintf("%s/collections/%s?item=%s", apollorURL, collection.PID, ids.PID))
 	} else {
-		out.AdminURL = append(out.AdminURL, fmt.Sprintf("%s/collections/%s", h.URL, collection.PID))
+		out.AdminURL = append(out.AdminURL, fmt.Sprintf("%s/collections/%s", apollorURL, collection.PID))
 	}
 
 	out.Services = append(out.Services,
-		AriesService{URL: fmt.Sprintf("%s/api/collections/%s", h.URL, ids.PID), Protocol: "json-metadata"})
+		AriesService{URL: fmt.Sprintf("%s/api/collections/%s", apollorURL, ids.PID), Protocol: "json-metadata"})
 
 	c.JSON(http.StatusOK, out)
 }

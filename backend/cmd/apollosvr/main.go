@@ -23,21 +23,19 @@ const Version = "1.2.0"
  */
 func main() {
 	log.Printf("===> Apollo staring up <===")
-	var port, https int
-	var key, crt, devUser, iiifServer, solrDir, qdcDir, fedoraURL, apolloHost string
+	var port int
+	var devUser, iiifServer, solrDir, qdcDir, fedoraURL, apolloHost string
 	var dbCfg models.DBConfig
+	defSolrDir := "/lib_content23/record_source_for_solr_cores/apollo/data/record_dropbox"
 	flag.StringVar(&dbCfg.Host, "dbhost", os.Getenv("APOLLO_DB_HOST"), "DB Host (required)")
 	flag.StringVar(&dbCfg.Database, "dbname", os.Getenv("APOLLO_DB_NAME"), "DB Name (required)")
 	flag.StringVar(&dbCfg.User, "dbuser", os.Getenv("APOLLO_DB_USER"), "DB User (required)")
 	flag.StringVar(&dbCfg.Pass, "dbpass", os.Getenv("APOLLO_DB_PASS"), "DB Password (required)")
 
 	flag.IntVar(&port, "port", 8080, "Port to offer service on (default 8080)")
-	flag.IntVar(&https, "https", 0, "Use HTTPS? (default 0)")
-	flag.StringVar(&key, "key", "", "Key for https connection")
-	flag.StringVar(&crt, "crt", "", "Crt for https connection")
 	flag.StringVar(&devUser, "devuser", "", "Computing ID to use for fake authentication in dev mode")
 	flag.StringVar(&iiifServer, "iiif", "https://iiifman.lib.virginia.edu/pid", "IIIF Manifest service URL")
-	flag.StringVar(&solrDir, "solr_dir", "./tmp", "Dropoff dir for generated solr add docs")
+	flag.StringVar(&solrDir, "solr_dir", defSolrDir, "Dropoff dir for generated solr add docs")
 	flag.StringVar(&qdcDir, "qdc_dir", "/digiserv-delivery/patron/dpla/qdc", "Delivery dir for generated QDC files for DPLA")
 	flag.StringVar(&fedoraURL, "fedora", "http://fedora01.lib.virginia.edu", "Production Fedora instance")
 	flag.StringVar(&apolloHost, "host", "apollo.lib.virginia.edu", "Apollo Hostname")
@@ -60,12 +58,8 @@ func main() {
 	}
 
 	// Create the main handler object which has access to common
-	apolloURL := fmt.Sprintf("https://%s", apolloHost)
-	if https == 0 {
-		apolloURL = fmt.Sprintf("http://%s", apolloHost)
-	}
 	app := handlers.ApolloHandler{Version: Version, DB: db, DevAuthUser: devUser,
-		IIIF: iiifServer, FedoraURL: fedoraURL, SolrDir: solrDir, QdcDir: qdcDir, URL: apolloURL}
+		IIIF: iiifServer, FedoraURL: fedoraURL, SolrDir: solrDir, QdcDir: qdcDir, ApolloHost: apolloHost}
 	log.Printf("Config: %#v", app)
 
 	// Set routes and start server
@@ -106,11 +100,6 @@ func main() {
 	})
 
 	portStr := fmt.Sprintf(":%d", port)
-	if https == 1 {
-		log.Printf("Start HTTPS service on port %s with CORS support enabled", portStr)
-		log.Fatal(router.RunTLS(portStr, crt, key))
-	} else {
-		log.Printf("Start HTTP service on port %s with CORS support enabled", portStr)
-		log.Fatal(router.Run(portStr))
-	}
+	log.Printf("Start Apollo on port %s", portStr)
+	log.Fatal(router.Run(portStr))
 }
