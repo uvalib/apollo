@@ -39,6 +39,8 @@ func (app *ApolloHandler) PublishCollection(c *gin.Context) {
 	tgtPath := fmt.Sprintf("%s/%s", app.SolrDir, c.Param("pid"))
 	if _, err := os.Stat(tgtPath); os.IsNotExist(err) {
 		os.Mkdir(tgtPath, 0777)
+	} else {
+		os.Chown(tgtPath, 118698, 10708) // libsnlocal:	libr-snlocal
 	}
 	// kick off the walk of tree and generate of solr in a goroutine
 	go app.publishItems(c.Param("pid"), itemIDs, collectionIDs.ID)
@@ -89,6 +91,7 @@ func (app *ApolloHandler) processIDs(collectionPID string, IDs []models.ItemIDs,
 			filename := fmt.Sprintf("%s/%s/%s.xml", app.SolrDir, collectionPID, ID.PID)
 			log.Printf("Write file %s", filename)
 			ioutil.WriteFile(filename, []byte(xml), 0777)
+			os.Chown(filename, 118698, 10708) // libsnlocal:	libr-snlocal
 		}
 	}
 	wg.Done()
