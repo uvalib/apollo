@@ -205,6 +205,7 @@ func (app *ApolloHandler) writeQDCFile(data wslsQdcData, qdcTemplate *template.T
 	qdcFilename := fmt.Sprintf("%s.xml", data.PID)
 	outPath := filepath.Join(pidSubdir, qdcFilename)
 	outFile, err := os.OpenFile(outPath, os.O_CREATE|os.O_RDWR, 0666)
+
 	if err != nil {
 		return fmt.Errorf("ERROR: Unable to open destination QDC file %s: %s", outPath, err.Error())
 	}
@@ -214,6 +215,8 @@ func (app *ApolloHandler) writeQDCFile(data wslsQdcData, qdcTemplate *template.T
 	// log.Printf("Rendering QDC file %s", outPath)
 	qdcTemplate.Execute(outFile, data)
 	outFile.Close()
+	os.Chown(outPath, 118698, 10708) // libsnlocal:	libr-snlocal
+	os.Chmod(outPath, 0666)
 	return nil
 }
 

@@ -85,7 +85,7 @@ func main() {
 		api.GET("/collections", app.CollectionsIndex)
 		api.GET("/collections/:pid", app.CollectionsShow)
 		api.GET("/items/:pid", app.ItemShow)
-		api.GET("/qdc/:pid", app.GenerateQDC)
+		api.POST("/qdc/:pid", app.GenerateQDC)
 		api.GET("/solr/:pid", app.GenerateSolr)
 		api.GET("/types", app.TypesIndex)
 		api.GET("/users", app.UsersIndex)
