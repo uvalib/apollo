@@ -77,7 +77,7 @@ func (d wslsQdcData) FixDate(origDate string) string {
 
 // GenerateQDC generates the QDC XML documents needed to publish to the DPLA
 // NOTE: Test with this: curl -X POST http://localhost:8085/api/qdc/[PID]
-func (app *ApolloHandler) GenerateQDC(c *gin.Context) {
+func (app *Apollo) GenerateQDC(c *gin.Context) {
 	pid := c.Param("pid")
 	tgtPID := c.Query("item")
 	limit, err := strconv.Atoi(c.Query("limit"))
@@ -119,7 +119,7 @@ func (app *ApolloHandler) GenerateQDC(c *gin.Context) {
 	c.String(http.StatusOK, "QDC is being generated to %s...", app.QdcDir)
 }
 
-func (app *ApolloHandler) generateSingleQDCRecord(collectionID int64, tgtPID string) {
+func (app *Apollo) generateSingleQDCRecord(collectionID int64, tgtPID string) {
 	log.Printf("Generating QDC for Item %s", tgtPID)
 	tgtIDs, err := app.DB.Lookup(tgtPID)
 	if err != nil {
@@ -149,7 +149,7 @@ func (app *ApolloHandler) generateSingleQDCRecord(collectionID int64, tgtPID str
 	}
 }
 
-func (app *ApolloHandler) generateQDCForItems(collectionID int64, items []models.ItemIDs, limit int) {
+func (app *Apollo) generateQDCForItems(collectionID int64, items []models.ItemIDs, limit int) {
 	log.Printf("Generating QDC for %d items in collection", len(items))
 	qdcTemplate := template.Must(template.ParseFiles("./templates/wsls_qdc.xml"))
 	collection, _ := app.DB.GetTree(collectionID)
@@ -196,7 +196,7 @@ func (app *ApolloHandler) generateQDCForItems(collectionID int64, items []models
 	}
 }
 
-func (app *ApolloHandler) writeQDCFile(data wslsQdcData, qdcTemplate *template.Template) error {
+func (app *Apollo) writeQDCFile(data wslsQdcData, qdcTemplate *template.Template) error {
 	// Generate the nested directory structure needed to store the files...
 	pidSubdir := filepath.Join(app.QdcDir, generatePIDPath(data.PID))
 	os.MkdirAll(pidSubdir, os.ModePerm)
@@ -256,7 +256,7 @@ func findItemByID(tgtID int64, currNode *models.Node) *models.Node {
 	return nil
 }
 
-func (app *ApolloHandler) getItemQDCData(itemNode *models.Node) wslsQdcData {
+func (app *Apollo) getItemQDCData(itemNode *models.Node) wslsQdcData {
 	// Walk the child attributes and pluck out the ones we want
 	var data wslsQdcData
 	for _, child := range itemNode.Children {

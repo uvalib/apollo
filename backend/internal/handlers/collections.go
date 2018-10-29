@@ -9,14 +9,14 @@ import (
 
 // CollectionsIndex : report the version of the serivce
 //
-func (app *ApolloHandler) CollectionsIndex(c *gin.Context) {
+func (app *Apollo) CollectionsIndex(c *gin.Context) {
 	collections := app.DB.GetCollections()
 	c.JSON(http.StatusOK, collections)
 }
 
 // CollectionsShow : get details of a collection by PID
 //
-func (app *ApolloHandler) CollectionsShow(c *gin.Context) {
+func (app *Apollo) CollectionsShow(c *gin.Context) {
 	pid := c.Param("pid")
 	log.Printf("Get collection for PID %s", pid)
 	rootID, dbErr := app.DB.Lookup(pid)

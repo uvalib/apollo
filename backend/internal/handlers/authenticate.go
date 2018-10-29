@@ -9,7 +9,7 @@ import (
 
 // Authenticate will authenticate a user based on Shibboleth headers. Ths can be used in
 // future to return auth tokens
-func (app *ApolloHandler) Authenticate(c *gin.Context) {
+func (app *Apollo) Authenticate(c *gin.Context) {
 	computingID := c.GetHeader("remote_user")
 	if app.DevAuthUser != "" {
 		computingID = app.DevAuthUser

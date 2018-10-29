@@ -21,7 +21,7 @@ func TestBadItemShow(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
+	app := Apollo{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
 	mock.ExpectQuery("SELECT").WillReturnError(errors.New("Item not found"))
 
 	gin.SetMode(gin.ReleaseMode)
@@ -46,7 +46,7 @@ func TestItemShow(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
+	app := Apollo{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
 
 	tgt := "uva-an10"
 

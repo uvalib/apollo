@@ -19,7 +19,7 @@ func TestGetValues(t *testing.T) {
 	}
 	defer mockDB.Close()
 	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
-	app := ApolloHandler{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
+	app := Apollo{Version: "MOCK", DB: &models.DB{DB: sqlxDB}}
 
 	rows := sqlmock.NewRows([]string{"pid", "value", "value_uri"}).
 		AddRow("uva-acv1", "fake", "http://fake.com").AddRow("uva-acv2", "fake2", "http://fake2.com")

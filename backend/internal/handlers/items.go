@@ -12,7 +12,7 @@ import (
 // ItemShow will return a block of JSON metadata for the specified ITEM PID. This includes
 // details of the specific item as well as some basic data amout the colection it
 // belongs to.
-func (app *ApolloHandler) ItemShow(c *gin.Context) {
+func (app *Apollo) ItemShow(c *gin.Context) {
 	pid := c.Param("pid")
 	itemIDs, dbErr := app.DB.Lookup(pid)
 	if dbErr != nil {

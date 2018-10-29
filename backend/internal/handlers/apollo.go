@@ -2,9 +2,9 @@ package handlers
 
 import "github.com/uvalib/apollo/backend/internal/models"
 
-// ApolloHandler is the basic handler for all serials requests.
+// Apollo is the applicatin object through which all requests are handled.
 // It contains common config information and services, like the DB
-type ApolloHandler struct {
+type Apollo struct {
 	Version         string
 	ApolloHost      string
 	DB              *models.DB

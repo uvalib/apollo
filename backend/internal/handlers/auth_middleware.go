@@ -9,7 +9,7 @@ import (
 
 // AuthMiddleware is middleware that will enforce user authentication based on Shibboleth headers
 //
-func (app *ApolloHandler) AuthMiddleware(c *gin.Context) {
+func (app *Apollo) AuthMiddleware(c *gin.Context) {
 	// log.Printf("HEADERS: %s", req.Header)
 	app.AuthComputingID = c.GetHeader("remote_user")
 	if len(app.DevAuthUser) > 0 && app.AuthComputingID == "" {

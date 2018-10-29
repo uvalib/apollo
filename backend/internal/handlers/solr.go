@@ -12,7 +12,7 @@ import (
 // The general format is: <add><doc><field name="name"></field>, <field/>, ... </doc></add>
 // If a field has multiple values, just add multiple field elements with
 // the same name attribute
-func (app *ApolloHandler) GenerateSolr(c *gin.Context) {
+func (app *Apollo) GenerateSolr(c *gin.Context) {
 	log.Printf("Generate Solr Add for '%s'", c.Param("pid"))
 	ids, err := app.DB.Lookup(c.Param("pid"))
 	if err != nil {

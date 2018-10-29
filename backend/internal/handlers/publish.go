@@ -15,7 +15,7 @@ import (
 
 // PublishCollection generates the solr documents for all sections of the collection
 // and tags the collection as having been published
-func (app *ApolloHandler) PublishCollection(c *gin.Context) {
+func (app *Apollo) PublishCollection(c *gin.Context) {
 	log.Printf("Publish collection '%s' to %s", c.Param("pid"), app.SolrDir)
 	collectionIDs, err := app.DB.Lookup(c.Param("pid"))
 	if err != nil {
@@ -48,7 +48,7 @@ func (app *ApolloHandler) PublishCollection(c *gin.Context) {
 	c.String(http.StatusOK, "Publication of collection %s started", c.Param("pid"))
 }
 
-func (app *ApolloHandler) publishItems(collectionPID string, IDs []models.ItemIDs, rootID int64) {
+func (app *Apollo) publishItems(collectionPID string, IDs []models.ItemIDs, rootID int64) {
 	// chop up id list into blocks chunks that can be executed concurrenty
 	// limit the maximum number of concurrrent generation threads to 50
 	// to avoid choking the DB, tracksys or IIIF manifest service
@@ -81,7 +81,7 @@ func (app *ApolloHandler) publishItems(collectionPID string, IDs []models.ItemID
 	log.Printf("Publication COMPLETE")
 }
 
-func (app *ApolloHandler) processIDs(collectionPID string, IDs []models.ItemIDs, wg *sync.WaitGroup) {
+func (app *Apollo) processIDs(collectionPID string, IDs []models.ItemIDs, wg *sync.WaitGroup) {
 	log.Printf("GOROUTINE: Process %v", IDs)
 	for _, ID := range IDs {
 		xml, err := app.DB.GetSolrXML(ID.ID, app.IIIF)
