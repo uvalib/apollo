@@ -36,6 +36,7 @@
      padding:20px;
      position:relative;
      font-size: 0.9em;
+     font-weight: 500;
   }
 
   footer .external_links {

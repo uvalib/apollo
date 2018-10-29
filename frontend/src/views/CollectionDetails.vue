@@ -123,10 +123,10 @@
         }
 
         if (barcode.length > 0) {
-          return "http://solr.lib.virginia.edu:8082/solr/core/select/?q=barcode_facet:"+barcode
+          return process.env.VUE_APP_SOLR_URL+"/core/select/?q=barcode_facet:"+barcode
         }
         if (catalogKey.length > 0) {
-          return "http://solr.lib.virginia.edu:8082/solr/core/select/?q=id:"+catalogKey
+          return process.env.VUE_APP_SOLR_URL+"/core/select/?q=id:"+catalogKey
         }
         return ""
       },
@@ -139,10 +139,10 @@
             break
           }
         }
-        return "http://search.lib.virginia.edu/catalog/"+extPid
+        return process.env.VUE_APP_VIRGO_URL+"/catalog/"+extPid
       },
       iiifManufestURL: function() {
-        return "https://iiifman.lib.virginia.edu/pid/"+this.activePID+"/manifest.json"
+        return process.env.VUE_APP_IIIF_MAN_URL+"/"+this.activePID+"/manifest.json"
       }
     },
 
