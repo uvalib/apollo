@@ -10,41 +10,51 @@
       <div v-else-if="Object.keys(collection).length === 0" class="content">
         <h4>No data found!</h4>
       </div>
-      <div v-else class="content pure-g">
-        <div class="pure-u-9-24">
-          <h4 class="do-header">
-            <span>Collection Structure</span>
-          </h4>
-
-          <div class="toolbar">
-            <span @click="publishClicked" class="publish">Publish Collection</span>
-            <a class="raw" :href="jsonLink" target="_blank">JSON</a>
-            <a v-if="hasBarcode" class="sirsi" :href="sirsiLink" target="_blank">Sirsi</a>
-            <div v-if="published" class="publication">
-              <span class="label">Last Published:</span>
-              <span class="date">{{ formattedPublishedDate }}</span>
-              <a class="virgo" :href="virgoLink" target="_blank">Virgo</a>
-            </div>
+      <template v-else>
+        <!-- fixed header -->
+        <div class="content pure-g fixed-header">
+          <div class="pure-u-9-24">
+            <h4 class="do-header">
+              <span>Collection Structure</span>
+            </h4>
           </div>
 
-          <ul class="collection">
-            <CollectionDetailsNode :model="collection" :depth="0"/>
-          </ul>
+          <div class="pure-u-15-24">
+            <h4 class="do-header">
+              <span>Digitial Object Viewer</span>
+              <span class="hint">Click 'View Digital Object' from the tree on the left to view it below</span>
+            </h4>
+          </div>
         </div>
 
-        <div class="pure-u-15-24">
-          <h4 class="do-header">Digitial Object Viewer</h4>
-          <ApolloError v-if="viewerError" :message="viewerError"/>
-          <div v-else id="viewer-wrapper">
-            <div id="object-viewer">
-              <p id="view-placeholder" class="hint">Click 'View Digital Object' from the tree on the left to view it here.</p>
+        <!-- main content -->
+        <div class="content pure-g collection-detail">
+          <div class="pure-u-9-24">
+            <div class="toolbar">
+              <span @click="publishClicked" class="publish">Publish Collection</span>
+              <a class="raw" :href="jsonLink" target="_blank">JSON</a>
+              <a v-if="hasBarcode" class="sirsi" :href="sirsiLink" target="_blank">Sirsi</a>
+              <div v-if="published" class="publication">
+                <span class="label">Last Published:</span>
+                <span class="date">{{ formattedPublishedDate }}</span>
+                <a class="virgo" :href="virgoLink" target="_blank">Virgo</a>
+              </div>
             </div>
-            <div v-if="viewerVisible" id="viewer-tools">
-              <a v-if="iiifAvailable" class="do-button" :href="iiifManufestURL" target="_blank">IIIF Manifest</a>
+            <ul class="collection">
+              <CollectionDetailsNode :model="collection" :depth="0"/>
+            </ul>
+          </div>
+          <div class="pure-u-15-24">
+            <ApolloError v-if="viewerError" :message="viewerError"/>
+            <div v-else id="viewer-wrapper">
+              <div id="object-viewer">
+                <LoadingSpinner v-if="viewerClicked" message="Loading digital object view"/>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+
+      </template>
     </template>
   </div>
 </template>
@@ -75,6 +85,7 @@
         collection: {},
         loading: true,
         viewerVisible: false,
+        viewerClicked: false,
         errorMsg: null,
         viewerError: null,
         activePID: "",
@@ -140,9 +151,6 @@
           }
         }
         return process.env.VUE_APP_VIRGO_URL+"/catalog/"+extPid
-      },
-      iiifManufestURL: function() {
-        return process.env.VUE_APP_IIIF_MAN_URL+"/"+this.activePID+"/manifest.json"
       }
     },
 
@@ -176,9 +184,31 @@
       EventBus.$on("viewer-opened", this.handleViewerOpened)
       EventBus.$on("viewer-error", this.handleViewerError)
       EventBus.$on('node-mounted', this.handleNodeMounted)
+      window.addEventListener("scroll", this.handleScroll)
+    },
+
+    destroyed() {
+      window.removeEventListener("scroll", this.handleScroll)
     },
 
     methods: {
+      handleScroll: function() {
+        // Keep the viewer on screen as the user scrolls through
+        // the (potentially) long list of nodes in the collection.
+        var fixedHeader = $('div.fixed-header')
+        if (fixedHeader.length === 0 ) return
+        let origVal = fixedHeader.data("origTop")
+        if ( !origVal ) {
+          let ot = fixedHeader.offset().top
+          fixedHeader.data("origTop", ot)
+        }
+        let scrollTop= $(window).scrollTop();
+        if ( scrollTop >= 215 ) {
+           fixedHeader.offset({top: scrollTop});
+        }else {
+           fixedHeader.offset({top: fixedHeader.data("origTop")});
+        }
+      },
       // Walk the collection data and find the targetPID specified by the query params
       // Populate an array of ancestry data including node counts for the relevant tree branches
       getAncestry: function(currNode) {
@@ -222,16 +252,19 @@
       handleViewerClicked: function() {
         this.viewerError = null
         this.activePID = ""
+        this.viewerClicked = true
       },
 
       handleViewerOpened: function(pid) {
         this.viewerVisible = true
         this.activePID = pid
+        this.viewerClicked = false
       },
 
       handleViewerError: function(msg) {
         this.viewerError = msg
         this.activePID = ""
+        this.viewerClicked = false
       },
 
       publishClicked: function() {
@@ -326,13 +359,21 @@
 </script>
 
 <style scoped>
+  div.fixed-header {
+    background: white;
+    z-index: 1000;
+    padding-top:5px;
+  }
+  div.collection-detail {
+    z-index: 0;
+  }
   .toolbar  {
     font-size: 0.8em;
     position: relative;
     text-align: right;
     margin: 0 0 0 20px;
     border-bottom: 1px solid #ccc;
-    padding: 0 5px 8px 0;
+    padding: 10px 0;
   }
   .publication {
     margin-top: 12px;
@@ -368,38 +409,26 @@
     background: #3a3;
   }
   div#object-viewer {
-    padding: 0px 20px;
+    padding: 5px 20px;
   }
   #viewer-tools {
     text-align: right;
     margin: 15px 0;
-  }
-  a.do-button {
-    padding: 5px 25px 4px 25px;
-    border-radius: 15px;
-    background: #0078e7;
-    color: white;
-    opacity: 0.7;
-    cursor: pointer;
-    text-decoration: none;
-    margin-left: 5px;
-    font-size: 0.9em;
-  }
-  a.do-button:hover {
-    opacity: 1;
   }
   h4.do-header {
     margin: 0;
     border-bottom: 1px solid #ccc;
     padding-bottom: 10px;
     margin-left: 20px;
-    margin-bottom: 15px;
+    margin-bottom: 0px;
   }
-  p.hint {
+  .hint {
     color: #999;
-    margin: 25px 0;
-    text-align: center;;
-    /* font-style: italic; */
+    margin: 0;
+    text-align: right;
+    font-size: 0.85em;
+    float: right;
+    font-weight: 500;
   }
   div.detail-wrapper {
     background-color: white;

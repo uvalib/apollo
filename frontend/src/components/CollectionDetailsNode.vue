@@ -21,8 +21,12 @@
           </td>
         </template>
         <template v-else>
-          <td class="label"></td>
-          <td :data-uri="getDoViewerURL(attribute)" @click="digitalObjectClicked" class="pure-button pure-button-primary data dobj">View Digitial Object</td>
+          <td colspan="2" class="do-buttons">
+            <a class="do-button" :href="iiifManufestURL" target="_blank">IIIF Manifest</a>
+            <span :data-uri="getDoViewerURL(attribute)"
+              @click="digitalObjectClicked"
+              class="do-button">View Digitial Object</span>
+          </td>
         </template>
       </tr>
     </table>
@@ -52,6 +56,9 @@
     computed: {
       isFolder: function () {
         return this.model.children && this.model.children.length
+      },
+      iiifManufestURL: function() {
+        return process.env.VUE_APP_IIIF_MAN_URL+"/"+this.externalPID()+"/manifest.json"
       }
     },
 
@@ -81,7 +88,7 @@
         // https://doviewer.lib.virginia.edu/oembed?url=https%3A%2F%2Fdoviewer.lib.virginia.edu%2Fimages%2Fuva-lib%3A2528443
         let json = JSON.parse(attribute.values[0].value)
         let qp = encodeURIComponent(process.env.VUE_APP_DOVIEWER_URL+"/"+json.type+"/"+json.id)
-        let url = process.env.VUE_APP_DOVIEWER_URL+"/oembed?url="+qp
+        let url = process.env.VUE_APP_DOVIEWER_URL+"/oembed?url="+qp+"&maxwidth=750"
         return url
       },
       showMore: function(attribute) {
@@ -132,25 +139,18 @@
       },
 
       handleScroll: function() {
-        // Keep the viewer on screen as the user scrolls through
-        // the (potentially) long list of nodes in the collection.
         var viewer = $('#viewer-wrapper')
         if (viewer.length === 0 ) return
 
         let origVal = viewer.data("origTop")
-        // console.log("OV: ["+origVal+"]")
         if ( !origVal ) {
-          let ot = $('#viewer-wrapper').offset().top
+          let ot = viewer.offset().top
           viewer.data("origTop", ot)
         }
 
         let scrollTop= $(window).scrollTop();
-        // console.log("SCROLL TOP: "+scrollTop);
-
-        // var isPositionFixed = ($el.css('position') == 'fixed');
-        if ( scrollTop >= 252 ) {
-           // console.log("VIEW TOP" +$('#viewer-wrapper').offset().top)
-           viewer.offset({top: scrollTop+15});
+        if ( scrollTop >= 210 ) {
+           viewer.offset({top: scrollTop+$("h4.do-header").outerHeight(true)+5});
         } else {
            viewer.offset({top: viewer.data("origTop")});
         }
@@ -267,7 +267,22 @@
   td.data {
     position: relative;
   }
-  td.dobj {
-    float:right;
+  table.node td.do-buttons {
+    text-align: right;
+    padding: 5px 2px 10px 0;
+  }
+  .do-button {
+    padding: 5px 25px 4px 25px;
+    border-radius: 15px;
+    background: #0078e7;
+    color: white;
+    opacity: 0.7;
+    cursor: pointer;
+    text-decoration: none;
+    margin-left: 5px;
+    font-size: 0.9em;
+  }
+  .do-button:hover {
+    opacity: 1;
   }
 </style>

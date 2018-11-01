@@ -15,6 +15,7 @@
 
 <script>
   export default {
+    name: "ApolloError",
     props: {
       message: String
     }
