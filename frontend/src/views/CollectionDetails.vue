@@ -26,7 +26,12 @@
           <div class="pure-u-15-24">
             <h4 class="do-header">
               <span>Digitial Object Viewer</span>
-              <span class="hint">Click 'View Digital Object' from the tree on the left to view it below</span>
+              <span v-if='!viewerVisible' class="hint">
+                Click 'View Digital Object' from the tree on the left to view it below
+              </span>
+              <span v-else class="helper-buttons">
+                <span class="helper-icon sync" @click="collapseClick" title="Sync Tree"></span>
+              </span>
             </h4>
           </div>
         </div>
@@ -458,6 +463,9 @@
   }
   .helper-icon.top {
     background-image: url(../assets/top.png);
+  }
+  .helper-icon.sync {
+    background-image: url(../assets/sync.png);
   }
   .helper-buttons {
     float: right;
