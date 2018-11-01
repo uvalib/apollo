@@ -71,6 +71,7 @@
 
     destroyed() {
       window.removeEventListener("scroll", this.handleScroll)
+      EventBus.$emit('node-destroyed')
     },
 
     methods: {
@@ -185,7 +186,7 @@
           // will not load, and the viewer will not render
           window.embedScriptIncluded = false
           dv.append( $( response.data.html) )
-          EventBus.$emit('viewer-opened')
+          EventBus.$emit('viewer-opened', this.model.pid)
         }).catch((error) => {
           if ( error.message ) {
             EventBus.$emit('viewer-error', error.message)

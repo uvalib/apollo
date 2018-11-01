@@ -30,7 +30,7 @@
                 Click 'View Digital Object' from the tree on the left to view it below
               </span>
               <span v-else class="helper-buttons">
-                <span class="helper-icon sync" @click="collapseClick" title="Sync Tree"></span>
+                <span class="helper-icon sync" @click="syncClick" title="Sync Tree"></span>
               </span>
             </h4>
           </div>
@@ -55,9 +55,8 @@
           <div class="pure-u-15-24">
             <ApolloError v-if="viewerError" :message="viewerError"/>
             <div v-else id="viewer-wrapper">
-              <div id="object-viewer">
-                <LoadingSpinner v-if="viewerClicked" message="Loading digital object view"/>
-              </div>
+              <LoadingSpinner v-if="viewerClicked" message="Loading digital object view"/>
+              <div id="object-viewer"></div>
             </div>
           </div>
         </div>
@@ -93,6 +92,7 @@
         loading: true,
         viewerVisible: false,
         viewerClicked: false,
+        viewerPID: null,
         errorMsg: null,
         viewerError: null,
         ancestry: []
@@ -190,6 +190,7 @@
       EventBus.$on("viewer-opened", this.handleViewerOpened)
       EventBus.$on("viewer-error", this.handleViewerError)
       EventBus.$on('node-mounted', this.handleNodeMounted)
+      EventBus.$on('node-destroyed', this.handleNodeDestroyed)
       window.addEventListener("scroll", this.handleScroll)
     },
 
@@ -199,13 +200,19 @@
 
     methods: {
       scrollTopClick: function() {
-        window.scroll({
-          top:0, left:0,behavior: 'auto'
-        })
+        $([document.documentElement, document.body]).animate({
+          scrollTop:0
+        }, 100);
       },
       collapseClick: function() {
         EventBus.$emit('collapse-all')
         this.scrollTopClick()
+      },
+      syncClick: function() {
+        let tgt = $("#"+this.viewerPID)
+        $([document.documentElement, document.body]).animate({
+          scrollTop: tgt.offset().top-40
+        }, 100);
       },
       handleScroll: function() {
         // Keep the viewer on screen as the user scrolls through
@@ -264,19 +271,32 @@
         }
       },
 
+      handleNodeDestroyed: function() {
+        if (!this.viewerPID) return
+        let tgt = $("#"+this.viewerPID)
+        if (tgt.length === 0) {
+          $("#object-viewer").empty()
+          this.viewerPID = null
+          this.viewerVisible = false
+        }
+      },
+
       handleViewerClicked: function() {
         this.viewerError = null
         this.viewerClicked = true
+        this.viewerPID = null
       },
 
-      handleViewerOpened: function() {
+      handleViewerOpened: function(pid) {
         this.viewerVisible = true
         this.viewerClicked = false
+        this.viewerPID = pid
       },
 
       handleViewerError: function(msg) {
         this.viewerError = msg
         this.viewerClicked = false
+        this.viewerPID = null
       },
 
       publishClicked: function() {
