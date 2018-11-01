@@ -18,7 +18,7 @@
               <span>Collection Structure</span>
               <span class="helper-buttons">
                 <span class="helper-icon top" @click="scrollTopClick" title="Scroll to top"></span>
-                <span class="helper-icon collapse" title="Collapse all"></span>
+                <span class="helper-icon collapse" @click="collapseClick" title="Collapse all"></span>
               </span>
             </h4>
           </div>
@@ -195,8 +195,12 @@
     methods: {
       scrollTopClick: function() {
         window.scroll({
-          top:0, left:0,behavior: 'auto' 
+          top:0, left:0,behavior: 'auto'
         })
+      },
+      collapseClick: function() {
+        EventBus.$emit('collapse-all')
+        this.scrollTopClick()
       },
       handleScroll: function() {
         // Keep the viewer on screen as the user scrolls through
@@ -209,7 +213,7 @@
           fixedHeader.data("origTop", ot)
         }
         let scrollTop= $(window).scrollTop();
-        if ( scrollTop >= 215 ) {
+        if ( scrollTop >= 216 ) {
            fixedHeader.offset({top: scrollTop});
         }else {
            fixedHeader.offset({top: fixedHeader.data("origTop")});
@@ -260,7 +264,7 @@
         this.viewerClicked = true
       },
 
-      handleViewerOpened: function(pid) {
+      handleViewerOpened: function() {
         this.viewerVisible = true
         this.viewerClicked = false
       },

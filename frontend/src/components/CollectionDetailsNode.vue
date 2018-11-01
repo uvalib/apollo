@@ -64,6 +64,7 @@
 
     mounted() {
       EventBus.$on("expand-node", this.handleExpandNodeEvent)
+      EventBus.$on('collapse-all', this.handleCollapseAll)
       window.addEventListener("scroll", this.handleScroll)
       EventBus.$emit('node-mounted', this.model.pid)
     },
@@ -73,9 +74,14 @@
     },
 
     methods: {
+      handleCollapseAll: function() {
+        if ( this.isFolder && this.open ) {
+          this.toggle()
+        }
+      },
       handleExpandNodeEvent: function(pid) {
         if ( this.model.pid == pid) {
-          if ( this.isFolder && this.open == false ) {
+          if ( this.isFolder && this.open === false ) {
             this.toggle()
           }
         }
@@ -179,7 +185,7 @@
           // will not load, and the viewer will not render
           window.embedScriptIncluded = false
           dv.append( $( response.data.html) )
-          EventBus.$emit('viewer-opened', this.externalPID() )
+          EventBus.$emit('viewer-opened')
         }).catch((error) => {
           if ( error.message ) {
             EventBus.$emit('viewer-error', error.message)
