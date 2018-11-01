@@ -11,11 +11,15 @@
         <h4>No data found!</h4>
       </div>
       <template v-else>
-        <!-- fixed header -->
+        <!-- content header; this portion is fixed and wont scroll offscreen -->
         <div class="content pure-g fixed-header">
           <div class="pure-u-9-24">
             <h4 class="do-header">
               <span>Collection Structure</span>
+              <span class="helper-buttons">
+                <span class="helper-icon top" @click="scrollTopClick" title="Scroll to top"></span>
+                <span class="helper-icon collapse" title="Collapse all"></span>
+              </span>
             </h4>
           </div>
 
@@ -26,8 +30,7 @@
             </h4>
           </div>
         </div>
-
-        <!-- main content -->
+        <!-- main content; this will scroll -->
         <div class="content pure-g collection-detail">
           <div class="pure-u-9-24">
             <div class="toolbar">
@@ -53,7 +56,6 @@
             </div>
           </div>
         </div>
-
       </template>
     </template>
   </div>
@@ -88,7 +90,6 @@
         viewerClicked: false,
         errorMsg: null,
         viewerError: null,
-        activePID: "",
         ancestry: []
       }
     },
@@ -192,6 +193,11 @@
     },
 
     methods: {
+      scrollTopClick: function() {
+        window.scroll({
+          top:0, left:0,behavior: 'auto' 
+        })
+      },
       handleScroll: function() {
         // Keep the viewer on screen as the user scrolls through
         // the (potentially) long list of nodes in the collection.
@@ -251,19 +257,16 @@
 
       handleViewerClicked: function() {
         this.viewerError = null
-        this.activePID = ""
         this.viewerClicked = true
       },
 
       handleViewerOpened: function(pid) {
         this.viewerVisible = true
-        this.activePID = pid
         this.viewerClicked = false
       },
 
       handleViewerError: function(msg) {
         this.viewerError = msg
-        this.activePID = ""
         this.viewerClicked = false
       },
 
@@ -437,5 +440,25 @@
   ul.collection {
     margin-top:0;
     -webkit-padding-start: 20px;
+  }
+  .helper-icon {
+    display: inline-block;
+    width:20px;
+    height:20px;
+    opacity: 0.3;
+    cursor: pointer;
+    margin-left:5px;
+  }
+  .helper-icon.collapse {
+    background-image: url(../assets/collapse.png);
+  }
+  .helper-icon.top {
+    background-image: url(../assets/top.png);
+  }
+  .helper-buttons {
+    float: right;
+  }
+  .helper-icon:hover {
+      opacity: 0.8;
   }
 </style>
