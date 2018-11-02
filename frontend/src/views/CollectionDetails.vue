@@ -12,29 +12,8 @@
       </div>
       <template v-else>
         <!-- content header; this portion is fixed and wont scroll offscreen -->
-        <div class="content pure-g fixed-header">
-          <div class="pure-u-9-24">
-            <h4 class="do-header">
-              <span>Collection Structure</span>
-              <span class="helper-buttons">
-                <span class="helper-icon top" @click="scrollTopClick" title="Scroll to top"></span>
-                <span class="helper-icon collapse" @click="collapseClick" title="Collapse all"></span>
-              </span>
-            </h4>
-          </div>
+        <CollectionDetailsHeader/>
 
-          <div class="pure-u-15-24">
-            <h4 class="do-header">
-              <span>Digitial Object Viewer</span>
-              <span v-if='!viewerVisible' class="hint">
-                Click 'View Digital Object' from the tree on the left to view it below
-              </span>
-              <span v-else class="helper-buttons">
-                <span class="helper-icon sync" @click="syncClick" title="Sync Tree"></span>
-              </span>
-            </h4>
-          </div>
-        </div>
         <!-- main content; this will scroll -->
         <div class="content pure-g collection-detail">
           <div class="pure-u-9-24">
@@ -69,6 +48,7 @@
   import axios from 'axios'
   import moment from 'moment'
   import LoadingSpinner from '@/components/LoadingSpinner'
+  import CollectionDetailsHeader from '@/components/CollectionDetailsHeader'
   import CollectionDetailsNode from '@/components/CollectionDetailsNode'
   import PageHeader from '@/components/PageHeader'
   import EventBus from '@/components/EventBus'
@@ -76,6 +56,7 @@
   export default {
     components: {
       LoadingSpinner,
+      CollectionDetailsHeader,
       CollectionDetailsNode,
       PageHeader
     },
@@ -90,9 +71,7 @@
       return {
         collection: {},
         loading: true,
-        viewerVisible: false,
         viewerClicked: false,
-        viewerPID: null,
         errorMsg: null,
         viewerError: null,
         ancestry: []
@@ -190,7 +169,6 @@
       EventBus.$on("viewer-opened", this.handleViewerOpened)
       EventBus.$on("viewer-error", this.handleViewerError)
       EventBus.$on('node-mounted', this.handleNodeMounted)
-      EventBus.$on('node-destroyed', this.handleNodeDestroyed)
       window.addEventListener("scroll", this.handleScroll)
     },
 
@@ -199,21 +177,6 @@
     },
 
     methods: {
-      scrollTopClick: function() {
-        $([document.documentElement, document.body]).animate({
-          scrollTop:0
-        }, 100);
-      },
-      collapseClick: function() {
-        EventBus.$emit('collapse-all')
-        this.scrollTopClick()
-      },
-      syncClick: function() {
-        let tgt = $("#"+this.viewerPID)
-        $([document.documentElement, document.body]).animate({
-          scrollTop: tgt.offset().top-40
-        }, 100);
-      },
       handleScroll: function() {
         // Keep the viewer on screen as the user scrolls through
         // the (potentially) long list of nodes in the collection.
@@ -271,32 +234,18 @@
         }
       },
 
-      handleNodeDestroyed: function() {
-        if (!this.viewerPID) return
-        let tgt = $("#"+this.viewerPID)
-        if (tgt.length === 0) {
-          $("#object-viewer").empty()
-          this.viewerPID = null
-          this.viewerVisible = false
-        }
-      },
-
       handleViewerClicked: function() {
         this.viewerError = null
         this.viewerClicked = true
-        this.viewerPID = null
       },
 
-      handleViewerOpened: function(pid) {
-        this.viewerVisible = true
+      handleViewerOpened: function() {
         this.viewerClicked = false
-        this.viewerPID = pid
       },
 
       handleViewerError: function(msg) {
         this.viewerError = msg
         this.viewerClicked = false
-        this.viewerPID = null
       },
 
       publishClicked: function() {
@@ -391,14 +340,6 @@
 </script>
 
 <style scoped>
-  div.fixed-header {
-    background: white;
-    z-index: 1000;
-    padding-top:5px;
-  }
-  div.collection-detail {
-    z-index: 0;
-  }
   .toolbar  {
     font-size: 0.8em;
     position: relative;
@@ -447,21 +388,6 @@
     text-align: right;
     margin: 15px 0;
   }
-  h4.do-header {
-    margin: 0;
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 10px;
-    margin-left: 20px;
-    margin-bottom: 0px;
-  }
-  .hint {
-    color: #999;
-    margin: 0;
-    text-align: right;
-    font-size: 0.85em;
-    float: right;
-    font-weight: 500;
-  }
   div.detail-wrapper {
     background-color: white;
     padding: 20px;
@@ -469,28 +395,5 @@
   ul.collection {
     margin-top:0;
     -webkit-padding-start: 20px;
-  }
-  .helper-icon {
-    display: inline-block;
-    width:20px;
-    height:20px;
-    opacity: 0.3;
-    cursor: pointer;
-    margin-left:5px;
-  }
-  .helper-icon.collapse {
-    background-image: url(../assets/collapse.png);
-  }
-  .helper-icon.top {
-    background-image: url(../assets/top.png);
-  }
-  .helper-icon.sync {
-    background-image: url(../assets/sync.png);
-  }
-  .helper-buttons {
-    float: right;
-  }
-  .helper-icon:hover {
-      opacity: 0.8;
   }
 </style>
