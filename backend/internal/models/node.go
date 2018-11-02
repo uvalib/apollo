@@ -98,12 +98,12 @@ func (db *DB) Lookup(identifier string) (*ItemIDs, error) {
 		return &ItemIDs{PID: identifier, ID: nodeID}, nil
 	}
 
-	// Next case; See if it is an externalPID, barcode, catalog key or WSLS ID
+	// Next case; See if it is an externalPID, barcode, catalog key, call number or WSLS ID
 	var apolloPID string
 	var idType string
 	qs := `SELECT t.name, np.id, np.pid FROM nodes ns INNER JOIN nodes np ON np.id = ns.parent_id
 			 inner join node_types t on t.id = ns.node_type_id
-	 		 WHERE ns.value=? and t.id in (5,9,10,23)`
+	 		 WHERE ns.value=? and t.id in (5,9,10,13,23)`
 	db.QueryRow(qs, identifier).Scan(&idType, &nodeID, &apolloPID)
 	if apolloPID != "" {
 		log.Printf("%s matches type %s. ApolloPID: %s ID: %d",
