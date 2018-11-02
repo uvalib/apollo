@@ -50,7 +50,7 @@
     },
     data: function () {
       return {
-        open: this.depth < 1
+        open: this.depth < 1,
       }
     },
     computed: {
@@ -65,12 +65,10 @@
     mounted() {
       EventBus.$on("expand-node", this.handleExpandNodeEvent)
       EventBus.$on('collapse-all', this.handleCollapseAll)
-      window.addEventListener("scroll", this.handleScroll)
       EventBus.$emit('node-mounted', this.model.pid)
     },
 
     destroyed() {
-      window.removeEventListener("scroll", this.handleScroll)
       EventBus.$emit('node-destroyed')
     },
 
@@ -143,24 +141,6 @@
           }
         }
         return ""
-      },
-
-      handleScroll: function() {
-        var viewer = $('#viewer-wrapper')
-        if (viewer.length === 0 ) return
-
-        let origVal = viewer.data("origTop")
-        if ( !origVal ) {
-          let ot = viewer.offset().top
-          viewer.data("origTop", ot)
-        }
-
-        let scrollTop= $(window).scrollTop();
-        if ( scrollTop >= 210 ) {
-           viewer.offset({top: scrollTop+$("h4.do-header").outerHeight(true)+5});
-        } else {
-           viewer.offset({top: viewer.data("origTop")});
-        }
       },
 
       toggle: function () {

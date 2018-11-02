@@ -52,6 +52,7 @@
         if (tgt.length === 0) {
           $("#object-viewer").empty()
           this.viewerPID = null
+          this.viewerVisible = false
         }
       },
 

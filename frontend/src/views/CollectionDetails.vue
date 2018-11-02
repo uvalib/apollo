@@ -52,6 +52,7 @@
   import CollectionDetailsNode from '@/components/CollectionDetailsNode'
   import PageHeader from '@/components/PageHeader'
   import EventBus from '@/components/EventBus'
+  import PinnedScroll from '@/components/PinnedScroll'
 
   export default {
     components: {
@@ -74,7 +75,9 @@
         viewerClicked: false,
         errorMsg: null,
         viewerError: null,
-        ancestry: []
+        ancestry: [],
+        pinHeader: new PinnedScroll("div.fixed-header", 216),
+        pinViewer: new PinnedScroll("#viewer-wrapper", 210, "div.fixed-header")
       }
     },
 
@@ -169,31 +172,16 @@
       EventBus.$on("viewer-opened", this.handleViewerOpened)
       EventBus.$on("viewer-error", this.handleViewerError)
       EventBus.$on('node-mounted', this.handleNodeMounted)
-      window.addEventListener("scroll", this.handleScroll)
+      this.pinHeader.register()
+      this.pinViewer.register()
     },
 
     destroyed() {
-      window.removeEventListener("scroll", this.handleScroll)
+      this.pinHeader.unregister()
+      this.pinViewer.unregister()
     },
 
     methods: {
-      handleScroll: function() {
-        // Keep the viewer on screen as the user scrolls through
-        // the (potentially) long list of nodes in the collection.
-        var fixedHeader = $('div.fixed-header')
-        if (fixedHeader.length === 0 ) return
-        let origVal = fixedHeader.data("origTop")
-        if ( !origVal ) {
-          let ot = fixedHeader.offset().top
-          fixedHeader.data("origTop", ot)
-        }
-        let scrollTop= $(window).scrollTop();
-        if ( scrollTop >= 216 ) {
-           fixedHeader.offset({top: scrollTop});
-        }else {
-           fixedHeader.offset({top: fixedHeader.data("origTop")});
-        }
-      },
       // Walk the collection data and find the targetPID specified by the query params
       // Populate an array of ancestry data including node counts for the relevant tree branches
       getAncestry: function(currNode) {
