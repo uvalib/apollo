@@ -47,7 +47,7 @@ func (h *Apollo) AriesLookup(c *gin.Context) {
 	// Get the referenced node and the containing collection. No need
 	// for error handlign because the PID was already matched up to a
 	// node ID; just getting the rest of the data
-	node, _ := h.DB.GetChildren(ids.ID)
+	node, _ := h.DB.GetItem(ids.ID)
 	collection, _ := h.DB.GetParentCollection(node)
 
 	var out Aries

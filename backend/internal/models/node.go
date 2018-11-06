@@ -23,13 +23,14 @@ type NodeIdentifier struct {
 
 // Node is a single element in a tree of metadata. This is the smallest unit
 // of data in the system; essentially a name/value pair.
+//
 // An Item is a collection of nodes with
 // the same parent.
+//
 // A Collection is the hierarchical representation of all nodes stemming from a
 // single PID.
 type Node struct {
-	ID          int64          `json:"-"`
-	PID         string         `json:"pid"`
+	NodeIdentifier
 	Parent      *Node          `json:"-"`
 	Sequence    int            `json:"sequence"`
 	Type        *NodeType      `json:"type"`
@@ -94,7 +95,7 @@ func (db *DB) GetAncestry(node *Node) (*Node, error) {
 	for _, stringID := range ancestryArray {
 		// Pull details for the item and assemble into ancestry structure
 		id, _ := strconv.ParseInt(stringID, 10, 64)
-		ancestor, err := db.GetChildren(id)
+		ancestor, err := db.GetItem(id)
 		if err != nil {
 			return nil, err
 		}
@@ -142,8 +143,8 @@ func (db *DB) GetTree(rootID int64) (*Node, error) {
 	return db.queryNodes(qs, rootID)
 }
 
-// GetChildren returns this node and all of its immediate children
-func (db *DB) GetChildren(nodeID int64) (*Node, error) {
+// GetItem returns the items with the specified ID. An item is a node and all of its immediate children
+func (db *DB) GetItem(nodeID int64) (*Node, error) {
 	// now get all children with the above PID as the end of their ancestry
 	qs := fmt.Sprintf(`
 		%s WHERE deleted=0 and current=1 and (n.id=? or ancestry REGEXP '(^.+/|^)%d$' and n.value <> "")
@@ -386,39 +387,3 @@ func generateAncestryString(node *Node) string {
 	}
 	return strings.Join(parentIDs, "/")
 }
-
-// TODO Implement these methods
-// // UpdateNode : update node value as specified. This creates a version history.
-// //
-// func (db *DB) UpdateNode(updatedNode *Node, user *User) {
-// 	// find all prior versions: select * from nodes where pid like 'PID.%' order created_at desc;
-// 	// create a new node with existing node data and set pid to pid.N where N is 1 more that last from above
-// 	// update existing node with data in updateNode
-// 	//
-// 	// _, err := db.Exec("update nodes set value=? where id=?", value, node.ID)
-// 	// if err != nil {
-// 	// 	log.Printf("ERROR: node value update failed %s", err.Error())
-// 	// }
-// }
-
-// // GetNode finds a SINGLE node by PID. No parent nor children is returned
-// // Details about user and revision history are included
-// func (db *DB) GetNode(pid string) *Node {
-// 	qs := `SELECT n.id, n.pid, n.value, n.deleted, n.current, n.created_at,
-//             nt.id, nt.pid, nt.value,
-//             u.id, u.computing_id, u.last_name, u.first_name, u.email
-//           FROM nodes n
-//             inner join node_types nt on nt.id = n.node_type_id
-//             inner join users u on u.id = n.user_id
-//           WHERE n.pid=?`
-// 	row := db.QueryRow(qs, pid)
-// 	var n Node
-// 	var nt NodeType
-// 	var u User
-// 	row.Scan(&n.ID, &n.PID, &n.Value, &n.Deleted, &n.Current, &n.CreatedAt,
-// 		&nt.ID, &nt.PID, &nt.Name,
-// 		&u.ID, &u.ComputingID, &u.LastName, &u.FirstName, &u.Email)
-// 	n.Type = &nt
-// 	n.User = &u
-// 	return &n
-// }

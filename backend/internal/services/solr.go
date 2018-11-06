@@ -39,7 +39,7 @@ type breadcrumb struct {
 func GetSolrXML(db *models.DB, nodeID int64, iiifURL string) (string, error) {
 	// First, get this item regardless of its level (collection or item)
 	// log.Printf("Get SOLR XML for %d", nodeID)
-	item, dbErr := db.GetChildren(nodeID)
+	item, dbErr := db.GetItem(nodeID)
 	if dbErr != nil {
 		return "", dbErr
 	}

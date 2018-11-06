@@ -4,26 +4,23 @@ import "fmt"
 
 // Collection holds key data about a collection; its PID and Title
 type Collection struct {
+	ID    int64  `json:"-"`
 	PID   string `json:"pid"`
 	Title string `json:"title"`
 }
 
 // GetCollections returns a list of all collections. Data is PID/Title
 func (db *DB) GetCollections() []Collection {
-	var pids []struct {
-		ID  int64
-		PID string
-	}
-
+	var IDs []NodeIdentifier
 	var out []Collection
 	qs := "select id,pid from nodes where parent_id is null"
 	tq := "select value from nodes where ancestry=? and node_type_id=? order by id asc limit 1"
-	db.Select(&pids, qs)
+	db.Select(&IDs, qs)
 
-	for _, val := range pids {
+	for _, val := range IDs {
 		var title string
 		db.QueryRow(tq, val.ID, 2).Scan(&title)
-		out = append(out, Collection{val.PID, title})
+		out = append(out, Collection{ID: val.ID, PID: val.PID, Title: title})
 	}
 	return out
 }

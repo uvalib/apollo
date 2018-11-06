@@ -22,7 +22,7 @@ func (app *Apollo) ItemShow(c *gin.Context) {
 		return
 	}
 
-	item, dbErr := app.DB.GetChildren(itemIDs.ID)
+	item, dbErr := app.DB.GetItem(itemIDs.ID)
 	if dbErr != nil {
 		log.Printf("ERROR: %s", dbErr.Error())
 		c.String(http.StatusNotFound, dbErr.Error())

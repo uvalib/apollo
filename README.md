@@ -33,8 +33,11 @@ For example: `./bin/apolloingest.darwin -src=db/data/mountainwork.xml`
 
 * GET /version : return service version info
 * GET /healthcheck : test health of system components; results returned as json
+* GET /api/search : Search for the term provided in the query string
 * GET /api/users : Get a json list of system users
 * GET /api/users/:ID : Get json details for a user
+* GET /api/types : Get a json list of registered node types
+* GET /api/values/:type : Get a json list of controlled values for a given node type
 * GET /api/collections : get a json list of collections
 * GET /api/collections/:PID : Get full details for the specified collection as json
 * GET /api/aries : Aries ping request 

@@ -3,9 +3,100 @@ package services
 import (
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/uvalib/apollo/backend/internal/models"
 )
+
+// Hit is one match found in the search
+type Hit struct {
+	CollectionPID string `json:"collection_pid"`
+	Title         string `json:"title"`
+	PID           string `json:"pid"`
+	Type          string `json:"item_type"`
+	Match         string `json:"match"`
+}
+
+// SearchResults contains all of the results for a search operation
+type SearchResults struct {
+	Hits           int   `json:"hits"`
+	ResponseTimeMS int64 `json:"response_time_ms"`
+	Results        []Hit `json:"results"`
+}
+
+type hitRow struct {
+	ID              int64  `db:"id"`
+	PID             string `db:"pid"`
+	Type            string `db:"type"`
+	Ancestry        string `db:"ancestry"`
+	Value           string `db:"value"`
+	ControlledValue string `db:"controlled_value"`
+}
+
+// Search will search node values for the query string and return a struct containing match results
+func Search(db *models.DB, query string) *SearchResults {
+	start := time.Now()
+	cntQS := `select count(*) from nodes n 
+		inner join node_types nt on nt.id=n.node_type_id
+		inner join controlled_values cv on cv.id=n.value
+		where n.node_type_id != 6 and (n.value REGEXP ? or cv.value REGEXP ?)`
+	var totalHits int
+	db.QueryRow(cntQS, query, query).Scan(&totalHits)
+	if totalHits == 0 {
+		log.Printf("No hits for %s", query)
+		elapsedNanoSec := time.Since(start)
+		elapsedMS := int64(elapsedNanoSec / time.Millisecond)
+		return &SearchResults{Hits: 0, ResponseTimeMS: elapsedMS}
+	}
+
+	searchQ := `select n.id,n.pid,n.ancestry,nt.name as type,n.value,cv.value as controlled_value from nodes n 
+		inner join node_types nt on nt.id=n.node_type_id
+		inner join controlled_values cv on cv.id=n.value
+		where n.node_type_id != 6 and (n.value REGEXP ? or cv.value REGEXP ?)`
+	rows, err := db.Queryx(searchQ, query, query)
+	if err != nil {
+		log.Printf("Query failed: %s", err.Error())
+		elapsedNanoSec := time.Since(start)
+		elapsedMS := int64(elapsedNanoSec / time.Millisecond)
+		return &SearchResults{Hits: 0, ResponseTimeMS: elapsedMS}
+	}
+
+	// get minimal info on all collections; OID, PID and TItle. Only a few exist right
+	// now, so this brute force grab is OK
+	collections := db.GetCollections()
+	out := SearchResults{}
+	hits := 0
+	for rows.Next() {
+		hits++
+		var hitRow hitRow
+		rows.StructScan(&hitRow)
+
+		hit := Hit{PID: hitRow.PID, Type: hitRow.Type}
+		collID, _ := strconv.ParseInt(strings.Split(hitRow.Ancestry, "/")[0], 10, 64)
+		for _, coll := range collections {
+			if coll.ID == collID {
+				hit.CollectionPID = coll.PID
+				hit.Title = coll.Title
+				break
+			}
+		}
+		if strings.Contains(hitRow.Value, query) {
+			hit.Match = hitRow.Value
+		} else {
+			hit.Match = hitRow.ControlledValue
+		}
+
+		out.Results = append(out.Results, hit)
+	}
+
+	elapsedNanoSec := time.Since(start)
+	elapsedMS := int64(elapsedNanoSec / time.Millisecond)
+	out.ResponseTimeMS = elapsedMS
+	out.Hits = hits
+	return &out
+}
 
 // LookupIdentifier will accept any sort of known identifier and find a matching
 // Apolloo ItemID which includes internal ID and PID
