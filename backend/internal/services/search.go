@@ -23,7 +23,7 @@ type Hit struct {
 type SearchResults struct {
 	Hits           int   `json:"hits"`
 	ResponseTimeMS int64 `json:"response_time_ms"`
-	Results        []Hit `json:"results"`
+	Results        []Hit `json:"results,omitempty"`
 }
 
 type hitRow struct {
@@ -37,23 +37,11 @@ type hitRow struct {
 
 // Search will search node values for the query string and return a struct containing match results
 func Search(db *models.DB, query string) *SearchResults {
+	query = strings.ToLower(query)
 	start := time.Now()
-	cntQS := `select count(*) from nodes n 
-		inner join node_types nt on nt.id=n.node_type_id
-		inner join controlled_values cv on cv.id=n.value
-		where n.node_type_id != 6 and (n.value REGEXP ? or cv.value REGEXP ?)`
-	var totalHits int
-	db.QueryRow(cntQS, query, query).Scan(&totalHits)
-	if totalHits == 0 {
-		log.Printf("No hits for %s", query)
-		elapsedNanoSec := time.Since(start)
-		elapsedMS := int64(elapsedNanoSec / time.Millisecond)
-		return &SearchResults{Hits: 0, ResponseTimeMS: elapsedMS}
-	}
-
 	searchQ := `select n.id,n.pid,n.ancestry,nt.name as type,n.value,cv.value as controlled_value from nodes n 
 		inner join node_types nt on nt.id=n.node_type_id
-		inner join controlled_values cv on cv.id=n.value
+		left join controlled_values cv on cv.id=n.value
 		where n.node_type_id != 6 and (n.value REGEXP ? or cv.value REGEXP ?)`
 	rows, err := db.Queryx(searchQ, query, query)
 	if err != nil {
@@ -66,6 +54,8 @@ func Search(db *models.DB, query string) *SearchResults {
 	// get minimal info on all collections; OID, PID and TItle. Only a few exist right
 	// now, so this brute force grab is OK
 	collections := db.GetCollections()
+
+	// Walk the rows from the search query and generate hit list for response
 	out := SearchResults{}
 	hits := 0
 	for rows.Next() {
@@ -82,7 +72,9 @@ func Search(db *models.DB, query string) *SearchResults {
 				break
 			}
 		}
-		if strings.Contains(hitRow.Value, query) {
+
+		// see if the hit was in value or controlled value...
+		if strings.Contains(strings.ToLower(hitRow.Value), query) {
 			hit.Match = hitRow.Value
 		} else {
 			hit.Match = hitRow.ControlledValue
@@ -99,7 +91,7 @@ func Search(db *models.DB, query string) *SearchResults {
 }
 
 // LookupIdentifier will accept any sort of known identifier and find a matching
-// Apolloo ItemID which includes internal ID and PID
+// Apollo ItemID which includes internal ID and PID
 func LookupIdentifier(db *models.DB, identifier string) (*models.NodeIdentifier, error) {
 	log.Printf("Lookup identifier %s", identifier)
 
