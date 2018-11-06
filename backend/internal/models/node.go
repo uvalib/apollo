@@ -15,16 +15,10 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-// Collection holds key data about a collection; its PID and Title
-type Collection struct {
-	PID   string `json:"pid"`
-	Title string `json:"title"`
-}
-
-// ItemIDs holds the primary apollo IDs for an item; PID and ID
-type ItemIDs struct {
-	ID  int64
-	PID string
+// NodeIdentifier holds the primary apollo IDs for an item; PID and ID
+type NodeIdentifier struct {
+	ID  int64  `db:"id" json:"-"`
+	PID string `db:"pid" json:"pid"`
 }
 
 // Node is a single element in a tree of metadata. This is the smallest unit
@@ -34,22 +28,21 @@ type ItemIDs struct {
 // A Collection is the hierarchical representation of all nodes stemming from a
 // single PID.
 type Node struct {
-	ID          int64      `json:"-"`
-	PID         string     `json:"pid"`
-	Parent      *Node      `json:"-"`
-	Sequence    int        `json:"sequence"`
-	Type        *NodeType  `json:"type"`
-	Value       string     `json:"value,omitempty"`
-	ValueURI    string     `json:"valueURI,omitempty"`
-	Children    []*Node    `json:"children,omitempty"`
-	User        *User      `json:"-"`
-	Deleted     bool       `json:"-"`
-	Current     bool       `json:"-"`
-	CreatedAt   time.Time  `db:"created_at" json:"createdAt"`
-	UpdatedAt   *time.Time `db:"updated_at" json:"updatedAt,omitempty"`
-	PublishedAt *time.Time `json:"publishedAt,omitempty"`
-	parentID    sql.NullInt64
-	ancestry    sql.NullString
+	ID          int64          `json:"-"`
+	PID         string         `json:"pid"`
+	Parent      *Node          `json:"-"`
+	Sequence    int            `json:"sequence"`
+	Type        *NodeType      `json:"type"`
+	Value       string         `json:"value,omitempty"`
+	ValueURI    string         `json:"valueURI,omitempty"`
+	Children    []*Node        `json:"children,omitempty"`
+	User        *User          `json:"-"`
+	Deleted     bool           `json:"-"`
+	Current     bool           `json:"-"`
+	CreatedAt   time.Time      `db:"created_at" json:"createdAt"`
+	UpdatedAt   *time.Time     `db:"updated_at" json:"updatedAt,omitempty"`
+	PublishedAt *time.Time     `json:"publishedAt,omitempty"`
+	Ancestry    sql.NullString `json:"-"`
 }
 
 func (n *Node) encodeValue(val string) string {
@@ -85,85 +78,12 @@ func (n *Node) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// Lookup will accept an external PID, apollo PID, barcode or catalog key
-// and find a matching apollo item. That items apollo identifiers will be returned
-func (db *DB) Lookup(identifier string) (*ItemIDs, error) {
-	log.Printf("Lookup identifier %s", identifier)
-
-	// First easy case; the identifier is an apollo PID
-	var nodeID int64
-	db.QueryRow("select id from nodes where pid=?", identifier).Scan(&nodeID)
-	if nodeID > 0 {
-		log.Printf("%s is an ApolloPID. ID: %d", identifier, nodeID)
-		return &ItemIDs{PID: identifier, ID: nodeID}, nil
-	}
-
-	// Next case; See if it is an externalPID, barcode, catalog key, call number or WSLS ID
-	var apolloPID string
-	var idType string
-	qs := `SELECT t.name, np.id, np.pid FROM nodes ns INNER JOIN nodes np ON np.id = ns.parent_id
-			 inner join node_types t on t.id = ns.node_type_id
-	 		 WHERE ns.value=? and t.id in (5,9,10,13,23)`
-	db.QueryRow(qs, identifier).Scan(&idType, &nodeID, &apolloPID)
-	if apolloPID != "" {
-		log.Printf("%s matches type %s. ApolloPID: %s ID: %d",
-			identifier, idType, apolloPID, nodeID)
-		return &ItemIDs{PID: apolloPID, ID: nodeID}, nil
-	}
-
-	return nil, fmt.Errorf("%s was not found", identifier)
-}
-
-// GetCollections returns a list of all collections. Data is PID/Title
-func (db *DB) GetCollections() []Collection {
-	var pids []struct {
-		ID  int64
-		PID string
-	}
-
-	var out []Collection
-	qs := "select id,pid from nodes where parent_id is null"
-	tq := "select value from nodes where ancestry=? and node_type_id=? order by id asc limit 1"
-	db.Select(&pids, qs)
-
-	for _, val := range pids {
-		var title string
-		db.QueryRow(tq, val.ID, 2).Scan(&title)
-		out = append(out, Collection{val.PID, title})
-	}
-	return out
-}
-
-// GetCollectionContainerIdentifiers returns containers owned by the collection. The containerType parameter
-// controls which types of containers are returned. If you want everything, cet containerType to 'all'
-func (db *DB) GetCollectionContainerIdentifiers(collectionID int64, containerType string) ([]ItemIDs, error) {
-	var ids []ItemIDs
-	var err error
-	if containerType == "all" {
-		// Return ALL containers owned by the collection
-		qs := fmt.Sprintf(`select n.id,n.pid from nodes n inner join node_types nt on nt.id = n.node_type_id
-				 where nt.container = 1 and ancestry regexp '^%d($|/.*)' order by n.id asc;`, collectionID)
-		err = db.Select(&ids, qs)
-	} else {
-		// Return only a specific type of container
-		qs := fmt.Sprintf(`select n.id,n.pid from nodes n inner join node_types nt on nt.id = n.node_type_id
-				 where nt.container = 1 and nt.name=? and ancestry regexp '^%d($|/.*)' order by n.id asc;`, collectionID)
-		err = db.Select(&ids, qs, containerType)
-	}
-
-	if err != nil {
-		return ids, err
-	}
-
-	return ids, nil
-}
-
 // GetAncestry returns all ancestors of the source node
 func (db *DB) GetAncestry(node *Node) (*Node, error) {
-	log.Printf("Get ancestors for %s with ancestry [%s]", node.PID, node.ancestry.String)
+	log.Printf("Get ancestors for %s with ancestry [%s]", node.PID, node.Ancestry.String)
 
 	// Get the ancestry string. If there is none, there are no ancestors
-	ancestry := node.ancestry.String
+	ancestry := node.Ancestry.String
 	if ancestry == "" {
 		return nil, nil
 	}
@@ -190,10 +110,10 @@ func (db *DB) GetAncestry(node *Node) (*Node, error) {
 
 // GetParentCollection returns details about the collection that contains the source node
 func (db *DB) GetParentCollection(node *Node) (*Node, error) {
-	log.Printf("Get Parent for %s with ancestry [%s]", node.PID, node.ancestry.String)
+	log.Printf("Get Parent for %s with ancestry [%s]", node.PID, node.Ancestry.String)
 
 	// Get the ancestry string. If there is none, this node is the collection
-	ancestry := node.ancestry.String
+	ancestry := node.Ancestry.String
 	if ancestry == "" {
 		return node, nil
 	}
@@ -242,6 +162,7 @@ func getNodeSelect() string {
 func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
 	// log.Printf("%s, %d", query, rootID)
 	nodes := make(map[int64]*Node)
+	nodeParents := make(map[int64]int64)
 	var root *Node
 	controlledValues := make(map[int64]*ControlledValue)
 	rows, err := db.Query(query, rootID)
@@ -254,12 +175,16 @@ func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
 		var n Node
 		var nt NodeType
 		var updateAt mysql.NullTime
+		var parentID sql.NullInt64
 
-		rows.Scan(&n.ID, &n.parentID, &n.ancestry, &n.Sequence, &n.PID, &n.Value, &n.CreatedAt, &updateAt, &nt.PID,
+		rows.Scan(&n.ID, &parentID, &n.Ancestry, &n.Sequence, &n.PID, &n.Value, &n.CreatedAt, &updateAt, &nt.PID,
 			&nt.Name, &nt.ControlledVocab, &nt.Container)
 
 		if updateAt.Valid {
 			n.UpdatedAt = &updateAt.Time
+		}
+		if parentID.Valid {
+			nodeParents[n.ID] = parentID.Int64
 		}
 
 		n.Type = &nt
@@ -268,7 +193,6 @@ func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
 			if cv, ok := controlledValues[id]; ok {
 				n.Value = cv.Value
 				n.ValueURI = cv.ValueURI.String
-				// log.Printf("Use cached controlled value %d", id)
 			} else {
 				cv := db.GetControlledValueByID(id)
 				if cv == nil {
@@ -277,34 +201,29 @@ func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
 					n.Value = cv.Value
 					n.ValueURI = cv.ValueURI.String
 					controlledValues[id] = cv
-					// log.Printf("Cache controlled value %d", id)
 				}
 			}
 		}
 
+		// Save a map of ID -> Node. This will be used to assemble this list of rw nodes
+		// into a heirarchy below
 		nodes[n.ID] = &n
 		if n.ID == rootID {
-			// log.Printf("Set root node to %d", n.ID)
 			root = &n
 		}
 	}
 
-	// hook all nodes that have a parent with the parent
+	// Build te tree: hook all nodes that have a parent with the parent
 	for _, node := range nodes {
-		// In the case when we are requesting a sub-tree, the parent of the
-		// start of the tree will not exist. Don't try to find it!
-		if node.ID == rootID {
-			continue
-		}
-		if node.parentID.Valid == false {
-			continue
-		}
-		if parent, ok := nodes[node.parentID.Int64]; ok {
-			parent.Children = append(parent.Children, node)
-		} else {
-			msg := fmt.Sprintf("Unable to to find parentID %d for node %d", node.parentID.Int64, node.ID)
-			log.Printf("ERROR: %s", msg)
-			return nil, errors.New(msg)
+		if parentID, hasParent := nodeParents[node.ID]; hasParent {
+			if parent, ok := nodes[parentID]; ok {
+				parent.Children = append(parent.Children, node)
+				node.Parent = parent
+			} else {
+				msg := fmt.Sprintf("Unable to to find parentID %d for node %d", parentID, node.ID)
+				log.Printf("ERROR: %s", msg)
+				return nil, errors.New(msg)
+			}
 		}
 	}
 	sortNodes(root)

@@ -24,6 +24,7 @@ func initRoutes(app *handlers.Apollo) *gin.Engine {
 	{
 		api.GET("/aries", app.AriesPing)
 		api.GET("/aries/:id", app.AriesLookup)
+		// api.GET("/search", app.SearchAll)
 		api.GET("/collections", app.CollectionsIndex)
 		api.GET("/collections/:pid", app.CollectionsShow)
 		api.GET("/items/:pid", app.ItemShow)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/uvalib/apollo/backend/internal/models"
+	"github.com/uvalib/apollo/backend/internal/services"
 )
 
 // AriesService contains details for a service reference
@@ -30,7 +31,7 @@ func (h *Apollo) AriesPing(c *gin.Context) {
 // AriesLookup will query apollo for information on the supplied identifer
 func (h *Apollo) AriesLookup(c *gin.Context) {
 	passedPID := c.Param("id")
-	ids, err := h.DB.Lookup(passedPID)
+	ids, err := services.LookupIdentifier(h.DB, passedPID)
 	if err != nil {
 		c.String(http.StatusNotFound, "%s not found", passedPID)
 		return
@@ -72,7 +73,7 @@ func (h *Apollo) AriesLookup(c *gin.Context) {
 
 func getExternalIdentifiers(node *models.Node) []string {
 	var identifiers []string
-	keys := []string{"externalPID", "barcode", "catalogKey", "wslsID"}
+	keys := []string{"externalPID", "barcode", "catalogKey", "callNumber", "wslsID"}
 	for _, child := range node.Children {
 		for _, key := range keys {
 			if child.Type.Name == key {
@@ -81,21 +82,4 @@ func getExternalIdentifiers(node *models.Node) []string {
 		}
 	}
 	return identifiers
-}
-
-func digitalObjectPID(node *models.Node) string {
-	hasDigitalObject := false
-	extPID := ""
-	for _, child := range node.Children {
-		if child.Type.Name == "externalPID" {
-			extPID = child.Value
-		}
-		if child.Type.Name == "digitalObject" {
-			hasDigitalObject = true
-		}
-	}
-	if hasDigitalObject {
-		return extPID
-	}
-	return ""
 }

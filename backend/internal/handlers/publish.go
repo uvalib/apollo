@@ -11,13 +11,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/uvalib/apollo/backend/internal/models"
+	"github.com/uvalib/apollo/backend/internal/services"
 )
 
 // PublishCollection generates the solr documents for all sections of the collection
 // and tags the collection as having been published
 func (app *Apollo) PublishCollection(c *gin.Context) {
 	log.Printf("Publish collection '%s' to %s", c.Param("pid"), app.SolrDir)
-	collectionIDs, err := app.DB.Lookup(c.Param("pid"))
+	collectionIDs, err := services.LookupIdentifier(app.DB, c.Param("pid"))
 	if err != nil {
 		out := fmt.Sprintf("Collection %s not found", c.Param("pid"))
 		c.String(http.StatusNotFound, out)
@@ -26,14 +27,14 @@ func (app *Apollo) PublishCollection(c *gin.Context) {
 
 	// Get a list of identifters for all items in this collection. This
 	// is a struct containing both PID and DB ID
-	itemIDs, err := app.DB.GetCollectionContainerIdentifiers(collectionIDs.ID, "all")
+	itemIDs, err := app.DB.GetCollectionItemIdentifiers(collectionIDs.ID, "all")
 	if err != nil {
 		out := fmt.Sprintf("Unable to retrieve collection items %s", err.Error())
 		c.String(http.StatusInternalServerError, out)
 		return
 	}
 
-	itemIDs = append(itemIDs, models.ItemIDs{ID: collectionIDs.ID, PID: c.Param("pid")})
+	itemIDs = append(itemIDs, models.NodeIdentifier{ID: collectionIDs.ID, PID: c.Param("pid")})
 
 	// setup a subdir for the dropoff, if it doesn already exist
 	tgtPath := fmt.Sprintf("%s/%s", app.SolrDir, c.Param("pid"))
@@ -48,11 +49,11 @@ func (app *Apollo) PublishCollection(c *gin.Context) {
 	c.String(http.StatusOK, "Publication of collection %s started", c.Param("pid"))
 }
 
-func (app *Apollo) publishItems(collectionPID string, IDs []models.ItemIDs, rootID int64) {
+func (app *Apollo) publishItems(collectionPID string, IDs []models.NodeIdentifier, rootID int64) {
 	// chop up id list into blocks chunks that can be executed concurrenty
 	// limit the maximum number of concurrrent generation threads to 50
 	// to avoid choking the DB, tracksys or IIIF manifest service
-	var chunks [][]models.ItemIDs
+	var chunks [][]models.NodeIdentifier
 	var maxConcurrent = 10
 	var chunkSize = int(math.Round(float64(len(IDs)) / float64(maxConcurrent)))
 	if chunkSize == 0 {
@@ -81,10 +82,10 @@ func (app *Apollo) publishItems(collectionPID string, IDs []models.ItemIDs, root
 	log.Printf("Publication COMPLETE")
 }
 
-func (app *Apollo) processIDs(collectionPID string, IDs []models.ItemIDs, wg *sync.WaitGroup) {
+func (app *Apollo) processIDs(collectionPID string, IDs []models.NodeIdentifier, wg *sync.WaitGroup) {
 	log.Printf("GOROUTINE: Process %v", IDs)
 	for _, ID := range IDs {
-		xml, err := app.DB.GetSolrXML(ID.ID, app.IIIF)
+		xml, err := services.GetSolrXML(app.DB, ID.ID, app.IIIF)
 		if err != nil {
 			log.Printf("ERROR: Unable to generate solr xml for collection %s %d: %s", collectionPID, ID.ID, err.Error())
 		} else {

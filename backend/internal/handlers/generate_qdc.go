@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/uvalib/apollo/backend/internal/models"
+	"github.com/uvalib/apollo/backend/internal/services"
 )
 
 // qdcControlledValue is a controllev value and the source URI for
@@ -93,7 +94,7 @@ func (app *Apollo) GenerateQDC(c *gin.Context) {
 	}
 
 	// lookup identifiers for the passed PID
-	ids, err := app.DB.Lookup(pid)
+	ids, err := services.LookupIdentifier(app.DB, pid)
 	if err != nil {
 		c.String(http.StatusNotFound, "%s not found", pid)
 		return
@@ -102,7 +103,7 @@ func (app *Apollo) GenerateQDC(c *gin.Context) {
 	// Get a list of identifters for all items in this collection. This
 	// is a struct containing both PID and DB ID. Items are the only thing
 	// that goes to DPLA
-	itemIDs, err := app.DB.GetCollectionContainerIdentifiers(ids.ID, "item")
+	itemIDs, err := app.DB.GetCollectionItemIdentifiers(ids.ID, "item")
 	if err != nil {
 		out := fmt.Sprintf("Unable to retrieve collection items %s", err.Error())
 		c.String(http.StatusInternalServerError, out)
@@ -121,7 +122,7 @@ func (app *Apollo) GenerateQDC(c *gin.Context) {
 
 func (app *Apollo) generateSingleQDCRecord(collectionID int64, tgtPID string) {
 	log.Printf("Generating QDC for Item %s", tgtPID)
-	tgtIDs, err := app.DB.Lookup(tgtPID)
+	tgtIDs, err := services.LookupIdentifier(app.DB, tgtPID)
 	if err != nil {
 		log.Printf("ERROR: Unable to find target PID %s.", tgtPID)
 		return
@@ -149,7 +150,7 @@ func (app *Apollo) generateSingleQDCRecord(collectionID int64, tgtPID string) {
 	}
 }
 
-func (app *Apollo) generateQDCForItems(collectionID int64, items []models.ItemIDs, limit int) {
+func (app *Apollo) generateQDCForItems(collectionID int64, items []models.NodeIdentifier, limit int) {
 	log.Printf("Generating QDC for %d items in collection", len(items))
 	qdcTemplate := template.Must(template.ParseFiles("./templates/wsls_qdc.xml"))
 	collection, _ := app.DB.GetTree(collectionID)

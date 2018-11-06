@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/uvalib/apollo/backend/internal/services"
 )
 
 // ItemShow will return a block of JSON metadata for the specified ITEM PID. This includes
@@ -14,7 +15,7 @@ import (
 // belongs to.
 func (app *Apollo) ItemShow(c *gin.Context) {
 	pid := c.Param("pid")
-	itemIDs, dbErr := app.DB.Lookup(pid)
+	itemIDs, dbErr := services.LookupIdentifier(app.DB, pid)
 	if dbErr != nil {
 		log.Printf("ERROR: %s", dbErr.Error())
 		c.String(http.StatusNotFound, dbErr.Error())

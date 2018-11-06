@@ -1,4 +1,4 @@
-package models
+package services
 
 import (
 	"bytes"
@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/uvalib/apollo/backend/internal/models"
 )
 
 type solrAdd struct {
@@ -34,7 +36,7 @@ type breadcrumb struct {
 }
 
 // GetSolrXML will return the Solr Add XML for the specified nodeID
-func (db *DB) GetSolrXML(nodeID int64, iiifURL string) (string, error) {
+func GetSolrXML(db *models.DB, nodeID int64, iiifURL string) (string, error) {
 	// First, get this item regardless of its level (collection or item)
 	// log.Printf("Get SOLR XML for %d", nodeID)
 	item, dbErr := db.GetChildren(nodeID)
@@ -43,8 +45,8 @@ func (db *DB) GetSolrXML(nodeID int64, iiifURL string) (string, error) {
 	}
 
 	// Now get collection info if the item is not it already
-	var ancestry *Node
-	if item.parentID.Valid {
+	var ancestry *models.Node
+	if item.Parent != nil {
 		// log.Printf("ID %d is not a collection; getting ancestry", nodeID)
 		ancestry, _ = db.GetAncestry(item)
 	} else {
@@ -87,7 +89,7 @@ func (db *DB) GetSolrXML(nodeID int64, iiifURL string) (string, error) {
 	fields = append(fields, solrField{Name: "date_received_facet", Value: getNow()})
 
 	fields = append(fields, solrField{Name: "feature_facet", Value: "has_hierarchy"})
-	hierarchyXML := db.getHierarchyXML(nodeID, breadcrumbXML)
+	hierarchyXML := getHierarchyXML(db, nodeID, breadcrumbXML)
 	fields = append(fields, solrField{Name: "hierarchy_display", Value: hierarchyXML})
 
 	title := getValue(item, "title", "")
@@ -129,7 +131,7 @@ func getNow() string {
 
 // Walk the node children and see if the target node type
 // exists; if it does, return the value. If not, return a default
-func getValue(node *Node, typeName string, defaultVal string) string {
+func getValue(node *models.Node, typeName string, defaultVal string) string {
 	for _, c := range node.Children {
 		if c.Type.Name == typeName {
 			return c.Value
@@ -139,7 +141,7 @@ func getValue(node *Node, typeName string, defaultVal string) string {
 }
 
 // Check if the source node contains a child of the specified type
-func hasChild(node *Node, typeName string) bool {
+func hasChild(node *models.Node, typeName string) bool {
 	for _, c := range node.Children {
 		if c.Type.Name == typeName {
 			return true
@@ -148,7 +150,7 @@ func hasChild(node *Node, typeName string) bool {
 	return false
 }
 
-func countComponents(node *Node) int {
+func countComponents(node *models.Node) int {
 	count := 0
 	if len(node.Children) > 0 {
 		for _, c := range node.Children {
@@ -162,7 +164,7 @@ func countComponents(node *Node) int {
 
 // Get the subtree rooted at the target node and convert it into an escaped
 // XML hierarchy document
-func (db *DB) getHierarchyXML(rootID int64, breadcrumbXML string) string {
+func getHierarchyXML(db *models.DB, rootID int64, breadcrumbXML string) string {
 	// log.Printf("Get hierarchy XML for node %d", rootID)
 	tree, err := db.GetTree(rootID)
 	if err != nil {
@@ -186,9 +188,9 @@ func (db *DB) getHierarchyXML(rootID int64, breadcrumbXML string) string {
 	return out
 }
 
-func walkHierarchy(node *Node, buffer *bytes.Buffer, itemCnt *int) {
+func walkHierarchy(node *models.Node, buffer *bytes.Buffer, itemCnt *int) {
 	// log.Printf("Walk node %s:%s", node.PID, node.Type.Name)
-	if node.parentID.Valid == false {
+	if node.Parent == nil {
 		buffer.WriteString("<collection>")
 		title := getValue(node, "title", "")
 		buffer.WriteString(fmt.Sprintf("<title>%s</title>", title))
@@ -224,7 +226,7 @@ func walkHierarchy(node *Node, buffer *bytes.Buffer, itemCnt *int) {
 		}
 	}
 
-	if node.parentID.Valid == false {
+	if node.Parent == nil {
 		buffer.WriteString("</collection>")
 	} else {
 		buffer.WriteString("</component>")
@@ -232,7 +234,7 @@ func walkHierarchy(node *Node, buffer *bytes.Buffer, itemCnt *int) {
 }
 
 // Get an escaped xml snippet detailing the ancestors in the passed node tree
-func getBreadcrumbXML(ancestry *Node) string {
+func getBreadcrumbXML(ancestry *models.Node) string {
 	var breadcrumbs []breadcrumb
 	getBreadcrumbs(ancestry, &breadcrumbs)
 	out := "<breadcrumbs>"
@@ -246,7 +248,7 @@ func getBreadcrumbXML(ancestry *Node) string {
 
 // recursively walk down the ancestry tree rooted at the node param. Return
 // an array of breadcrumb structs
-func getBreadcrumbs(node *Node, breadcrumbs *[]breadcrumb) {
+func getBreadcrumbs(node *models.Node, breadcrumbs *[]breadcrumb) {
 	if len(node.Children) > 0 {
 		bc := breadcrumb{
 			PID:   getValue(node, "externalPID", node.PID),
@@ -261,7 +263,7 @@ func getBreadcrumbs(node *Node, breadcrumbs *[]breadcrumb) {
 }
 
 // Get IIIF manifest for the target node and add data to the solr fields array
-func addIIIFMetadata(node *Node, fields *[]solrField, iiifURL string) {
+func addIIIFMetadata(node *models.Node, fields *[]solrField, iiifURL string) {
 	pid := getValue(node, "externalPID", node.PID)
 	iiifManifest, err := getAPIResponse(fmt.Sprintf("%s/%s", iiifURL, pid))
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/uvalib/apollo/backend/internal/services"
 )
 
 // GenerateSolr generates a Solr Add document for ingest into Virgo3
@@ -14,14 +15,14 @@ import (
 // the same name attribute
 func (app *Apollo) GenerateSolr(c *gin.Context) {
 	log.Printf("Generate Solr Add for '%s'", c.Param("pid"))
-	ids, err := app.DB.Lookup(c.Param("pid"))
+	ids, err := services.LookupIdentifier(app.DB, c.Param("pid"))
 	if err != nil {
 		out := fmt.Sprintf("Unable to find PID %s : %s", c.Param("pid"), err.Error())
 		c.String(http.StatusNotFound, out)
 		return
 	}
 
-	xmlOut, err := app.DB.GetSolrXML(ids.ID, app.IIIF)
+	xmlOut, err := services.GetSolrXML(app.DB, ids.ID, app.IIIF)
 	if err != nil {
 		out := fmt.Sprintf("Unable to generate Solr doc for %s: %s", c.Param("pid"), err.Error())
 		c.String(http.StatusNotFound, out)
