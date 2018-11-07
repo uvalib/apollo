@@ -31,6 +31,7 @@ func (app *Apollo) CollectionsShow(c *gin.Context) {
 		c.String(http.StatusInternalServerError, dbErr.Error())
 		return
 	}
+	log.Printf("Collection tree retrieved from DB; sending to client")
 	root.PublishedAt = app.DB.GetLatestPublication(rootID.ID)
 	c.JSON(http.StatusOK, root)
 }
