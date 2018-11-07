@@ -82,6 +82,7 @@ func (svc *Apollo) Search(query string) *SearchResults {
 			}
 		}
 
+		// FIXME this is wrong; can only link direct to ITEMS, not the nodes that make them up
 		hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", apollorURL, hit.CollectionPID, hitRow.PID)
 
 		// see if the hit was in value or controlled value...

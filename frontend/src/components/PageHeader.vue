@@ -1,7 +1,7 @@
 <template>
   <div class="page-header">
     <router-link v-show="back" class="back" :to="{ name: 'home'}">&larr; Back</router-link>
-    <span class="user">{{ this.user }}</span>
+    <!-- <span class="user">{{ this.user }}</span> -->
     <h2 class="page-header">{{ main }}</h2>
     <p class="page-header"><span v-html="sub"></span></p>
   </div>

@@ -11,7 +11,7 @@
 import ApolloHeader from './components/ApolloHeader'
 import ApolloFooter from './components/ApolloFooter'
 import LoadingSpinner from './components/LoadingSpinner'
-import axios from 'axios'
+// import axios from 'axios'
 
 export default {
   components: {
@@ -21,22 +21,23 @@ export default {
   },
   data: function () {
     return {
-      authorizing: true,
+      // authorizing: true,
+      authorizing: false,
     }
   },
   created: function () {
-    if (this.$route.meta.requiresAuth ) {
-      axios.get("/authenticate").then((response)  =>  {
-        localStorage.setItem("user", response.data.firstName+" "+response.data.lastName)
-        this.authorizing = false
-      }).catch(() => {
-        this.authorizing = false
-        localStorage.removeItem("user")
-        this.$router.push({ path: 'unauthorized' })
-      })
-    } else {
-      this.authorizing = false
-    }
+    // if (this.$route.meta.requiresAuth ) {
+    //   axios.get("/authenticate").then((response)  =>  {
+    //     localStorage.setItem("user", response.data.firstName+" "+response.data.lastName)
+    //     this.authorizing = false
+    //   }).catch(() => {
+    //     this.authorizing = false
+    //     localStorage.removeItem("user")
+    //     this.$router.push({ path: 'unauthorized' })
+    //   })
+    // } else {
+    //   this.authorizing = false
+    // }
   }
 }
 </script>
