@@ -53,9 +53,12 @@
   import PageHeader from '@/components/PageHeader'
   import EventBus from '@/components/EventBus'
   import PinnedScroll from '@/components/PinnedScroll'
+  import ApolloError from '@/views/ApolloError'
 
   export default {
+    name: 'CollectionDetails',
     components: {
+      ApolloError,
       LoadingSpinner,
       CollectionDetailsHeader,
       CollectionDetailsNode,
@@ -316,7 +319,7 @@
 
       scrollToTarget: function() {
         let ele = $("li#"+this.targetPID)
-        let doViewerBtn = ele.find("td.pure-button.dobj")
+        let doViewerBtn = ele.find("span.do-button")
         doViewerBtn.trigger("click")
 
         $([document.documentElement, document.body]).animate({

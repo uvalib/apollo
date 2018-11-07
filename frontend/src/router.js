@@ -27,8 +27,8 @@ export default new Router({
       meta: { requiresAuth: true },
       props: (route) => ({
         id: route.params.id,          // pass the id and title params from the
-        title: route.params.title,    // <router-link< tag in CollectionsList
-        targetPID: route.query.item,
+        title: route.params.title,    // <router-link> tag in CollectionsList
+        targetPID: route.query.item,  // Include ?item=PID as targetPID
       })
     },
     {
