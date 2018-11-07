@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/uvalib/apollo/backend/internal/services"
 )
 
 // CollectionsIndex will report the version of the serivce
@@ -18,7 +17,8 @@ func (app *Apollo) CollectionsIndex(c *gin.Context) {
 func (app *Apollo) CollectionsShow(c *gin.Context) {
 	pid := c.Param("pid")
 	log.Printf("Get collection for PID %s", pid)
-	rootID, dbErr := services.LookupIdentifier(app.DB, pid)
+	svc := app.InitServices(c)
+	rootID, dbErr := svc.LookupIdentifier(pid)
 	if dbErr != nil {
 		log.Printf("ERROR: %s", dbErr.Error())
 		c.String(http.StatusNotFound, dbErr.Error())

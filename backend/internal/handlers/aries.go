@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/uvalib/apollo/backend/internal/models"
-	"github.com/uvalib/apollo/backend/internal/services"
 )
 
 // AriesService contains details for a service reference
@@ -31,7 +30,8 @@ func (h *Apollo) AriesPing(c *gin.Context) {
 // AriesLookup will query apollo for information on the supplied identifer
 func (h *Apollo) AriesLookup(c *gin.Context) {
 	passedPID := c.Param("id")
-	ids, err := services.LookupIdentifier(h.DB, passedPID)
+	svc := h.InitServices(c)
+	ids, err := svc.LookupIdentifier(passedPID)
 	if err != nil {
 		c.String(http.StatusNotFound, "%s not found", passedPID)
 		return

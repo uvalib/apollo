@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/uvalib/apollo/backend/internal/services"
 )
 
 // SearchHandler will search for the terms included in the query string in all collections
@@ -14,6 +13,7 @@ func (app *Apollo) SearchHandler(c *gin.Context) {
 		c.String(http.StatusBadRequest, "missing query term")
 		return
 	}
-	res := services.Search(app.DB, qs)
+	svc := app.InitServices(c)
+	res := svc.Search(qs)
 	c.JSON(http.StatusOK, res)
 }

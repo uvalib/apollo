@@ -13,7 +13,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/uvalib/apollo/backend/internal/models"
-	"github.com/uvalib/apollo/backend/internal/services"
 )
 
 // qdcControlledValue is a controllev value and the source URI for
@@ -94,7 +93,8 @@ func (app *Apollo) GenerateQDC(c *gin.Context) {
 	}
 
 	// lookup identifiers for the passed PID
-	ids, err := services.LookupIdentifier(app.DB, pid)
+	svc := app.InitServices(c)
+	ids, err := svc.LookupIdentifier(pid)
 	if err != nil {
 		c.String(http.StatusNotFound, "%s not found", pid)
 		return
@@ -111,36 +111,39 @@ func (app *Apollo) GenerateQDC(c *gin.Context) {
 	}
 
 	if tgtPID != "" {
-		app.generateSingleQDCRecord(ids.ID, tgtPID)
+		tgtID, err := svc.LookupIdentifier(tgtPID)
+		if err != nil {
+			log.Printf("ERROR: Unable to find target PID %s.", tgtPID)
+			c.String(http.StatusNotFound, "Target PID not found")
+			return
+		}
+		app.generateSingleQDCRecord(c, ids.ID, tgtID)
 	} else {
 		// kick off the generation of QDC in a goroutine...
 		go app.generateQDCForItems(ids.ID, itemIDs, limit)
+		c.String(http.StatusOK, "QDC is being generated to %s...", app.QdcDir)
 	}
-
-	c.String(http.StatusOK, "QDC is being generated to %s...", app.QdcDir)
 }
 
-func (app *Apollo) generateSingleQDCRecord(collectionID int64, tgtPID string) {
-	log.Printf("Generating QDC for Item %s", tgtPID)
-	tgtIDs, err := services.LookupIdentifier(app.DB, tgtPID)
-	if err != nil {
-		log.Printf("ERROR: Unable to find target PID %s.", tgtPID)
-		return
-	}
+func (app *Apollo) generateSingleQDCRecord(c *gin.Context, collectionID int64, tgtID *models.NodeIdentifier) {
+	log.Printf("Generating QDC for Item %s", tgtID.PID)
 	qdcTemplate := template.Must(template.ParseFiles("./templates/wsls_qdc.xml"))
 	collection, _ := app.DB.GetTree(collectionID)
-	itemNode := findItemByID(tgtIDs.ID, collection)
+	itemNode := findItemByID(tgtID.ID, collection)
 	if itemNode == nil {
-		log.Printf("ERROR: Unable to find nodeID %d. SKIPPING", tgtIDs.ID)
+		log.Printf("ERROR: Unable to find nodeID %d. SKIPPING", tgtID.ID)
+		c.String(http.StatusNotFound, "Target PID not found")
 		return
 	}
 	data := app.getItemQDCData(itemNode)
 	if data.PID == "" {
-		log.Printf("Item %d:%s has no external PID and hasn't been published to DL. SKIPPING", tgtIDs.ID, tgtPID)
+		log.Printf("Item %s has no external PID and hasn't been published to DL. SKIPPING", tgtID.PID)
+		c.String(http.StatusNotFound, "Target PID not found")
 		return
 	}
 	if data.Title == "" {
-		log.Printf("Item %d:%s has no Title. SKIPPING", tgtIDs.ID, tgtPID)
+		log.Printf("Item %s has no Title. SKIPPING", tgtID.PID)
+		c.String(http.StatusBadRequest, "Target PID has no title")
 		return
 	}
 

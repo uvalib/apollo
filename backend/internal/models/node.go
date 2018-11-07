@@ -216,6 +216,11 @@ func (db *DB) queryNodes(query string, rootID int64) (*Node, error) {
 
 	// Build te tree: hook all nodes that have a parent with the parent
 	for _, node := range nodes {
+		// In the case when we are requesting a sub-tree, the parent of the
+		// start of the tree will not exist. Don't try to find it!
+		if node.ID == rootID {
+			continue
+		}
 		if parentID, hasParent := nodeParents[node.ID]; hasParent {
 			if parent, ok := nodes[parentID]; ok {
 				parent.Children = append(parent.Children, node)
