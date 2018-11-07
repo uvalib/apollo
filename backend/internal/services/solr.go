@@ -9,7 +9,6 @@ import (
 	"log"
 	"math"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -81,8 +80,7 @@ func (svc *Apollo) processIDs(tgtDir string, IDs []models.NodeIdentifier, wg *sy
 		} else {
 			filename := fmt.Sprintf("%s/%s.xml", tgtDir, ID.PID)
 			log.Printf("Write file %s", filename)
-			ioutil.WriteFile(filename, []byte(xml), 0644)
-			os.Chown(filename, 118698, 10708) // libsnlocal:	libr-snlocal
+			ioutil.WriteFile(filename, []byte(xml), 0777)
 		}
 	}
 	wg.Done()
@@ -102,11 +100,10 @@ func (svc *Apollo) GetSolrXML(nodeID int64) (string, error) {
 
 	// Now get collection info if the item is not it already
 	var ancestry *models.Node
-	if item.Parent != nil {
-		// log.Printf("ID %d is not a collection; getting ancestry", nodeID)
+	if item.Ancestry.Valid {
 		ancestry, _ = svc.DB.GetAncestry(item)
 	} else {
-		// log.Printf("ID %d is a collection", nodeID)
+		log.Printf("ID %d is a collection", nodeID)
 	}
 	var add solrAdd
 	var fields []solrField
@@ -246,7 +243,7 @@ func (svc *Apollo) getHierarchyXML(rootID int64, breadcrumbXML string) string {
 
 func walkHierarchy(node *models.Node, buffer *bytes.Buffer, itemCnt *int) {
 	// log.Printf("Walk node %s:%s", node.PID, node.Type.Name)
-	if node.Parent == nil {
+	if node.Ancestry.Valid == false {
 		buffer.WriteString("<collection>")
 		title := getValue(node, "title", "")
 		buffer.WriteString(fmt.Sprintf("<title>%s</title>", title))
@@ -282,7 +279,7 @@ func walkHierarchy(node *models.Node, buffer *bytes.Buffer, itemCnt *int) {
 		}
 	}
 
-	if node.Parent == nil {
+	if node.Ancestry.Valid == false {
 		buffer.WriteString("</collection>")
 	} else {
 		buffer.WriteString("</component>")
@@ -332,7 +329,12 @@ func (svc *Apollo) addIIIFMetadata(node *models.Node, fields *[]solrField) {
 	*fields = append(*fields, solrField{Name: "iiif_presentation_metadata_display", Value: iiifManifest})
 	*fields = append(*fields, solrField{Name: "feature_facet", Value: "pdf_service"})
 	*fields = append(*fields, solrField{Name: "pdf_url_display", Value: "http://pdfws.lib.virginia.edu:8088"})
-	*fields = append(*fields, solrField{Name: "thumbnail_url_display", Value: parseExemplar(iiifManifest)})
+	exemplar := parseExemplar(iiifManifest)
+	if exemplar == "" {
+		log.Printf("WARN: No thumbnail for %s", node.PID)
+	} else {
+		*fields = append(*fields, solrField{Name: "thumbnail_url_display", Value: exemplar})
+	}
 }
 
 func parseExemplar(iiifManifest string) string {
@@ -340,12 +342,14 @@ func parseExemplar(iiifManifest string) string {
 	//  "thumbnail":"https://iiif.lib.virginia.edu/iiif/tsm:2601265/full/!200,200/0/default.jpg",
 	// Parse out the url from between the quotes
 	idxThumb := strings.Index(iiifManifest, "thumbnail")
-	log.Printf("thumb idx %d", idxThumb)
+	if idxThumb == -1 {
+		return ""
+	}
 	fn := "default.jpg"
 	idxJPG := strings.Index(iiifManifest[idxThumb:len(iiifManifest)], fn)
 	idxJPG += idxThumb
 	log.Printf("thumb JPG %d", idxJPG)
-	if idxThumb == -1 || idxJPG == -1 || idxThumb > idxJPG {
+	if idxJPG == -1 || idxThumb > idxJPG {
 		log.Printf("ERROR: Couldn't find thumbnail in IIIF")
 		return ""
 	}

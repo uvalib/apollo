@@ -36,9 +36,7 @@ func (app *Apollo) PublishCollection(c *gin.Context) {
 	// setup a subdir for the dropoff, if it doesn already exist
 	tgtPath := fmt.Sprintf("%s/%s", app.SolrDir, c.Param("pid"))
 	if _, err := os.Stat(tgtPath); os.IsNotExist(err) {
-		os.Mkdir(tgtPath, 0644)
-	} else {
-		os.Chown(tgtPath, 118698, 10708) // libsnlocal:	libr-snlocal
+		os.Mkdir(tgtPath, 0777)
 	}
 
 	// Kick off the publication of all the items in the list in a goroutine
