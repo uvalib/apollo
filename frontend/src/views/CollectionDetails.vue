@@ -243,7 +243,7 @@
         let resp = confirm("Publish this collection?")
         if (!resp) return
 
-        axios.post("/api/publish/"+this.collection.pid).then(()  =>  {
+        axios.post("/api/publish/solr/"+this.collection.pid).then(()  =>  {
           alert("The publication process has been started. The collection will appear in Virgo within 24 hours.")
         }).catch((error) => {
           alert("Unable to publish collection: "+error.response)
