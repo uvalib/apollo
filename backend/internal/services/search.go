@@ -38,7 +38,7 @@ type hitRow struct {
 }
 
 // Search will search node values for the query string and return a struct containing match results
-func (svc *Apollo) Search(query string) *SearchResults {
+func (svc *ApolloSvc) Search(query string) *SearchResults {
 	query = strings.ToLower(query)
 	start := time.Now()
 	searchQ := `select n.id,n.pid,n.ancestry,nt.name as type,n.value,cv.value as controlled_value from nodes n 
@@ -57,11 +57,6 @@ func (svc *Apollo) Search(query string) *SearchResults {
 	// now, so this brute force grab is OK
 	collections := svc.DB.GetCollections()
 
-	apollorURL := fmt.Sprintf("https://%s", svc.Hostname)
-	if svc.HTTPS == false {
-		apollorURL = fmt.Sprintf("http://%s", svc.Hostname)
-	}
-
 	// Walk the rows from the search query and generate hit list for response
 	out := SearchResults{}
 	hits := 0
@@ -77,13 +72,13 @@ func (svc *Apollo) Search(query string) *SearchResults {
 			if coll.ID == collID {
 				hit.CollectionPID = coll.PID
 				hit.Title = coll.Title
-				hit.CollectionURL = fmt.Sprintf("%s/collections/%s", apollorURL, hit.CollectionPID)
+				hit.CollectionURL = fmt.Sprintf("%s/collections/%s", svc.ApolloURL, hit.CollectionPID)
 				break
 			}
 		}
 
 		// FIXME this is wrong; can only link direct to ITEMS, not the nodes that make them up
-		hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", apollorURL, hit.CollectionPID, hitRow.PID)
+		hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", svc.ApolloURL, hit.CollectionPID, hitRow.PID)
 
 		// see if the hit was in value or controlled value...
 		if strings.Contains(strings.ToLower(hitRow.Value), query) {
@@ -104,7 +99,7 @@ func (svc *Apollo) Search(query string) *SearchResults {
 
 // LookupIdentifier will accept any sort of known identifier and find a matching
 // Apollo ItemID which includes internal ID and PID
-func (svc *Apollo) LookupIdentifier(identifier string) (*models.NodeIdentifier, error) {
+func (svc *ApolloSvc) LookupIdentifier(identifier string) (*models.NodeIdentifier, error) {
 	log.Printf("Lookup identifier %s", identifier)
 
 	// First easy case; the identifier is an apollo PID

@@ -38,7 +38,7 @@ type breadcrumb struct {
 }
 
 // PublishSolrForItems will generate the Solr XML for all passed items, and publish it to the specified dir
-func (svc *Apollo) PublishSolrForItems(tgtDir string, IDs []models.NodeIdentifier, rootID int64) {
+func (svc *ApolloSvc) PublishSolrForItems(tgtDir string, IDs []models.NodeIdentifier, rootID int64) {
 	// chop up id list into blocks chunks that can be executed concurrenty
 	// limit the maximum number of concurrrent generation threads to 50
 	// to avoid choking the DB, tracksys or IIIF manifest service
@@ -71,7 +71,7 @@ func (svc *Apollo) PublishSolrForItems(tgtDir string, IDs []models.NodeIdentifie
 	log.Printf("Publication COMPLETE")
 }
 
-func (svc *Apollo) processIDs(tgtDir string, IDs []models.NodeIdentifier, wg *sync.WaitGroup) {
+func (svc *ApolloSvc) processIDs(tgtDir string, IDs []models.NodeIdentifier, wg *sync.WaitGroup) {
 	log.Printf("GOROUTINE: Process %v", IDs)
 	for _, ID := range IDs {
 		xml, err := svc.GetSolrXML(ID.ID)
@@ -90,7 +90,7 @@ func (svc *Apollo) processIDs(tgtDir string, IDs []models.NodeIdentifier, wg *sy
 // The general format is: <add><doc><field name="name"></field>, <field/>, ... </doc></add>
 // If a field has multiple values, just add multiple field elements with
 // the same name attribute
-func (svc *Apollo) GetSolrXML(nodeID int64) (string, error) {
+func (svc *ApolloSvc) GetSolrXML(nodeID int64) (string, error) {
 	// First, get this item regardless of its level (collection or item)
 	// log.Printf("Get SOLR XML for %d", nodeID)
 	item, dbErr := svc.DB.GetItem(nodeID)
@@ -217,7 +217,7 @@ func countComponents(node *models.Node) int {
 
 // Get the subtree rooted at the target node and convert it into an escaped
 // XML hierarchy document
-func (svc *Apollo) getHierarchyXML(rootID int64, breadcrumbXML string) string {
+func (svc *ApolloSvc) getHierarchyXML(rootID int64, breadcrumbXML string) string {
 	// log.Printf("Get hierarchy XML for node %d", rootID)
 	tree, err := svc.DB.GetTree(rootID)
 	if err != nil {
@@ -316,7 +316,7 @@ func getBreadcrumbs(node *models.Node, breadcrumbs *[]breadcrumb) {
 }
 
 // Get IIIF manifest for the target node and add data to the solr fields array
-func (svc *Apollo) addIIIFMetadata(node *models.Node, fields *[]solrField) {
+func (svc *ApolloSvc) addIIIFMetadata(node *models.Node, fields *[]solrField) {
 	pid := getValue(node, "externalPID", node.PID)
 	iiifManURL := fmt.Sprintf("%s/%s", svc.IIIFManifestURL, pid)
 	iiifManifest, err := getAPIResponse(iiifManURL)

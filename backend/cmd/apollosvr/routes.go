@@ -24,19 +24,23 @@ func initRoutes(app *handlers.Apollo) *gin.Engine {
 	{
 		api.GET("/aries", app.AriesPing)
 		api.GET("/aries/:id", app.AriesLookup)
-		api.GET("/search", app.SearchHandler)
 		api.GET("/collections", app.CollectionsIndex)
 		api.GET("/collections/:pid", app.CollectionsShow)
 		api.GET("/items/:pid", app.ItemShow)
-		api.POST("/qdc/:pid", app.GenerateQDC)
+		api.GET("/qdc/:pid", app.GenerateQDC)
+		api.GET("/search", app.SearchHandler)
 		api.GET("/solr/:pid", app.GenerateSolr)
 		api.GET("/types", app.TypesIndex)
 		api.GET("/users", app.UsersIndex)
 		api.GET("/users/:id", app.UsersShow)
 		api.GET("/values/:name", app.ValuesForName)
 
-		// require the user auth info in headers for these
-		api.POST("/publish/:pid", app.AuthMiddleware, app.PublishCollection)
+		// require the user auth info in headers for these (eventually)
+		pub := api.Group("/publish")
+		{
+			pub.POST("/qdc/:pid", app.PublishCollectionQDC)
+			pub.POST("/solr/:pid", app.AuthMiddleware, app.PublishCollection)
+		}
 	}
 
 	// add a catchall route that renders the index page.
