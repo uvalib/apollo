@@ -5,6 +5,7 @@
       <PageHeader
         main="Collection Details"
         :sub="title"
+        :globalSearch="false"
         :back="true"/>
       <LoadingSpinner v-if="loading" message="Loading collection details"/>
       <div v-else-if="Object.keys(collection).length === 0" class="content">
