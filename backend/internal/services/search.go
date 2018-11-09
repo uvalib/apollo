@@ -80,14 +80,16 @@ func (svc *ApolloSvc) Search(query string) *SearchResults {
 		}
 
 		// Lookup the PID of the parent container of the hit node
-		if parentPID, ok := pidMap[hitRow.ParentID]; ok {
-			hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", svc.ApolloURL, hit.CollectionPID, parentPID)
-		} else {
-			var parentPID string
+		parentPID := pidMap[hitRow.ParentID]
+		if parentPID == "" {
 			pq := "select pid from nodes where id=?"
 			svc.DB.Get(&parentPID, pq, hitRow.ParentID)
-			hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", svc.ApolloURL, hit.CollectionPID, parentPID)
 			pidMap[hitRow.ParentID] = parentPID
+		}
+		if parentPID != hit.CollectionPID {
+			hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", svc.ApolloURL, hit.CollectionPID, parentPID)
+		} else {
+			hit.ItemURL = fmt.Sprintf("%s/collections/%s", svc.ApolloURL, hit.CollectionPID)
 		}
 
 		// see if the hit was in value or controlled value...
