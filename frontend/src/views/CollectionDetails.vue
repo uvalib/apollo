@@ -319,11 +319,20 @@
 
       scrollToTarget: function() {
         let ele = $("li#"+this.targetPID)
+        
+        /// if this item has a digital object, click the ciew button to show it
         let doViewerBtn = ele.find("span.do-button")
-        doViewerBtn.trigger("click")
+        if ( doViewerBtn.length > 0) {
+          doViewerBtn.trigger("click")
+        } else {
+          ele.addClass("target")
+          setTimeout(function() {
+            ele.removeClass("target")
+          },1000)
+        }
 
         $([document.documentElement, document.body]).animate({
-          scrollTop: ele.offset().top-5
+          scrollTop: ele.offset().top-$(".fixed-header").outerHeight(true)
         }, 100);
       }
     }

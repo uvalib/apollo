@@ -22,18 +22,26 @@ export default class PinnedScroll {
     if (this.offsetId) {
       offset = $(this.offsetId).outerHeight(true)
     }
-    var fixedHeader = $(this.id)
-    if (fixedHeader.length === 0 ) return
-    let origVal = fixedHeader.data("origTop")
+
+    var fixedElement = $(this.id)
+    if (fixedElement.length === 0 ) return
+
+    // before anyhting is changed, record the original top of
+    // the fixed item in a data property so its position 
+    // can be restored
+    let origVal = fixedElement.data("origTop")
     if ( !origVal ) {
-      let ot = fixedHeader.offset().top
-      fixedHeader.data("origTop", ot)
+      let ot = fixedElement.offset().top
+      fixedElement.data("origTop", ot)
     }
+
+    // if the fixed item is scrolled where it would go offscreen,
+    // reset its top top keep it at the top of the display
     let scrollTop= $(window).scrollTop();
     if ( scrollTop >= this.pinTop ) {
-       fixedHeader.offset({top: scrollTop+offset});
+       fixedElement.offset({top: scrollTop+offset});
     } else {
-       fixedHeader.offset({top: fixedHeader.data("origTop")});
+       fixedElement.offset({top: fixedElement.data("origTop")});
     }
   }
 }

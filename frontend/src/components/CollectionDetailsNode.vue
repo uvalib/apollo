@@ -272,4 +272,7 @@
   .do-button:hover {
     opacity: 1;
   }
+  .target {
+    background: #efffef;
+  }
 </style>
