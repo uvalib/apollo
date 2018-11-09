@@ -1,41 +1,34 @@
 <template>
-   <span class="search">
-      <input type="text" id="search" :placeholder="searchPrompt" @keyup.enter="doSearch"/>
+   <span class="search-panel">
+      <input type="text" id="search-term" :value="query" placeholder="Search all collections..." @keyup.enter="doSearch"/>
    </span>
 </template>
 
 <script>
+   import router from '../router'
    export default {
-      name: 'ApolloSearch',
+      name: 'ApolloSearchPanel',
       props: {
-         global: Boolean
-      },
-      computed: {
-         searchPrompt: function() {
-            if (this.global) {
-               return "Search All Collections..."
-            }
-            return "Search Collection..."
-         }
+         query: String
       },
       methods: {
          doSearch: function() {
-            let val = $("#search").val().trim() 
+            let val = $("#search-term").val().trim() 
             if (val.length == 0) return
-            alert(val)
+            router.push({ path: '/search', query: { q: val }})
          }
       }
    }
 </script>
 
 <style scoped>
-   span.search {
+   span.search-panel {
       position: absolute;
       right: 0;
       bottom: 10px;
       width: 30%;
    }
-   #search {
+   #search-term {
       border-radius: 20px;
       width: 100%;
       box-sizing: border-box;

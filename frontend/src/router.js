@@ -3,9 +3,12 @@ import Router from 'vue-router'
 import CollectionList from './views/CollectionList'
 import CollectionDetails from './views/CollectionDetails'
 import ApolloError from './views/ApolloError'
+import ApolloSearch from './views/ApolloSearch'
 
 Vue.use(Router)
 
+// NOTE: requiresAuth is pucked up in App.vue and can be used to require
+// an backend authorized user check for access to the page. It is currently disabled
 export default new Router({
   mode: 'history',
   routes: [
@@ -29,6 +32,14 @@ export default new Router({
         id: route.params.id,          // pass the id and title params from the
         title: route.params.title,    // <router-link> tag in CollectionsList
         targetPID: route.query.item,  // Include ?item=PID as targetPID
+      })
+    },
+    {
+      path: '/search',
+      component: ApolloSearch,
+      meta: { requiresAuth: true },
+      props: (route) => ({
+        query: route.query.q
       })
     },
     {

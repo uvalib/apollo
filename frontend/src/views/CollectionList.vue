@@ -4,8 +4,7 @@
     <PageHeader
       main="Collections"
       sub="The following are all of the digitized serials managed by Apollo"
-      :globalSearch="true"
-      :back="false"/>
+    />
     <LoadingSpinner v-if="loading" message="Loading collections"/>
     <div v-else class="content">
       <table class="collection-list">

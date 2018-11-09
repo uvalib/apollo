@@ -3,21 +3,20 @@
     <!-- <span class="user">{{ this.user }}</span> -->
     <h2 class="page-header">{{ main }}</h2>
     <p class="page-header"><span v-html="sub"></span></p>
-    <ApolloSearch :global="globalSearch"/>
+    <ApolloSearchPanel :query="query"/>
   </div>
 </template>
 
 <script>
-  import ApolloSearch from '@/components/ApolloSearch'
+  import ApolloSearchPanel from '@/components/ApolloSearchPanel'
   export default {
     components: {
-      ApolloSearch
+      ApolloSearchPanel
     },
     props: {
       main: String,
       sub: String,
-      back: Boolean,
-      globalSearch: Boolean,
+      query: String
     },
     data: function () {
       return {
