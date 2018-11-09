@@ -31,6 +31,7 @@ type SearchResults struct {
 type hitRow struct {
 	ID              int64  `db:"id"`
 	PID             string `db:"pid"`
+	ParentID        int64  `db:"parent_id"`
 	Type            string `db:"type"`
 	Ancestry        string `db:"ancestry"`
 	Value           string `db:"value"`
@@ -41,7 +42,7 @@ type hitRow struct {
 func (svc *ApolloSvc) Search(query string) *SearchResults {
 	query = strings.ToLower(query)
 	start := time.Now()
-	searchQ := `select n.id,n.pid,n.ancestry,nt.name as type,n.value,cv.value as controlled_value from nodes n 
+	searchQ := `select n.id,n.pid,n.parent_id,n.ancestry,nt.name as type,n.value,cv.value as controlled_value from nodes n 
 		inner join node_types nt on nt.id=n.node_type_id
 		left join controlled_values cv on cv.id=n.value
 		where n.node_type_id != 6 and (n.value REGEXP ? or cv.value REGEXP ?)`
@@ -56,6 +57,7 @@ func (svc *ApolloSvc) Search(query string) *SearchResults {
 	// get minimal info on all collections; OID, PID and TItle. Only a few exist right
 	// now, so this brute force grab is OK
 	collections := svc.DB.GetCollections()
+	pidMap := make(map[int64]string)
 
 	// Walk the rows from the search query and generate hit list for response
 	out := SearchResults{}
@@ -77,8 +79,16 @@ func (svc *ApolloSvc) Search(query string) *SearchResults {
 			}
 		}
 
-		// FIXME this is wrong; can only link direct to ITEMS, not the nodes that make them up
-		hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", svc.ApolloURL, hit.CollectionPID, hitRow.PID)
+		// Lookup the PID of the parent container of the hit node
+		if parentPID, ok := pidMap[hitRow.ParentID]; ok {
+			hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", svc.ApolloURL, hit.CollectionPID, parentPID)
+		} else {
+			var parentPID string
+			pq := "select pid from nodes where id=?"
+			svc.DB.Get(&parentPID, pq, hitRow.ParentID)
+			hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", svc.ApolloURL, hit.CollectionPID, parentPID)
+			pidMap[hitRow.ParentID] = parentPID
+		}
 
 		// see if the hit was in value or controlled value...
 		if strings.Contains(strings.ToLower(hitRow.Value), query) {
