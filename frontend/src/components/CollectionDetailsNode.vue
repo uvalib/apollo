@@ -92,7 +92,7 @@
         // conert JSON to something like this:
         // https://doviewer.lib.virginia.edu/oembed?url=https%3A%2F%2Fdoviewer.lib.virginia.edu%2Fimages%2Fuva-lib%3A2528443
         let json = JSON.parse(attribute.values[0].value)
-        let qp = encodeURIComponent(process.env.VUE_APP_DOVIEWER_URL+"/"+json.type+"/"+json.id)
+        let qp = encodeURIComponent(process.env.VUE_APP_DOVIEWER_URL+"/view/"+json.id)
         let url = process.env.VUE_APP_DOVIEWER_URL+"/oembed?url="+qp+"&maxwidth=750"
         return url
       },
@@ -156,11 +156,12 @@
         node.addClass("selected")
         EventBus.$emit('viewer-clicked')
 
+        let dv = $("#object-viewer")
+        dv.empty()
+
         // grab the oembedURI and request embedding info
         let oembedUri = event.target.getAttribute('data-uri')
         axios.get(oembedUri).then((response)  =>  {
-          let dv = $("#object-viewer")
-          dv.empty()
           // set a global flag to make the browser think JS jas not all been
           // loaded. Without this, the JS file included in the response
           // will not load, and the viewer will not render
