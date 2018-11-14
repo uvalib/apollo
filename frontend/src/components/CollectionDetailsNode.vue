@@ -93,7 +93,7 @@
         // https://doviewer.lib.virginia.edu/oembed?url=https%3A%2F%2Fdoviewer.lib.virginia.edu%2Fimages%2Fuva-lib%3A2528443
         let json = JSON.parse(attribute.values[0].value)
         let qp = encodeURIComponent(process.env.VUE_APP_DOVIEWER_URL+"/view/"+json.id)
-        let url = process.env.VUE_APP_DOVIEWER_URL+"/oembed?url="+qp+"&maxwidth=750"
+        let url = process.env.VUE_APP_DOVIEWER_URL+"/oembed?url="+qp
         return url
       },
       showMore: function(attribute) {
