@@ -23,7 +23,7 @@
         <template v-else>
           <td colspan="2" class="do-buttons">
             <a class="do-button" :href="iiifManufestURL" target="_blank">IIIF Manifest</a>
-            <span :data-uri="getDoViewerURL(attribute)"
+            <span :data-uri="getCurioURL(attribute)"
               @click="digitalObjectClicked"
               class="do-button">View Digitial Object</span>
           </td>
@@ -85,15 +85,15 @@
           }
         }
       },
-      getDoViewerURL: function(attribute) {
+      getCurioURL: function(attribute) {
         if (attribute.values[0].value.includes("https://")) {
           return attribute.values[0].value
         }
         // conert JSON to something like this:
-        // https://doviewer.lib.virginia.edu/oembed?url=https%3A%2F%2Fdoviewer.lib.virginia.edu%2Fimages%2Fuva-lib%3A2528443
+        // https://curio.lib.virginia.edu/oembed?url=https%3A%2F%2Fcurio.lib.virginia.edu%2Fview%2Fuva-lib%3A2528443
         let json = JSON.parse(attribute.values[0].value)
-        let qp = encodeURIComponent(process.env.VUE_APP_DOVIEWER_URL+"/view/"+json.id)
-        let url = process.env.VUE_APP_DOVIEWER_URL+"/oembed?url="+qp
+        let qp = encodeURIComponent(process.env.VUE_APP_CURIO_URL+"/view/"+json.id)
+        let url = process.env.VUE_APP_CURIO_URL+"/oembed?url="+qp
         return url
       },
       showMore: function(attribute) {
