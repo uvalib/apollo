@@ -22,7 +22,7 @@
         </template>
         <template v-else>
           <td colspan="2" class="do-buttons">
-            <a class="do-button" :href="iiifManufestURL" target="_blank">IIIF Manifest</a>
+            <a v-if="hasIIIFManifest" class="do-button" :href="iiifManufestURL" target="_blank">IIIF Manifest</a>
             <span :data-uri="getCurioURL(attribute)"
               @click="digitalObjectClicked"
               class="do-button">View Digitial Object</span>
@@ -32,7 +32,7 @@
     </table>
     <ul v-if="open" v-show="open">
       <template v-for="child in model.children">
-        <CollectionDetailsNode :key="child.pid" :model="child" :depth="depth+1"/>
+        <CollectionDetailsItem :key="child.pid" :model="child" :depth="depth+1"/>
       </template>
     </ul>
   </li>
@@ -43,7 +43,7 @@
   import EventBus from './EventBus'
 
   export default {
-    name: 'CollectionDetailsNode',
+    name: 'CollectionDetailsItem',
     props: {
       model: Object,
       depth: Number
@@ -59,6 +59,12 @@
       },
       iiifManufestURL: function() {
         return process.env.VUE_APP_IIIF_MAN_URL+"/"+this.externalPID()+"/manifest.json"
+      },
+      hasIIIFManifest: function() {
+        if (this.model.type.name === "item") {
+          return false
+        }
+        return true
       }
     },
 

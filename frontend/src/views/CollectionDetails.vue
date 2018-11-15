@@ -28,7 +28,7 @@
               </div>
             </div>
             <ul class="collection">
-              <CollectionDetailsNode :model="collection" :depth="0"/>
+              <CollectionDetailsItem :model="collection" :depth="0"/>
             </ul>
           </div>
           <div class="pure-u-15-24">
@@ -49,7 +49,7 @@
   import moment from 'moment'
   import LoadingSpinner from '@/components/LoadingSpinner'
   import CollectionDetailsHeader from '@/components/CollectionDetailsHeader'
-  import CollectionDetailsNode from '@/components/CollectionDetailsNode'
+  import CollectionDetailsItem from '@/components/CollectionDetailsItem'
   import PageHeader from '@/components/PageHeader'
   import EventBus from '@/components/EventBus'
   import PinnedScroll from '@/components/PinnedScroll'
@@ -61,7 +61,7 @@
       ApolloError,
       LoadingSpinner,
       CollectionDetailsHeader,
-      CollectionDetailsNode,
+      CollectionDetailsItem,
       PageHeader
     },
 
