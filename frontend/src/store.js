@@ -23,6 +23,13 @@ const getters = {
     return state.error
   },
 
+  hasError: state => {
+    return state.error != null && state.error != ""
+  },
+
+  isLoading: state => {
+    return state.loading
+  },
   
   collectionsCount: state => {
     return state.collections.length
@@ -34,6 +41,9 @@ const getters = {
 const mutations = {
   setError (state, error) {
     state.error = error
+  },
+  setLoading (state, loading) {
+    state.loading = loading
   },
   setCollections(state, colls) {
     if (colls) {
@@ -48,6 +58,7 @@ const mutations = {
 // called from components like: this.$store.dispatch('action_name', data_object)
 const actions = {
   getCollections( ctx ) {
+    ctx.commit('setLoading', true) 
     axios.get("/api/collections").then((response)  =>  {
       if ( response.status === 200) {
         ctx.commit('setCollections', response.data )
@@ -59,22 +70,21 @@ const actions = {
       ctx.commit('setCollections', []) 
       ctx.commit('setError', "Internal Error: "+error) 
     }).finally(() => {
-      // FIXME
-      this.loading = false
+      ctx.commit('setLoading', false) 
     })
   },
 }
 
-// Plugin to listen for error messages being set. After a delay, clear them
-const errorPlugin = store => {
-  store.subscribe((mutation) => {
-    if (mutation.type === "setError") {
-      if ( mutation.payload != null ) {
-        setTimeout( ()=>{ store.commit('setError', null)}, 6000)
-      }
-    }
-  })
-}
+// // Plugin to listen for error messages being set. After a delay, clear them
+// const errorPlugin = store => {
+//   store.subscribe((mutation) => {
+//     if (mutation.type === "setError") {
+//       if ( mutation.payload != null ) {
+//         setTimeout( ()=>{ store.commit('setError', null)}, 6000)
+//       }
+//     }
+//   })
+// }
 
 // A Vuex instance is created by combining state, getters, actions and mutations
 export default new Vuex.Store({
@@ -82,5 +92,5 @@ export default new Vuex.Store({
   getters,
   actions,
   mutations,
-  plugins: [errorPlugin] 
+  plugins: [] 
 })

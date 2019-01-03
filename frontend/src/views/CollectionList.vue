@@ -1,11 +1,11 @@
 <template>
-  <ApolloError v-if="errorMsg" :message="errorMsg"/>
+  <ApolloError v-if="hasError" :message="error"/>
   <div v-else class="collections">
     <PageHeader
       main="Collections"
       sub="The following are all of the digitized serials managed by Apollo"
     />
-    <LoadingSpinner v-if="loading" message="Loading collections"/>
+    <LoadingSpinner v-if="isLoading" message="Loading collections"/>
     <div v-else class="content">
       <table class="collection-list">
         <tr><th></th><th class="right">PID</th><th>Title</th></tr>
@@ -24,30 +24,31 @@
 </template>
 
 <script>
-  import axios from 'axios'
+  import ApolloError from '@/views/ApolloError'
   import PageHeader from '@/components/PageHeader'
   import LoadingSpinner from '@/components/LoadingSpinner'
+  import { mapGetters } from 'vuex'
 
   export default {
     components: {
+      ApolloError,
       PageHeader,
       LoadingSpinner
     },
-    data: function () {
-      return {
-        collections: [],
-        loading: true,
-        errorMsg: null
-      }
+    computed: { 
+      // map getters for stuff like this.$store.blah to simple named properties
+      // not strictly necessary, but cleaner syntax/less code. Just list getter name
+      // to make the mapping. If you want to change the name do it something like
+      // doneCount: 'doneTodosCount'
+      ...mapGetters([
+        'isLoading',
+        'collections',
+        'hasError',
+        'error'
+      ])
     },
     created: function () {
-      axios.get("/api/collections").then((response)  =>  {
-        this.collections = response.data
-      }).catch((error) => {
-        this.errorMsg = error.response.data
-      }).finally(() => {
-        this.loading = false
-      })
+      this.$store.dispatch('getCollections')
     }
   }
 </script>
