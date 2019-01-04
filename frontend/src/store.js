@@ -9,7 +9,10 @@ const state = {
   collections: [],
   collectionDetails: {},
   error: null,
-  loading: false
+  loading: false,
+  viewerLoading: false,
+  viewerPID: null, 
+  viewerError: null
 }
 
 // state getter functions. All are functions that take state as the first param 
@@ -85,6 +88,15 @@ const getters = {
     }
     return ""
   },
+  viewerError: state => {
+    return state.viewerError
+  },
+  viewerPID: state => {
+    return state.viewerPID
+  },
+  isViewerLoading: state => {
+    return state.viewerLoading
+  }
 }
 
 // Synchronous updates to the state. Can be called directly in components like this:
@@ -105,7 +117,19 @@ const mutations = {
     if (detail) {
       state.collectionDetails = detail
     }
-  }
+  },
+  setViewerLoading (state, loading) {
+    state.viewerLoading = loading
+  },
+  setViewerError (state, error) {
+    state.viewerError = error
+    if (error != "") {
+      state.viewerPID = nil
+    }
+  },
+  setViewerPID (state, pid) {
+    state.viewerPID = pid
+  },
 }
 
 // Actions are asynchronous calls that commit mutatations to the state.

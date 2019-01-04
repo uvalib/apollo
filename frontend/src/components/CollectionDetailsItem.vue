@@ -160,7 +160,7 @@
         $(".selected").removeClass("selected")
         let node = $(event.target).closest(".node")
         node.addClass("selected")
-        EventBus.$emit('viewer-clicked')
+        this.$store.commit("setViewerLoading", true)
 
         let dv = $("#object-viewer")
         dv.empty()
@@ -173,14 +173,16 @@
           // will not load, and the viewer will not render
           window.embedScriptIncluded = false
           dv.append( $( response.data.html) )
-          EventBus.$emit('viewer-opened', this.model.pid)
+          this.$store.commit("setViewerPID", this.model.pid)
         }).catch((error) => {
           if ( error.message ) {
-            EventBus.$emit('viewer-error', error.message)
+            this.$store.commit("setViewerError", error.message)
           } else {
-            EventBus.$emit('viewer-error', error.response.data)
+            this.$store.commit("setViewerError", error.response.data)
           }
-        })
+        }).finally(() => {
+          this.$store.commit("setViewerLoading", false)
+        })  
       }
     }
   }

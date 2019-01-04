@@ -13,7 +13,7 @@
     <div class="pure-u-15-24">
       <h4 class="do-header">
         <span>Digitial Object Viewer</span>
-        <span v-if='!viewerVisible' class="hint">
+        <span v-if='!viewerPID' class="hint">
           Click 'View Digital Object' from the tree on the left to view it below
         </span>
         <span v-else class="helper-buttons">
@@ -26,33 +26,27 @@
 
 <script>
   import EventBus from '@/components/EventBus'
+  import { mapGetters } from 'vuex'
+
   export default {
-    name: '',
-    data: function () {
-      return {
-        viewerVisible: false,
-        viewerPID: null
-      }
+    name: 'CollectionDetailsHeader',
+    computed: {
+      ...mapGetters([
+        'viewerPID'
+      ])
     },
 
     mounted: function () {
-      EventBus.$on("viewer-opened", this.handleViewerOpened)
       EventBus.$on('node-destroyed', this.handleNodeDestroyed)
     },
 
     methods: {
-      handleViewerOpened: function(pid) {
-        this.viewerVisible = true
-        this.viewerPID = pid
-      },
-
       handleNodeDestroyed: function() {
         if (!this.viewerPID) return
         let tgt = $("#"+this.viewerPID)
         if (tgt.length === 0) {
           $("#object-viewer").empty()
-          this.viewerPID = null
-          this.viewerVisible = false
+          this.$store.commit("setViewerPID", null)
         }
       },
 

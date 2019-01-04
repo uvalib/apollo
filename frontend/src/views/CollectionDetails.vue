@@ -34,7 +34,7 @@
           <div class="pure-u-15-24">
             <ApolloError v-if="viewerError" :message="viewerError"/>
             <div v-else id="viewer-wrapper">
-              <LoadingSpinner v-if="viewerClicked" message="Loading digital object view"/>
+              <LoadingSpinner v-if="isViewerLoading" message="Loading digital object view"/>
               <div id="object-viewer"></div>
             </div>
           </div>
@@ -79,6 +79,8 @@
         'jsonLink',
         'fromSirsi',
         'sirsiLink',
+        'isViewerLoading',
+        'viewerError'
       ]), 
     },
 
@@ -90,14 +92,14 @@
 
     data: function () {
       return {
-        viewerClicked: false,
-        viewerError: null,
         ancestry: [],
         pinHeader: new PinnedScroll("div.fixed-header", 216),
         pinViewer: new PinnedScroll("#viewer-wrapper", 210, "div.fixed-header")
       }
     },
 
+    // Watch for changes in state to know when a collection is loaded. Use 
+    // this hook to expand tree to target item if one was specified
     watch: {
       'collectionDetails': function() {
         if (this.targetPID) {
@@ -118,9 +120,6 @@
     },
 
     mounted: function (){
-      EventBus.$on("viewer-clicked", this.handleViewerClicked)
-      EventBus.$on("viewer-opened", this.handleViewerOpened)
-      EventBus.$on("viewer-error", this.handleViewerError)
       EventBus.$on('node-mounted', this.handleNodeMounted)
       this.pinHeader.register()
       this.pinViewer.register()
@@ -136,7 +135,7 @@
         let m = moment(ts, "YYYY-MM-DDTHH:mm:ssZ")
         return m.utcOffset("+0000").format("YYYY-MM-DD hh:mma")
       },
-      
+
       // Walk the collection data and find the targetPID specified by the query params
       // Populate an array of ancestry data including node counts for the relevant tree branches
       getAncestry: function(currNode) {
@@ -175,20 +174,6 @@
             }
           }
         }
-      },
-
-      handleViewerClicked: function() {
-        this.viewerError = null
-        this.viewerClicked = true
-      },
-
-      handleViewerOpened: function() {
-        this.viewerClicked = false
-      },
-
-      handleViewerError: function(msg) {
-        this.viewerError = msg
-        this.viewerClicked = false
       },
 
       publishClicked: function() {
