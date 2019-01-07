@@ -92,31 +92,25 @@
 
     data: function () {
       return {
-        ancestry: [],
+        targetAncestry: [],
         pinHeader: new PinnedScroll("div.fixed-header", 216),
         pinViewer: new PinnedScroll("#viewer-wrapper", 210, "div.fixed-header")
       }
     },
 
-    // Watch for changes in state to know when a collection is loaded. Use 
-    // this hook to expand tree to target item if one was specified
-    watch: {
-      'collectionDetails': function() {
+    created: function () {
+      this.$store.dispatch('getCollectionDetails', this.id).then(()  =>  {
         if (this.targetPID) {
           // A target was specified; get a list of ancestor nodes
           // that can be used to expand the display tree to that item
           this.getAncestry(this.collectionDetails)
-          this.ancestry.reverse()
+          this.targetAncestry.reverse()
 
           // NOTE: for the first case, need to wait for one more node; the root itself
           // mount events come in for each child followed by one for root node
-          this.ancestry[0].childNodeCount+=1
+          this.targetAncestry[0].childNodeCount+=1
         }
-      }
-    },
-
-    created: function () {
-      this.$store.dispatch('getCollectionDetails', this.id)
+      })
     },
 
     mounted: function (){
@@ -137,10 +131,8 @@
       },
 
       // Walk the collection data and find the targetPID specified by the query params
-      // Populate an array of ancestry data including node counts for the relevant tree branches
+      // Populate an array of targetAncestry data including node counts for the relevant tree branches
       getAncestry: function(currNode) {
-        if ( this.targetPID.length == 0) return;
-
         if ( currNode.pid === this.targetPID ) {
           // its a match. Return true to start unwinding the recursion
           return true
@@ -149,7 +141,7 @@
           for (var idx in currNode.children) {
             if ( this.getAncestry(currNode.children[idx]) ) {
               // the target was hit in this branch. Add to ancestors and exit
-              this.ancestry.push( {pid: currNode.pid, childNodeCount: currNode.children.length} )
+              this.targetAncestry.push( {pid: currNode.pid, childNodeCount: currNode.children.length} )
               return true
             }
           }
@@ -160,17 +152,17 @@
 
       handleNodeMounted: function() {
         // only care about this event if a target was specified in the query params
-        if (this.targetPID && this.ancestry.length > 0) {
-          // Wait for each child of the ancestry node to be mounted
-          this.ancestry[0].childNodeCount -= 1
-          if ( this.ancestry[0].childNodeCount <= 0) {
+        if (this.targetPID && this.targetAncestry.length > 0) {
+          // Wait for each child of the targetAncestry node to be mounted
+          this.targetAncestry[0].childNodeCount -= 1
+          if ( this.targetAncestry[0].childNodeCount <= 0) {
             // Once all are mounted, toss the head of the list and
-            // open the next ancestor - or scrolll to target if all are open
-            this.ancestry.shift()
-            if ( this.ancestry.length == 0) {
+            // open the next ancestor - or scroll to target if all are open
+            this.targetAncestry.shift()
+            if ( this.targetAncestry.length == 0) {
               this.scrollToTarget()
             } else {
-              EventBus.$emit("expand-node", this.ancestry[0].pid)
+              EventBus.$emit("expand-node", this.targetAncestry[0].pid)
             }
           }
         }

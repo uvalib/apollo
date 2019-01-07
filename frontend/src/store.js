@@ -124,7 +124,7 @@ const mutations = {
   setViewerError (state, error) {
     state.viewerError = error
     if (error != "") {
-      state.viewerPID = nil
+      state.viewerPID = null
     }
   },
   setViewerPID (state, pid) {
@@ -156,19 +156,23 @@ const actions = {
 
   getCollectionDetails(ctx, collectionID) {
     ctx.commit('setLoading', true) 
-    axios.get("/api/collections/"+collectionID).then((response)  =>  {
-      let model = traverseCollectionDetail(response.data, {})
-      ctx.commit('setCollectionDetails', model)
-    }).catch((error) => {
-      ctx.commit('setCollectionDetails', {}) 
-      if (error.response ) {
-        ctx.commit('setError', error.response.data)
-      } else {
-        ctx.commit('setError', error)
-      }
-    }).finally(() => {
-      ctx.commit('setLoading', false) 
-    })  
+    return new Promise((resolve, reject) => {
+      axios.get("/api/collections/"+collectionID).then((response)  =>  {
+        let model = traverseCollectionDetail(response.data, {})
+        ctx.commit('setCollectionDetails', model)
+        resolve()
+      }).catch((error) => {
+        ctx.commit('setCollectionDetails', {}) 
+        if (error.response ) {
+          ctx.commit('setError', error.response.data)
+        } else {
+          ctx.commit('setError', error)
+        }
+        reject()
+      }).finally(() => {
+        ctx.commit('setLoading', false) 
+      })  
+    })
   }
 }
 
