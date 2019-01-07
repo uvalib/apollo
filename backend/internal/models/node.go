@@ -311,12 +311,16 @@ func (db *DB) AddNodes(mode string, nodes []*Node, parentID int64) error {
 	rootAncestry := parentAncestry
 	if parentAncestry != "" {
 		rootAncestry = fmt.Sprintf("%s/%d", parentAncestry, parentID)
+	} else {
+		rootAncestry = fmt.Sprintf("%d", parentID)
 	}
 
 	currSequence := nodes[0].Sequence
 	if mode == "append" && currSequence == 0 {
-		// in append mode, but no sequence speified, just pick a big sequence to start from
-		currSequence = 25
+		// in append mode, but no sequence speified, find largest sequence
+		var maxSequence int
+		db.QueryRow("select sequence from nodes where parent_id=? order by sequence desc limit 1", parentID).Scan(&maxSequence)
+		currSequence = (maxSequence + 1)
 	}
 
 	tx, err := db.Begin()

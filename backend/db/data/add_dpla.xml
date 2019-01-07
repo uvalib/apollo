@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<update>
+  <!-- Our mountain work -->
+  <append>
+    <parent>1</parent>
+    <dpla>0</dpla>
+  </append>
+
+  <!-- Our mountain work II -->
+  <append>
+    <parent>118</parent>
+    <dpla>0</dpla>
+  </append>
+
+  <!-- Daily Progress -->
+  <append>
+    <parent>1054</parent>
+    <dpla>0</dpla>
+  </append>
+
+  <!-- WSLS -->
+  <append>
+    <parent>109873</parent>
+    <dpla>1</dpla>
+  </append>
+</update>
