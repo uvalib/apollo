@@ -260,6 +260,10 @@
   .raw {
     background: rgb(240, 130, 40);
   }
+  span.toolbar-buttons {
+    margin-bottom: 8px;
+    display: inline-block;
+  }
   span.publish {
     background: #3a3;
   }
