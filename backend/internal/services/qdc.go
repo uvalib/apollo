@@ -146,6 +146,7 @@ func (svc *ApolloSvc) PublishQDCForItems(outDir string, collectionID int64, item
 
 	if limit <= 0 {
 		log.Printf("QDC generation done; %d records generated from %d total items", gen, cnt)
+		svc.DB.NodePublished("dpla", collectionID, svc.AuthComputingID)
 	}
 }
 

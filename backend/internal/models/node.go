@@ -31,19 +31,20 @@ type NodeIdentifier struct {
 // single PID.
 type Node struct {
 	NodeIdentifier
-	Parent      *Node          `json:"-"`
-	Sequence    int            `json:"sequence"`
-	Type        *NodeType      `json:"type"`
-	Value       string         `json:"value,omitempty"`
-	ValueURI    string         `json:"valueURI,omitempty"`
-	Children    []*Node        `json:"children,omitempty"`
-	User        *User          `json:"-"`
-	Deleted     bool           `json:"-"`
-	Current     bool           `json:"-"`
-	CreatedAt   time.Time      `db:"created_at" json:"createdAt"`
-	UpdatedAt   *time.Time     `db:"updated_at" json:"updatedAt,omitempty"`
-	PublishedAt *time.Time     `json:"publishedAt,omitempty"`
-	Ancestry    sql.NullString `json:"-"`
+	Parent         *Node          `json:"-"`
+	Sequence       int            `json:"sequence"`
+	Type           *NodeType      `json:"type"`
+	Value          string         `json:"value,omitempty"`
+	ValueURI       string         `json:"valueURI,omitempty"`
+	Children       []*Node        `json:"children,omitempty"`
+	User           *User          `json:"-"`
+	Deleted        bool           `json:"-"`
+	Current        bool           `json:"-"`
+	CreatedAt      time.Time      `db:"created_at" json:"createdAt"`
+	UpdatedAt      *time.Time     `db:"updated_at" json:"updatedAt,omitempty"`
+	PublishedAt    *time.Time     `json:"publishedAt,omitempty"`
+	QDCGeneratedAt *time.Time     `json:"qdcGeneratedAt,omitempty"`
+	Ancestry       sql.NullString `json:"-"`
 }
 
 func (n *Node) encodeValue(val string) string {
@@ -57,25 +58,27 @@ func (n *Node) encodeValue(val string) string {
 // MarshalJSON will encode the Node structure as JSON
 func (n *Node) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
-		PID         string     `json:"pid"`
-		Sequence    int        `json:"sequence"`
-		Type        *NodeType  `json:"type"`
-		Value       string     `json:"value,omitempty"`
-		ValueURI    string     `json:"valueURI,omitempty"`
-		CreatedAt   time.Time  `db:"created_at" json:"createdAt"`
-		UpdatedAt   *time.Time `db:"updated_at" json:"updatedAt,omitempty"`
-		PublishedAt *time.Time `json:"publishedAt,omitempty"`
-		Children    []*Node    `json:"children,omitempty"`
+		PID            string     `json:"pid"`
+		Sequence       int        `json:"sequence"`
+		Type           *NodeType  `json:"type"`
+		Value          string     `json:"value,omitempty"`
+		ValueURI       string     `json:"valueURI,omitempty"`
+		CreatedAt      time.Time  `db:"created_at" json:"createdAt"`
+		UpdatedAt      *time.Time `db:"updated_at" json:"updatedAt,omitempty"`
+		PublishedAt    *time.Time `json:"publishedAt,omitempty"`
+		QDCGeneratedAt *time.Time `json:"qdcGeneratedAt,omitempty"`
+		Children       []*Node    `json:"children,omitempty"`
 	}{
-		PID:         n.PID,
-		Sequence:    n.Sequence,
-		Type:        n.Type,
-		Value:       n.encodeValue(n.Value),
-		ValueURI:    n.ValueURI,
-		CreatedAt:   n.CreatedAt,
-		UpdatedAt:   n.UpdatedAt,
-		PublishedAt: n.PublishedAt,
-		Children:    n.Children,
+		PID:            n.PID,
+		Sequence:       n.Sequence,
+		Type:           n.Type,
+		Value:          n.encodeValue(n.Value),
+		ValueURI:       n.ValueURI,
+		CreatedAt:      n.CreatedAt,
+		UpdatedAt:      n.UpdatedAt,
+		PublishedAt:    n.PublishedAt,
+		QDCGeneratedAt: n.QDCGeneratedAt,
+		Children:       n.Children,
 	})
 }
 

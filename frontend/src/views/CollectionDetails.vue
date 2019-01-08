@@ -18,13 +18,20 @@
         <div class="content pure-g collection-detail">
           <div class="pure-u-9-24">
             <div class="toolbar">
-              <span @click="publishClicked" class="publish">Publish Collection</span>
-              <a class="raw" :href="jsonLink" target="_blank">JSON</a>
-              <a v-if="fromSirsi" class="sirsi" :href="sirsiLink" target="_blank">Sirsi</a>
+              <span class="toolbar-buttons">
+                <span @click="publishClicked" class="publish">Publish Collection</span>
+                <span v-if="dplaEnabled" @click="qdcClicked" class="publish">Generate QDC</span>
+                <a class="raw" :href="jsonLink" target="_blank">JSON</a>
+                <a v-if="fromSirsi" class="sirsi" :href="sirsiLink" target="_blank">Sirsi</a>
+                <a v-if="isPublished"  class="virgo" :href="virgoLink" target="_blank">Virgo</a>
+              </span>
               <div v-if="isPublished" class="publication">
                 <span class="label">Last Published:</span>
                 <span class="date">{{ formatDateTime(publishedAt) }}</span>
-                <a class="virgo" :href="virgoLink" target="_blank">Virgo</a>
+              </div>
+              <div v-if="hasQDC" class="publication">
+                <span class="label">QDC Generated:</span>
+                <span class="date">{{ formatDateTime(qdcGeneratedAt) }}</span>
               </div>
             </div>
             <ul class="collection">
@@ -80,8 +87,11 @@
         'fromSirsi',
         'sirsiLink',
         'isViewerLoading',
-        'viewerError'
-      ]), 
+        'viewerError',
+        'dplaEnabled',
+        'hasQDC',
+        'qdcGeneratedAt'
+      ])
     },
 
     props: {
@@ -167,7 +177,17 @@
           }
         }
       },
+      qdcClicked: function() {
+        let resp = confirm("Generate QDC this collection?")
+        if (!resp) return
 
+        axios.post("/api/publish/qdc/"+this.collectionDetails.pid+"?limit=1").then(()  =>  {
+          alert("QDC generation has started. Results will be in the holding directory with 24 hours.")
+        }).catch((error) => {
+          alert("Unable to generate QDC: "+error.response)
+        })
+
+      },
       publishClicked: function() {
         let resp = confirm("Publish this collection?")
         if (!resp) return
@@ -211,7 +231,7 @@
     padding: 10px 0;
   }
   .publication {
-    margin-top: 12px;
+    margin-top: 2px;
     font-size: 0.9em;
   }
   .publication .label {

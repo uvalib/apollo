@@ -43,6 +43,26 @@ const getters = {
   publishedAt: state => {
     return state.collectionDetails.publishedAt
   },
+  hasQDC: state => {
+    return state.collectionDetails.qdcGeneratedAt
+  },
+  qdcGeneratedAt: state => {
+    return state.collectionDetails.qdcGeneratedAt
+  },
+  dplaEnabled: state=>{
+    for (var idx in state.collectionDetails.attributes) {
+      let attr = state.collectionDetails.attributes[idx]
+      if (attr.type.name === "dpla"){
+        let val = attr.values[0].value
+        if (val === "1" || val === "yes" || val === "true") {
+          return true
+        } else {
+          return false
+        }
+      }
+    }
+    return false
+  },
   virgoLink: state => {
     let extPid = ""
     for (var idx in state.collectionDetails.attributes) {
@@ -233,6 +253,9 @@ function traverseCollectionDetail(json, currNode) {
   currNode.sequence = json.sequence
   if (json.publishedAt) {
     currNode.publishedAt = json.publishedAt
+  }
+  if (json.qdcGeneratedAt) {
+    currNode.qdcGeneratedAt = json.qdcGeneratedAt
   }
 }
 

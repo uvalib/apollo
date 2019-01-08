@@ -67,12 +67,11 @@ func (svc *ApolloSvc) PublishSolrForItems(tgtDir string, IDs []models.NodeIdenti
 
 	wg.Wait()
 	log.Printf("All goroutines done; flagging publication complete by [%s]", svc.AuthComputingID)
-	svc.DB.NodePublished(rootID, svc.AuthComputingID)
+	svc.DB.NodePublished("virgo", rootID, svc.AuthComputingID)
 	log.Printf("Publication COMPLETE")
 }
 
 func (svc *ApolloSvc) processIDs(tgtDir string, IDs []models.NodeIdentifier, wg *sync.WaitGroup) {
-	log.Printf("GOROUTINE: Process %v", IDs)
 	for _, ID := range IDs {
 		xml, err := svc.GetSolrXML(ID.ID)
 		if err != nil {
@@ -163,7 +162,8 @@ func (svc *ApolloSvc) GetSolrXML(nodeID int64) (string, error) {
 		}
 	}
 
-	if hasChild(item, "digitalObject") {
+	dobj := getValue(item, "digitalObject", "")
+	if strings.Index(dobj, "images") > -1 {
 		// log.Printf("This node has an associated digital object; getting IIIF manifest")
 		svc.addIIIFMetadata(item, &fields)
 	}

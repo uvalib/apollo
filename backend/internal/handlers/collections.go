@@ -32,6 +32,7 @@ func (app *Apollo) CollectionsShow(c *gin.Context) {
 		return
 	}
 	log.Printf("Collection tree retrieved from DB; sending to client")
-	root.PublishedAt = app.DB.GetLatestPublication(rootID.ID)
+	root.PublishedAt = app.DB.GetLatestPublication("virgo", rootID.ID)
+	root.QDCGeneratedAt = app.DB.GetLatestPublication("dpla", rootID.ID)
 	c.JSON(http.StatusOK, root)
 }
