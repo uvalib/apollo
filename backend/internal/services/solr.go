@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"text/template"
 	"time"
 
 	"github.com/uvalib/apollo/backend/internal/models"
@@ -23,7 +24,7 @@ type solrAdd struct {
 
 type solrDoc struct {
 	XMLName xml.Name `xml:"doc"`
-	Fields  *[]solrField
+	Fields  []*solrField
 }
 
 type solrField struct {
@@ -35,6 +36,13 @@ type solrField struct {
 type breadcrumb struct {
 	PID   string
 	Title string
+}
+
+type pbcoreData struct {
+	WSLSID   string
+	Duration string
+	Color    string
+	Sound    string
 }
 
 // PublishSolrForItems will generate the Solr XML for all passed items, and publish it to the specified dir
@@ -105,70 +113,71 @@ func (svc *ApolloSvc) GetSolrXML(nodeID int64) (string, error) {
 		log.Printf("ID %d is a collection", nodeID)
 	}
 	var add solrAdd
-	var fields []solrField
+	var fields []*solrField
 
 	// Generate the field mappings based on:
 	//    https://confluence.lib.virginia.edu/display/DCMD/Indexing+Apollo+Content+in+Virgo+3
 	// If the start node has a externalPID use it. If not, default to Apollo PID
 	outPID := getValue(item, "externalPID", item.PID)
-	fields = append(fields, solrField{Name: "id", Value: outPID})
-	fields = append(fields, solrField{Name: "source_facet", Value: "UVA Library Digital Repository"})
+	fields = append(fields, &solrField{Name: "id", Value: outPID})
+	fields = append(fields, &solrField{Name: "source_facet", Value: "UVA Library Digital Repository"})
 	var breadcrumbXML string
 	if ancestry == nil {
 		// the passed PID is for the collection
 		title := getValue(item, "title", "")
-		fields = append(fields, solrField{Name: "shadowed_location_facet", Value: "VISIBLE"})
-		fields = append(fields, solrField{Name: "collection_title_display", Value: title})
-		fields = append(fields, solrField{Name: "digital_collection_facet", Value: title})
-		fields = append(fields, solrField{Name: "collection_title_text", Value: title})
-		fields = append(fields, solrField{Name: "breadcrumbs_display", Value: "<breadcrumbs></breadcrumbs>"})
-		fields = append(fields, solrField{Name: "hierarchy_level_display", Value: "collection"})
+		fields = append(fields, &solrField{Name: "shadowed_location_facet", Value: "VISIBLE"})
+		fields = append(fields, &solrField{Name: "collection_title_display", Value: title})
+		fields = append(fields, &solrField{Name: "digital_collection_facet", Value: title})
+		fields = append(fields, &solrField{Name: "collection_title_text", Value: title})
+		fields = append(fields, &solrField{Name: "breadcrumbs_display", Value: "<breadcrumbs></breadcrumbs>"})
+		fields = append(fields, &solrField{Name: "hierarchy_level_display", Value: "collection"})
 	} else {
 		// the passed pid is an ITEM
 		title := getValue(ancestry, "title", "")
-		fields = append(fields, solrField{Name: "shadowed_location_facet", Value: "UNDISCOVERABLE"})
-		fields = append(fields, solrField{Name: "collection_title_display", Value: title})
-		fields = append(fields, solrField{Name: "digital_collection_facet", Value: title})
-		fields = append(fields, solrField{Name: "collection_title_text", Value: title})
+		fields = append(fields, &solrField{Name: "shadowed_location_facet", Value: "UNDISCOVERABLE"})
+		fields = append(fields, &solrField{Name: "collection_title_display", Value: title})
+		fields = append(fields, &solrField{Name: "digital_collection_facet", Value: title})
+		fields = append(fields, &solrField{Name: "collection_title_text", Value: title})
 		breadcrumbXML = getBreadcrumbXML(ancestry)
-		fields = append(fields, solrField{Name: "breadcrumbs_display", Value: breadcrumbXML})
+		fields = append(fields, &solrField{Name: "breadcrumbs_display", Value: breadcrumbXML})
 	}
 
-	fields = append(fields, solrField{Name: "feature_facet", Value: "dl_metadata"})
-	fields = append(fields, solrField{Name: "feature_facet", Value: "suppress_ris_export"})
-	fields = append(fields, solrField{Name: "feature_facet", Value: "suppress_refworks_export"})
-	fields = append(fields, solrField{Name: "feature_facet", Value: "suppress_endnote_export"})
-	fields = append(fields, solrField{Name: "date_received_facet", Value: getNow()})
+	fields = append(fields, &solrField{Name: "feature_facet", Value: "dl_metadata"})
+	fields = append(fields, &solrField{Name: "feature_facet", Value: "suppress_ris_export"})
+	fields = append(fields, &solrField{Name: "feature_facet", Value: "suppress_refworks_export"})
+	fields = append(fields, &solrField{Name: "feature_facet", Value: "suppress_endnote_export"})
+	fields = append(fields, &solrField{Name: "date_received_facet", Value: getNow()})
 
-	fields = append(fields, solrField{Name: "feature_facet", Value: "has_hierarchy"})
+	fields = append(fields, &solrField{Name: "feature_facet", Value: "has_hierarchy"})
 	hierarchyXML := svc.getHierarchyXML(nodeID, breadcrumbXML)
-	fields = append(fields, solrField{Name: "hierarchy_display", Value: hierarchyXML})
+	fields = append(fields, &solrField{Name: "hierarchy_display", Value: hierarchyXML})
 
 	title := getValue(item, "title", "")
-	fields = append(fields, solrField{Name: "main_title_display", Value: title})
-	fields = append(fields, solrField{Name: "title_display", Value: title})
-	fields = append(fields, solrField{Name: "title_text", Value: title})
-	fields = append(fields, solrField{Name: "full_title_text", Value: title})
+	fields = append(fields, &solrField{Name: "main_title_display", Value: title})
+	fields = append(fields, &solrField{Name: "title_display", Value: title})
+	fields = append(fields, &solrField{Name: "title_text", Value: title})
+	fields = append(fields, &solrField{Name: "full_title_text", Value: title})
 
 	if hasChild(item, "reel") {
 		reel := fmt.Sprintf("From Reel %s", getValue(item, "reel", ""))
-		fields = append(fields, solrField{Name: "abstract_display", Value: reel})
-		fields = append(fields, solrField{Name: "abstract_text", Value: reel})
+		fields = append(fields, &solrField{Name: "abstract_display", Value: reel})
+		fields = append(fields, &solrField{Name: "abstract_text", Value: reel})
 	} else if hasChild(item, "description") {
 		desc := getValue(item, "description", "")
 		if len(desc) > 0 {
-			fields = append(fields, solrField{Name: "abstract_display", Value: desc})
-			fields = append(fields, solrField{Name: "abstract_text", Value: desc})
+			fields = append(fields, &solrField{Name: "abstract_display", Value: desc})
+			fields = append(fields, &solrField{Name: "abstract_text", Value: desc})
 		}
 	}
 
 	dobj := getValue(item, "digitalObject", "")
 	if strings.Index(dobj, "images") > -1 {
-		// log.Printf("This node has an associated digital object; getting IIIF manifest")
 		svc.addIIIFMetadata(item, &fields)
+	} else if strings.Index(dobj, "wsls") > -1 {
+		svc.addWSLSMetadata(item, &fields)
 	}
 
-	add.Doc.Fields = &fields
+	add.Doc.Fields = fields
 	xmlOut, err := xml.MarshalIndent(add, "", "   ")
 	if err != nil {
 		return "", err
@@ -230,7 +239,6 @@ func (svc *ApolloSvc) getHierarchyXML(rootID int64, breadcrumbXML string) string
 	var counter int
 	walkHierarchy(tree, &buffer, &counter)
 
-	//return escapeXML(buffer.String())
 	out := buffer.String()
 	if breadcrumbXML != "" {
 		// replace the first instance of the component tag with
@@ -295,7 +303,6 @@ func getBreadcrumbXML(ancestry *models.Node) string {
 		out += fmt.Sprintf("<ancestor><id>%s</id><title>%s</title></ancestor>", bc.PID, bc.Title)
 	}
 	out += "</breadcrumbs>"
-	// return escapeXML(out)
 	return out
 }
 
@@ -315,8 +322,69 @@ func getBreadcrumbs(node *models.Node, breadcrumbs *[]breadcrumb) {
 	}
 }
 
+// Add WSLS metadata to the solrAdd record
+func (svc *ApolloSvc) addWSLSMetadata(node *models.Node, fields *[]*solrField) {
+	wslsID := getValue(node, "wslsID", "")
+	if wslsID == "" {
+		log.Printf("ERROR: WSLS ID NOT FOUND")
+		return
+	}
+	updateField(fields, "shadowed_location_facet", "VISIBLE")
+	*fields = append(*fields, &solrField{Name: "format_facet", Value: "Online"})
+	*fields = append(*fields, &solrField{Name: "content_model_facet", Value: "uva-lib:pbcore2CModel"})
+
+	abs := getValue(node, "abstract", "")
+	if abs != "" {
+		*fields = append(*fields, &solrField{Name: "abstract_text", Value: abs})
+	}
+
+	if strings.Compare(getValue(node, "hasVideo", "false"), "true") == 0 {
+		*fields = append(*fields, &solrField{Name: "format_facet", Value: "Video"})
+		*fields = append(*fields, &solrField{Name: "format_facet", Value: "Streaming Video"})
+	}
+	if strings.Compare(getValue(node, "hasScript", "false"), "true") == 0 {
+		*fields = append(*fields, &solrField{Name: "format_facet", Value: "Anchor Script"})
+		url := fmt.Sprintf("%s/wsls/%s/%s.pdf", svc.FedoraURL, wslsID, wslsID)
+		*fields = append(*fields, &solrField{Name: "anchor_script_pdf_url_display", Value: url})
+		url = fmt.Sprintf("%s/wsls/%s/%s-script-thumbnail.jpg", svc.FedoraURL, wslsID, wslsID)
+		*fields = append(*fields, &solrField{Name: "anchor_script_thumbnail_url_display", Value: url})
+		url = fmt.Sprintf("%s/wsls/%s/%s.txt", svc.FedoraURL, wslsID, wslsID)
+		*fields = append(*fields, &solrField{Name: "anchor_script_text_url_display", Value: url})
+		scriptTxt, err := getAPIResponse(url)
+		if err != nil {
+			log.Printf("Unable to get anchor script text: %s", err.Error())
+		} else {
+			*fields = append(*fields, &solrField{Name: "anchor_script_text", Value: scriptTxt})
+			*fields = append(*fields, &solrField{Name: "anchor_script_display", Value: scriptTxt})
+		}
+	}
+
+	// Add PBCore XML
+	var data pbcoreData
+	data.WSLSID = wslsID
+	data.Duration = getValue(node, "duration", "")
+	switch cid := getValue(node, "wslsColor", ""); cid {
+	case "2821":
+		data.Color = "BW"
+	case "2822":
+		data.Color = "BW neg"
+	default:
+		data.Color = "COLOR"
+	}
+	data.Sound = "Sound"
+	if getValue(node, "wslsTag", "") == "2824" {
+		data.Sound = "Silent"
+	}
+	pbcTemplate := template.Must(template.ParseFiles("./templates/pb_core.xml"))
+	var pbcBuf bytes.Buffer
+	if err := pbcTemplate.Execute(&pbcBuf, data); err != nil {
+		log.Printf("ERROR: Unable to render pbcCore template %s", err.Error())
+	}
+	*fields = append(*fields, &solrField{Name: "pbcore_display", Value: pbcBuf.String()})
+}
+
 // Get IIIF manifest for the target node and add data to the solr fields array
-func (svc *ApolloSvc) addIIIFMetadata(node *models.Node, fields *[]solrField) {
+func (svc *ApolloSvc) addIIIFMetadata(node *models.Node, fields *[]*solrField) {
 	pid := getValue(node, "externalPID", node.PID)
 	iiifManURL := fmt.Sprintf("%s/%s", svc.IIIFManifestURL, pid)
 	iiifManifest, err := getAPIResponse(iiifManURL)
@@ -324,16 +392,16 @@ func (svc *ApolloSvc) addIIIFMetadata(node *models.Node, fields *[]solrField) {
 		log.Printf("ERROR: Unable to retrieve IIIF Manifest: %s", err.Error())
 		return
 	}
-	*fields = append(*fields, solrField{Name: "format_facet", Value: "Online"})
-	*fields = append(*fields, solrField{Name: "feature_facet", Value: "iiif"})
-	*fields = append(*fields, solrField{Name: "iiif_presentation_metadata_display", Value: iiifManifest})
-	*fields = append(*fields, solrField{Name: "feature_facet", Value: "pdf_service"})
-	*fields = append(*fields, solrField{Name: "pdf_url_display", Value: "http://pdfws.lib.virginia.edu:8088"})
+	*fields = append(*fields, &solrField{Name: "format_facet", Value: "Online"})
+	*fields = append(*fields, &solrField{Name: "feature_facet", Value: "iiif"})
+	*fields = append(*fields, &solrField{Name: "iiif_presentation_metadata_display", Value: iiifManifest})
+	*fields = append(*fields, &solrField{Name: "feature_facet", Value: "pdf_service"})
+	*fields = append(*fields, &solrField{Name: "pdf_url_display", Value: "http://pdfws.lib.virginia.edu:8088"})
 	exemplar := parseExemplar(iiifManifest)
 	if exemplar == "" {
 		log.Printf("WARN: No thumbnail for %s", node.PID)
 	} else {
-		*fields = append(*fields, solrField{Name: "thumbnail_url_display", Value: exemplar})
+		*fields = append(*fields, &solrField{Name: "thumbnail_url_display", Value: exemplar})
 	}
 }
 
@@ -361,10 +429,13 @@ func parseExemplar(iiifManifest string) string {
 	return out
 }
 
-func escapeXML(src string) string {
-	var outBuf bytes.Buffer
-	xml.EscapeText(&outBuf, []byte(src))
-	return outBuf.String()
+func updateField(fields *[]*solrField, fieldName string, newValue string) {
+	for _, field := range *fields {
+		if strings.Compare(field.Name, fieldName) == 0 {
+			field.Value = newValue
+			break
+		}
+	}
 }
 
 func getAPIResponse(url string) (string, error) {
