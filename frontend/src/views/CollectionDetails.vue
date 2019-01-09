@@ -181,7 +181,7 @@
         let resp = confirm("Generate QDC this collection?")
         if (!resp) return
 
-        axios.post("/api/publish/qdc/"+this.collectionDetails.pid+"?limit=1").then(()  =>  {
+        axios.post("/api/publish/qdc/"+this.collectionDetails.pid).then(()  =>  {
           alert("QDC generation has started. Results will be in the holding directory with 24 hours.")
         }).catch((error) => {
           alert("Unable to generate QDC: "+error.response)
