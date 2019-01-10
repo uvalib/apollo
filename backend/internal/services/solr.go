@@ -493,4 +493,5 @@ func getPublishedDateFacet(dateStr string) string {
 		}
 		fmt.Printf("T: %s", t)
 	*/
+	return ""
 }
