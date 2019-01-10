@@ -369,20 +369,26 @@ func (svc *ApolloSvc) addWSLSMetadata(node *models.Node, fields *[]*solrField) {
 		*fields = append(*fields, &solrField{Name: "date_coverage_display", Value: dateCreated})
 		*fields = append(*fields, &solrField{Name: "date_coverage_text", Value: dateCreated})
 		*fields = append(*fields, &solrField{Name: "published_date_display", Value: dateCreated})
-		*fields = append(*fields, &solrField{Name: "published_date_facet", Value: dateCreated})
 		year := strings.Split(dateCreated, "-")[0]
 		*fields = append(*fields, &solrField{Name: "year_multisort_i", Value: year})
-		// <field name="published_date_facet">More than 50 years ago</field>
+		*fields = append(*fields, &solrField{Name: "published_date_facet", Value: getPublishedDateFacet(dateCreated)})
 	}
 
-	/*
-		      <field name="subject_facet">Violent crimes</field>
-		      <field name="subject_text">Violent crimes</field>
-		      <field name="subject_facet">Law enforcement</field>
-		      <field name="subject_text">Law enforcement</field>
-		      <field name="region_facet">Roanoke (Va.)</field>
-				<field name="region_text">Roanoke (Va.)</field>
-	*/
+	// add subjects (subject_facet and subject_text)
+	for _, c := range node.Children {
+		if c.Type.Name == "wslsTopic" {
+			*fields = append(*fields, &solrField{Name: "subject_facet", Value: c.Value})
+			*fields = append(*fields, &solrField{Name: "subject_text", Value: c.Value})
+		}
+	}
+
+	// add regions (region_facet and region_text)
+	for _, c := range node.Children {
+		if c.Type.Name == "wslsPlace" {
+			*fields = append(*fields, &solrField{Name: "region_facet", Value: c.Value})
+			*fields = append(*fields, &solrField{Name: "region_text", Value: c.Value})
+		}
+	}
 
 	// Add PBCore XML
 	var data pbcoreData
@@ -484,14 +490,26 @@ func getAPIResponse(url string) (string, error) {
 func getPublishedDateFacet(dateStr string) string {
 	// possible values: This year, Last 12 months, Last 3 years, Last 10 years,
 	// Last 50 years, More than 50 years ago
-	/*
-		x := "1756-01-07"
-		const RFC3339FullDate = "2006-01-02"
-		t, err := time.Parse(RFC3339FullDate, x)
-		if err != nil {
-			fmt.Printf("ERR: %s", err.Error())
-		}
-		fmt.Printf("T: %s", t)
-	*/
-	return ""
+	const RFC3339FullDate = "2006-01-02"
+	parsed, err := time.Parse(RFC3339FullDate, dateStr)
+	if err != nil {
+		log.Printf("Unable to parse date %s: %s", dateStr, err.Error())
+		return ""
+	}
+	thisYear := time.Now().Local().Year()
+	year := parsed.Year()
+	switch deltaYears := thisYear - year; deltaYears {
+	case 0:
+		return "This year"
+	case 1:
+		return "Last 12 Months"
+	case 3:
+		return "Last 3 Years"
+	case 10:
+		return "Last 10 Years"
+	case 50:
+		return "Last 50 Years"
+	default:
+		return "More than 50 years ago"
+	}
 }
