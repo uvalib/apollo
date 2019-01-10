@@ -40,6 +40,7 @@ type breadcrumb struct {
 
 type pbcoreData struct {
 	WSLSID   string
+	Abstract string
 	Duration string
 	Color    string
 	Sound    string
@@ -336,11 +337,14 @@ func (svc *ApolloSvc) addWSLSMetadata(node *models.Node, fields *[]*solrField) {
 	abs := getValue(node, "abstract", "")
 	if abs != "" {
 		*fields = append(*fields, &solrField{Name: "abstract_text", Value: abs})
+		*fields = append(*fields, &solrField{Name: "abstract_display", Value: abs})
 	}
 
 	if strings.Compare(getValue(node, "hasVideo", "false"), "true") == 0 {
 		*fields = append(*fields, &solrField{Name: "format_facet", Value: "Video"})
 		*fields = append(*fields, &solrField{Name: "format_facet", Value: "Streaming Video"})
+		url := fmt.Sprintf("%s/wsls/%s/%s.webm", svc.FedoraURL, wslsID, wslsID)
+		*fields = append(*fields, &solrField{Name: "url_display", Value: url})
 	}
 	if strings.Compare(getValue(node, "hasScript", "false"), "true") == 0 {
 		*fields = append(*fields, &solrField{Name: "format_facet", Value: "Anchor Script"})
@@ -359,20 +363,41 @@ func (svc *ApolloSvc) addWSLSMetadata(node *models.Node, fields *[]*solrField) {
 		}
 	}
 
+	// Date stuff; date is of format YYYY-MM-DD or just YYYY
+	dateCreated := getValue(node, "dateCreated", "")
+	if dateCreated != "" {
+		*fields = append(*fields, &solrField{Name: "date_coverage_display", Value: dateCreated})
+		*fields = append(*fields, &solrField{Name: "date_coverage_text", Value: dateCreated})
+		*fields = append(*fields, &solrField{Name: "published_date_display", Value: dateCreated})
+		*fields = append(*fields, &solrField{Name: "published_date_facet", Value: dateCreated})
+		year := strings.Split(dateCreated, "-")[0]
+		*fields = append(*fields, &solrField{Name: "year_multisort_i", Value: year})
+		// <field name="published_date_facet">More than 50 years ago</field>
+	}
+
+	/*
+		      <field name="subject_facet">Violent crimes</field>
+		      <field name="subject_text">Violent crimes</field>
+		      <field name="subject_facet">Law enforcement</field>
+		      <field name="subject_text">Law enforcement</field>
+		      <field name="region_facet">Roanoke (Va.)</field>
+				<field name="region_text">Roanoke (Va.)</field>
+	*/
+
 	// Add PBCore XML
 	var data pbcoreData
 	data.WSLSID = wslsID
+	data.Abstract = abs
 	data.Duration = getValue(node, "duration", "")
-	switch cid := getValue(node, "wslsColor", ""); cid {
-	case "2821":
-		data.Color = "BW"
-	case "2822":
-		data.Color = "BW neg"
-	default:
+	color := getValue(node, "wslsColor", "")
+	data.Color = "BW"
+	if strings.Contains(color, "color") {
 		data.Color = "COLOR"
+	} else if strings.Contains(color, "netagtives") {
+		data.Color = "BW neg"
 	}
 	data.Sound = "Sound"
-	if getValue(node, "wslsTag", "") == "2824" {
+	if strings.Contains(getValue(node, "wslsTag", ""), "silent") {
 		data.Sound = "Silent"
 	}
 	pbcTemplate := template.Must(template.ParseFiles("./templates/pb_core.xml"))
@@ -451,4 +476,21 @@ func getAPIResponse(url string) (string, error) {
 		return "", errors.New(respString)
 	}
 	return respString, nil
+}
+
+// getPublishedDateFacet accept a date in the form YYYY-MM-DD and returns a string to be
+// used in the  published_date_facet field. Details here:
+// https://confluence.lib.virginia.edu/pages/viewpage.action?spaceKey=SSE&title=Format+of+Solr+add+documents+for+the+new+Virgo+Index
+func getPublishedDateFacet(dateStr string) string {
+	// possible values: This year, Last 12 months, Last 3 years, Last 10 years,
+	// Last 50 years, More than 50 years ago
+	/*
+		x := "1756-01-07"
+		const RFC3339FullDate = "2006-01-02"
+		t, err := time.Parse(RFC3339FullDate, x)
+		if err != nil {
+			fmt.Printf("ERR: %s", err.Error())
+		}
+		fmt.Printf("T: %s", t)
+	*/
 }
