@@ -9,6 +9,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"text/template"
@@ -500,16 +501,12 @@ func getAPIResponse(url string) (string, error) {
 // used in the  published_date_facet field. Details here:
 // https://confluence.lib.virginia.edu/pages/viewpage.action?spaceKey=SSE&title=Format+of+Solr+add+documents+for+the+new+Virgo+Index
 func getPublishedDateFacet(dateStr string) string {
-	// possible values: This year, Last 12 months, Last 3 years, Last 10 years,
-	// Last 50 years, More than 50 years ago
-	const RFC3339FullDate = "2006-01-02"
-	parsed, err := time.Parse(RFC3339FullDate, dateStr)
-	if err != nil {
-		log.Printf("Unable to parse date %s: %s", dateStr, err.Error())
-		return ""
+	yearStr := strings.Split(dateStr, "-")[0]
+	if yearStr == "" {
+		return "More than 50 years ago"
 	}
+	year, _ := strconv.Atoi(yearStr)
 	thisYear := time.Now().Local().Year()
-	year := parsed.Year()
 	switch deltaYears := thisYear - year; deltaYears {
 	case 0:
 		return "This year"
