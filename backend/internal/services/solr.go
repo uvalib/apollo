@@ -197,10 +197,19 @@ func getNow() string {
 func getValue(node *models.Node, typeName string, defaultVal string) string {
 	for _, c := range node.Children {
 		if c.Type.Name == typeName {
-			return c.Value
+			return cleanXMLSting(c.Value)
 		}
 	}
 	return defaultVal
+}
+
+func cleanXMLSting(val string) string {
+	out := strings.Replace(val, "&", "&amp;", -1)
+	out = strings.Replace(out, "<", "&lt;", -1)
+	out = strings.Replace(out, ">", "&gt;", -1)
+	out = strings.Replace(out, "'", "&apos;", -1)
+	out = strings.Replace(out, "\"", "&quot;", -1)
+	return out
 }
 
 // Check if the source node contains a child of the specified type
@@ -334,10 +343,13 @@ func (svc *ApolloSvc) addWSLSMetadata(node *models.Node, fields *[]*solrField) {
 	*fields = append(*fields, &solrField{Name: "format_facet", Value: "Online"})
 	*fields = append(*fields, &solrField{Name: "content_model_facet", Value: "uva-lib:pbcore2CModel"})
 
-	abs := getValue(node, "abstract", "")
-	if abs != "" {
-		*fields = append(*fields, &solrField{Name: "abstract_text", Value: abs})
-		*fields = append(*fields, &solrField{Name: "abstract_display", Value: abs})
+	// set hierarchy_level_display; collection for top level, item for digitalObjects and series for others
+	if node.Ancestry.String == "" {
+		*fields = append(*fields, &solrField{Name: "hierarchy_level_display", Value: "collection"})
+	} else if hasChild(node, "digitalObject") {
+		*fields = append(*fields, &solrField{Name: "hierarchy_level_display", Value: "item"})
+	} else {
+		*fields = append(*fields, &solrField{Name: "hierarchy_level_display", Value: "series"})
 	}
 
 	if strings.Compare(getValue(node, "hasVideo", "false"), "true") == 0 {
@@ -393,7 +405,7 @@ func (svc *ApolloSvc) addWSLSMetadata(node *models.Node, fields *[]*solrField) {
 	// Add PBCore XML
 	var data pbcoreData
 	data.WSLSID = wslsID
-	data.Abstract = abs
+	data.Abstract = getValue(node, "abstract", "")
 	data.Duration = getValue(node, "duration", "")
 	color := getValue(node, "wslsColor", "")
 	data.Color = "BW"
