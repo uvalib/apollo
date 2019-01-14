@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c02 level="series" id="{{.PID}}">
+   <did>
+      <unittitle>{{.Title}}</unittitle>
+      <scopecontent>
+         <p>{{.Abstract}}</p>
+      </scopecontent>
+   </did>
+</c02>

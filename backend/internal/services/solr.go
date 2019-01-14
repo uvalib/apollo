@@ -39,6 +39,12 @@ type breadcrumb struct {
 	Title string
 }
 
+type rawEAD struct {
+	PID      string
+	Title    string
+	Abstract string
+}
+
 type pbcoreData struct {
 	WSLSID   string
 	Abstract string
@@ -172,13 +178,25 @@ func (svc *ApolloSvc) GetSolrXML(nodeID int64) (string, error) {
 		}
 	}
 
-	dobj := getValue(item, "digitalObject", "")
-	if strings.Index(dobj, "images") > -1 {
-		svc.addIIIFMetadata(item, &fields)
-	} else if strings.Index(dobj, "wsls") > -1 {
-		svc.addWSLSMetadata(item, &fields)
+	// set hierarchy_level_display; collection for top level, item for digitalObjects and series for others
+	if item.Ancestry.String == "" {
+		// No ancestors; this must be the collection-level item
+		svc.addEADFields("collection", item, &fields)
+	} else if hasChild(item, "digitalObject") {
+		// Digital Objects are the leaf nodes: item
+		fields = append(fields, &solrField{Name: "hierarchy_level_display", Value: "item"})
+		dobj := getValue(item, "digitalObject", "")
+		if strings.Index(dobj, "images") > -1 {
+			svc.addIIIFMetadata(item, &fields)
+		} else if strings.Index(dobj, "wsls") > -1 {
+			svc.addWSLSMetadata(item, &fields)
+		}
+	} else {
+		// everything else is just considered a series
+		svc.addEADFields("series", item, &fields)
 	}
 
+	// Marshall the structure into an XML document and return it as a string
 	add.Doc.Fields = fields
 	xmlOut, err := xml.MarshalIndent(add, "", "   ")
 	if err != nil {
@@ -227,12 +245,37 @@ func countComponents(node *models.Node) int {
 	count := 0
 	if len(node.Children) > 0 {
 		for _, c := range node.Children {
-			if len(c.Children) > 0 {
+			if len(c.Children) > 0 && getValue(c, "externalPID", "") != "" {
 				count++
 			}
 		}
 	}
 	return count
+}
+
+func (svc *ApolloSvc) addEADFields(level string, node *models.Node, fields *[]*solrField) {
+	*fields = append(*fields, &solrField{Name: "hierarchy_level_display", Value: level})
+	*fields = append(*fields, &solrField{Name: "feature_facet", Value: "display_ead_fragment"})
+	*fields = append(*fields, &solrField{Name: "feature_facet", Value: "has_ead_fragment"})
+	desc := strings.Replace(getValue(node, "description", ""), "\n\n", "\n", -1)
+	*fields = append(*fields, &solrField{Name: "scopecontent_display", Value: desc})
+	*fields = append(*fields, &solrField{Name: "scope_content_display",
+		Value: fmt.Sprintf("<scopecontent><p><![CDATA[%s]]></p></scopecontent>", desc)})
+
+	var data rawEAD
+	data.PID = node.PID
+	data.Abstract = fmt.Sprintf("<p>%s</p>", strings.Replace(desc, "\n", "</p><p>", -1))
+	data.Title = getValue(node, "title", "")
+	templateFile := "./templates/raw_ead.xml"
+	if level == "collection" {
+		templateFile = "./templates/ead_collection.xml"
+	}
+	eadTemplate := template.Must(template.ParseFiles(templateFile))
+	var buf bytes.Buffer
+	if err := eadTemplate.Execute(&buf, data); err != nil {
+		log.Printf("ERROR: Unable to render raw_ead template %s", err.Error())
+	}
+	*fields = append(*fields, &solrField{Name: "raw_ead_display", Value: buf.String()})
 }
 
 // Get the subtree rooted at the target node and convert it into an escaped
@@ -268,18 +311,26 @@ func walkHierarchy(node *models.Node, buffer *bytes.Buffer, itemCnt *int) {
 		buffer.WriteString(fmt.Sprintf("<title>%s</title>", title))
 		buffer.WriteString(fmt.Sprintf("<shorttitle>%s</shorttitle>", title))
 		buffer.WriteString(fmt.Sprintf("<component_count>%d</component_count>", countComponents(node)))
-		// buffer.WriteString("<digitized_component_count>0</digitized_component_count>")
+		desc := getValue(node, "description", "")
+		buffer.WriteString(fmt.Sprintf("<scopecontent><p>%s</p></scopecontent>", desc))
 	} else {
+		// Some data ingested from spreadsheet has no title nor external PID. Skip.
+		extPID := getValue(node, "externalPID", "")
+		if extPID == "" {
+			log.Printf("Node %s has no external PID, skipping", node.PID)
+			return
+		}
 		componentCnt := countComponents(node)
 		if componentCnt == 0 {
 			// if this node has no components, it is an item. count it
 			*itemCnt = *itemCnt + 1
-			if *itemCnt > 3 && bytes.Contains(buffer.Bytes(), []byte("<collection>")) == true {
+			if *itemCnt > 3 && (bytes.Contains(buffer.Bytes(), []byte("<collection>")) == true ||
+				bytes.Contains(buffer.Bytes(), []byte("<type>year")) == true) {
 				return
 			}
 		}
 		buffer.WriteString("<component>")
-		buffer.WriteString(fmt.Sprintf("<id>%s</id>", getValue(node, "externalPID", node.PID)))
+		buffer.WriteString(fmt.Sprintf("<id>%s</id>", extPID))
 		buffer.WriteString(fmt.Sprintf("<type>%s</type>", node.Type.Name))
 		title := getValue(node, "title", "")
 		buffer.WriteString(fmt.Sprintf("<unittitle>%s</unittitle>", title))
@@ -288,6 +339,11 @@ func walkHierarchy(node *models.Node, buffer *bytes.Buffer, itemCnt *int) {
 		if componentCnt > 0 {
 			buffer.WriteString(fmt.Sprintf("<component_count>%d</component_count>", componentCnt))
 			*itemCnt = 0
+		}
+
+		desc := getValue(node, "description", "")
+		if desc != "" {
+			buffer.WriteString(fmt.Sprintf("<scopecontent><p>%s</p></scopecontent>", desc))
 		}
 	}
 	// log.Printf("BEFORE CHILDREN=%d", localCnt)
@@ -343,15 +399,6 @@ func (svc *ApolloSvc) addWSLSMetadata(node *models.Node, fields *[]*solrField) {
 	updateField(fields, "shadowed_location_facet", "VISIBLE")
 	*fields = append(*fields, &solrField{Name: "format_facet", Value: "Online"})
 	*fields = append(*fields, &solrField{Name: "content_model_facet", Value: "uva-lib:pbcore2CModel"})
-
-	// set hierarchy_level_display; collection for top level, item for digitalObjects and series for others
-	if node.Ancestry.String == "" {
-		*fields = append(*fields, &solrField{Name: "hierarchy_level_display", Value: "collection"})
-	} else if hasChild(node, "digitalObject") {
-		*fields = append(*fields, &solrField{Name: "hierarchy_level_display", Value: "item"})
-	} else {
-		*fields = append(*fields, &solrField{Name: "hierarchy_level_display", Value: "series"})
-	}
 
 	if strings.Compare(getValue(node, "hasVideo", "false"), "true") == 0 {
 		*fields = append(*fields, &solrField{Name: "format_facet", Value: "Video"})
@@ -447,6 +494,19 @@ func (svc *ApolloSvc) addIIIFMetadata(node *models.Node, fields *[]*solrField) {
 	} else {
 		*fields = append(*fields, &solrField{Name: "thumbnail_url_display", Value: exemplar})
 	}
+
+	// FIXME
+	// if hasChild(item, "dateCreated") == false {
+	// 	// For these items, the date is encoded in the TITTLE
+	// 	// DP is formatted: 	Daily Progress, March 16, 1893
+	// 	// OMW 1 is formated: Vol. 1, no. 1, March, 1909
+	// 	// OMW II (the larger one) has no date. It looks like: Our Mountain Work, Vol. 22, no. 1
+	// 	title := getValue(item, "title", "")
+	// 	// fields = append(fields, &solrField{Name: "published_date_display", Value: dateCreated})
+	// 	// fields = append(fields, &solrField{Name: "year_multisort_i", Value: year})
+	// 	fields = append(fields, &solrField{Name: "published_date_facet", Value: "More than 50 years ago"})
+
+	// }
 }
 
 func parseExemplar(iiifManifest string) string {

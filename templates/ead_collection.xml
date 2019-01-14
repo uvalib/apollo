@@ -1,0 +1,25 @@
+<ead>
+   <eadheader>
+      <filedesc>
+         <titlestmt>
+            <titleproper>{{.Title}}</titleproper>
+         </titlestmt>
+      </filedesc>
+   </eadheader>
+   <frontmatter>
+      <titlepage>
+         <titleproper>{{.Title}}</titleproper>
+      </titlepage>
+   </frontmatter>
+   <archdesc level="collection">
+      <did>
+         <unittitle label="Title">{{.Title}}</unittitle>
+      </did>
+      <scopecontent>
+         <p>{{.Abstract}}</p>
+      </scopecontent>
+      <dsc type="in-depth">
+         <head>Contents List</head>
+      </dsc>
+   </archdesc>
+</ead>
