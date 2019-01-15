@@ -324,9 +324,11 @@ func walkHierarchy(node *models.Node, buffer *bytes.Buffer, itemCnt *int) {
 		if componentCnt == 0 {
 			// if this node has no components, it is an item. count it
 			*itemCnt = *itemCnt + 1
-			if *itemCnt > 3 && (bytes.Contains(buffer.Bytes(), []byte("<collection>")) == true ||
-				bytes.Contains(buffer.Bytes(), []byte("<type>year")) == true) {
-				return
+			if bytes.Contains(buffer.Bytes(), []byte("<unittitle>unknown</unittitle>")) == false {
+				if *itemCnt > 3 && (bytes.Contains(buffer.Bytes(), []byte("<collection>")) == true ||
+					bytes.Contains(buffer.Bytes(), []byte("<type>year")) == true) {
+					return
+				}
 			}
 		}
 		buffer.WriteString("<component>")
