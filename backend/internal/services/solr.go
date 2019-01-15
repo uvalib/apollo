@@ -495,18 +495,45 @@ func (svc *ApolloSvc) addIIIFMetadata(node *models.Node, fields *[]*solrField) {
 		*fields = append(*fields, &solrField{Name: "thumbnail_url_display", Value: exemplar})
 	}
 
-	// FIXME
-	// if hasChild(item, "dateCreated") == false {
-	// 	// For these items, the date is encoded in the TITTLE
-	// 	// DP is formatted: 	Daily Progress, March 16, 1893
-	// 	// OMW 1 is formated: Vol. 1, no. 1, March, 1909
-	// 	// OMW II (the larger one) has no date. It looks like: Our Mountain Work, Vol. 22, no. 1
-	// 	title := getValue(item, "title", "")
-	// 	// fields = append(fields, &solrField{Name: "published_date_display", Value: dateCreated})
-	// 	// fields = append(fields, &solrField{Name: "year_multisort_i", Value: year})
-	// 	fields = append(fields, &solrField{Name: "published_date_facet", Value: "More than 50 years ago"})
+	if hasChild(node, "dateCreated") == false {
+		// For these items, the date is encoded in the TITTLE
+		// OMW II (the larger one) has no date. It looks like: Our Mountain Work, Vol. 22, no. 1
+		// DP contains Daily Progress
+		title := getValue(node, "title", "")
+		bits := strings.Split(title, ",")
+		if strings.Contains(title, "Daily Progress") {
+			// DP is formatted: 	Daily Progress, March 16, 1893
+			yearStr := strings.TrimSpace(bits[len(bits)-1])
+			year, _ := strconv.Atoi(yearStr)
+			if year > 0 {
+				monthDay := strings.Split(strings.TrimSpace(bits[len(bits)-2]), " ")
+				day, _ := strconv.Atoi(monthDay[len(monthDay)-1])
+				*fields = append(*fields, &solrField{Name: "published_date_display", Value: fmt.Sprintf("%s-%s-%02d", yearStr, monthNameToMM(monthDay[0]), day)})
+				*fields = append(*fields, &solrField{Name: "year_multisort_i", Value: yearStr})
+			}
+		} else if strings.Contains(title, "Our Mountain Work,") == false {
+			// OMW 1 is formated: Vol. 1, no. 1, March, 1909
+			yearStr := strings.TrimSpace(bits[len(bits)-1])
+			year, _ := strconv.Atoi(yearStr)
+			if year > 0 {
+				month := strings.TrimSpace(bits[len(bits)-2])
+				*fields = append(*fields, &solrField{Name: "published_date_display", Value: fmt.Sprintf("%s-%s-uu", yearStr, monthNameToMM(month))})
+				*fields = append(*fields, &solrField{Name: "year_multisort_i", Value: yearStr})
+			}
+		}
+		*fields = append(*fields, &solrField{Name: "published_date_facet", Value: "More than 50 years ago"})
+	}
+}
 
-	// }
+func monthNameToMM(month string) string {
+	names := []string{"January", "February", "March", "April", "May", "June",
+		"July", "August", "September", "October", "November", "December"}
+	for idx, val := range names {
+		if val == month {
+			return fmt.Sprintf("%02d", idx+1)
+		}
+	}
+	return "uu"
 }
 
 func parseExemplar(iiifManifest string) string {
