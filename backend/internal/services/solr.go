@@ -399,6 +399,7 @@ func (svc *ApolloSvc) addWSLSMetadata(node *models.Node, fields *[]*solrField) {
 		return
 	}
 	updateField(fields, "shadowed_location_facet", "VISIBLE")
+	*fields = append(*fields, &solrField{Name: "identifier_text", Value: wslsID})
 	*fields = append(*fields, &solrField{Name: "format_facet", Value: "Online"})
 	*fields = append(*fields, &solrField{Name: "content_model_facet", Value: "uva-lib:pbcore2CModel"})
 
