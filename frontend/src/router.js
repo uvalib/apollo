@@ -39,7 +39,7 @@ export default new Router({
       component: ApolloSearch,
       meta: { requiresAuth: true },
       props: (route) => ({
-        query: route.query.q
+        passedQuery: route.query.q
       })
     },
     {

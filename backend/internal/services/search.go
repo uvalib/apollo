@@ -10,22 +10,29 @@ import (
 	"github.com/uvalib/apollo/backend/internal/models"
 )
 
+// CollectionHit contains all of the search hits grouped by collection
+type CollectionHit struct {
+	ID    int64  `json:"-"`
+	PID   string `json:"collection_pid"`
+	Title string `json:"collection_title"`
+	URL   string `json:"collection_url"`
+	Hits  *[]Hit `json:"hits"`
+}
+
 // Hit is one match found in the search
 type Hit struct {
-	CollectionPID string `json:"collection_pid"`
-	Title         string `json:"title"`
-	CollectionURL string `json:"collection_url"`
-	PID           string `json:"pid"`
-	Type          string `json:"item_type"`
-	Match         string `json:"match"`
-	ItemURL       string `json:"item_url"`
+	PID     string `json:"pid"`
+	Title   string `json:"title,omitempty"`
+	Type    string `json:"match_type"`
+	Match   string `json:"match"`
+	ItemURL string `json:"item_url"`
 }
 
 // SearchResults contains all of the results for a search operation
 type SearchResults struct {
-	Hits           int   `json:"hits"`
-	ResponseTimeMS int64 `json:"response_time_ms"`
-	Results        []Hit `json:"results,omitempty"`
+	Hits           int             `json:"hits"`
+	ResponseTimeMS int64           `json:"response_time_ms"`
+	Results        []CollectionHit `json:"results"`
 }
 
 type hitRow struct {
@@ -54,27 +61,32 @@ func (svc *ApolloSvc) Search(query string) *SearchResults {
 		return &SearchResults{Hits: 0, ResponseTimeMS: elapsedMS}
 	}
 
-	// get minimal info on all collections; OID, PID and TItle. Only a few exist right
-	// now, so this brute force grab is OK
-	collections := svc.DB.GetCollections()
+	// init blank search resutls and PID/ID scoreboard
+	collections := make([]CollectionHit, 0)
+	hits := 0
 	pidMap := make(map[int64]string)
 
+	// get minimal info on all collections; OID, PID and TItle. Only a few exist right
+	// now, so this brute force grab is OK
+	for _, coll := range svc.DB.GetCollections() {
+		hits := make([]Hit, 0)
+		collInfo := CollectionHit{ID: coll.ID, PID: coll.PID, Title: coll.Title,
+			URL: fmt.Sprintf("%s/collections/%s", svc.ApolloURL, coll.PID), Hits: &hits}
+		collections = append(collections, collInfo)
+	}
+
 	// Walk the rows from the search query and generate hit list for response
-	out := SearchResults{}
-	hits := 0
+	var hitCollection *CollectionHit
 	for rows.Next() {
-		hits++
+		// Parse the hit row, figure out which collection it was from (first part of ancestry)
+		// and find the matching CollectionHits object. It will be used to track this hit.
 		var hitRow hitRow
 		rows.StructScan(&hitRow)
-
-		hit := Hit{PID: hitRow.PID, Type: hitRow.Type}
-
+		hit := Hit{Type: hitRow.Type}
 		collID, _ := strconv.ParseInt(strings.Split(hitRow.Ancestry, "/")[0], 10, 64)
 		for _, coll := range collections {
 			if coll.ID == collID {
-				hit.CollectionPID = coll.PID
-				hit.Title = coll.Title
-				hit.CollectionURL = fmt.Sprintf("%s/collections/%s", svc.ApolloURL, hit.CollectionPID)
+				hitCollection = &coll
 				break
 			}
 		}
@@ -82,14 +94,25 @@ func (svc *ApolloSvc) Search(query string) *SearchResults {
 		// Lookup the PID of the parent container of the hit node
 		parentPID := pidMap[hitRow.ParentID]
 		if parentPID == "" {
+			// Mapping not found, look it up in DB and cache it in the map
 			pq := "select pid from nodes where id=?"
 			svc.DB.Get(&parentPID, pq, hitRow.ParentID)
 			pidMap[hitRow.ParentID] = parentPID
-		}
-		if parentPID != hit.CollectionPID {
-			hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", svc.ApolloURL, hit.CollectionPID, parentPID)
+			hit.PID = parentPID
 		} else {
-			hit.ItemURL = fmt.Sprintf("%s/collections/%s", svc.ApolloURL, hit.CollectionPID)
+			continue
+		}
+
+		// For non-top-level items, add a query param that allows a link directly to that item
+		if parentPID != hitCollection.PID {
+			hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", svc.ApolloURL, hitCollection.PID, parentPID)
+			if hit.Type != "title" {
+				// Non-title hit, grab the title for some context
+				pq := "select value from nodes where parent_id=? and node_type_id=2"
+				svc.DB.Get(&hit.Title, pq, hitRow.ParentID)
+			}
+		} else {
+			hit.ItemURL = fmt.Sprintf("%s/collections/%s", svc.ApolloURL, hitCollection.PID)
 		}
 
 		// see if the hit was in value or controlled value...
@@ -99,9 +122,22 @@ func (svc *ApolloSvc) Search(query string) *SearchResults {
 			hit.Match = hitRow.ControlledValue
 		}
 
-		out.Results = append(out.Results, hit)
+		hits++
+		*hitCollection.Hits = append(*hitCollection.Hits, hit)
 	}
 
+	// Fill in the final results
+	out := SearchResults{}
+	if hits > 0 {
+		for _, collResults := range collections {
+			if collResults.Hits != nil && len(*collResults.Hits) > 0 {
+				out.Results = append(out.Results, collResults)
+			}
+		}
+	} else {
+		log.Printf("Search for %s found no matches", query)
+		out.Results = []CollectionHit{}
+	}
 	elapsedNanoSec := time.Since(start)
 	elapsedMS := int64(elapsedNanoSec / time.Millisecond)
 	out.ResponseTimeMS = elapsedMS

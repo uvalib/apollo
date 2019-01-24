@@ -1,22 +1,31 @@
 <template>
    <span class="search-panel">
-      <input type="text" id="search-term" :value="query" placeholder="Search all collections..." @keyup.enter="doSearch"/>
+      <input type="text" id="search-term" :value="searchQuery" placeholder="Search all collections..." @keyup.enter="doSearch"/>
    </span>
 </template>
 
 <script>
    import router from '../router'
+   import { mapGetters } from 'vuex'
+   import { mapMutations } from 'vuex'
+
    export default {
       name: 'ApolloSearchPanel',
-      props: {
-         query: String
+      computed: { 
+         ...mapGetters([
+            'searchQuery',
+         ])
       },
       methods: {
          doSearch: function() {
             let val = $("#search-term").val().trim() 
             if (val.length == 0) return
+            this.setSearchQuery(val)
             router.push({ path: '/search', query: { q: val }})
-         }
+         },
+         ...mapMutations([
+            'setSearchQuery'
+         ])
       }
    }
 </script>

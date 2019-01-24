@@ -3,7 +3,7 @@
     <!-- <span class="user">{{ this.user }}</span> -->
     <h2 class="page-header">{{ main }}</h2>
     <p class="page-header"><span v-html="sub"></span></p>
-    <ApolloSearchPanel :query="query"/>
+    <ApolloSearchPanel/>
   </div>
 </template>
 
@@ -15,8 +15,7 @@
     },
     props: {
       main: String,
-      sub: String,
-      query: String
+      sub: String
     },
     data: function () {
       return {
