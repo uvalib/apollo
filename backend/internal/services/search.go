@@ -52,7 +52,7 @@ func (svc *ApolloSvc) Search(query string) *SearchResults {
 	searchQ := `select n.id,n.pid,n.parent_id,n.ancestry,nt.name as type,n.value,cv.value as controlled_value from nodes n 
 		inner join node_types nt on nt.id=n.node_type_id
 		left join controlled_values cv on cv.id=n.value
-		where n.node_type_id != 6 and (n.value REGEXP ? or cv.value REGEXP ?)`
+		where n.node_type_id != 6 and (n.value REGEXP ? or (cv.value REGEXP ? and nt.controlled_vocab = 1))`
 	rows, err := svc.DB.Queryx(searchQ, query, query)
 	if err != nil {
 		log.Printf("Query failed: %s", err.Error())
