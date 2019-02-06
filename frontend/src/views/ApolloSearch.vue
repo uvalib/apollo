@@ -60,7 +60,7 @@
 
       // Watch for changes in URL to detect new search term and redo the search
       watch: {
-         $route(to, from) {
+         $route(/*to, from*/) {
             this.search()
          },
       },
