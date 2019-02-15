@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -30,6 +31,10 @@ func ConnectDB(cfg *DBConfig) (*DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Database connection failed: %s", err.Error())
 	}
+	db.SetConnMaxLifetime(time.Minute * 5)
+	db.SetMaxIdleConns(5)
+	db.SetMaxOpenConns(5)
+
 	log.Printf("DB Connection established")
 	return &DB{db}, nil
 }
