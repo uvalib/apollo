@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,8 +10,9 @@ import (
 // HealthCheck : report health of this and associated services
 //
 func (h *Apollo) HealthCheck(c *gin.Context) {
-	_, err := h.DB.Query("SELECT 1")
+	err := h.DB.Ping()
 	if err != nil {
+		log.Printf("Healthcheck failure: %s", err)
 		// gin.H is a shortcut for map[string]interface{}
 		c.JSON(http.StatusInternalServerError, gin.H{"alive": "true", "mysql": "false"})
 		return
