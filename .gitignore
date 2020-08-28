@@ -15,5 +15,5 @@ env.*
 /pkg
 deploy.sh
 *.sh
-scripts
+/scripts
 buildtag.*
