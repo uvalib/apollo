@@ -53,8 +53,9 @@ func InitService(version string, cfg *apolloConfig) (*Apollo, error) {
 
 // HealthCheck will report health of this and associated services
 func (app *Apollo) HealthCheck(c *gin.Context) {
-	_, err := app.DB.Query("SELECT 1")
+	err := app.DB.Ping()
 	if err != nil {
+		log.Printf("Healthcheck failure: %s", err)
 		// gin.H is a shortcut for map[string]interface{}
 		c.JSON(http.StatusInternalServerError, gin.H{"alive": "true", "mysql": "false"})
 		return
