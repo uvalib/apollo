@@ -51,7 +51,8 @@ COPY --from=builder /build/bin/public $APP_HOME/bin/public
 RUN chown docker:sse /home/docker/.profile $APP_HOME/scripts/entry.sh $APP_HOME/bin/apollo && chmod 755 /home/docker/.profile $APP_HOME/scripts/entry.sh $APP_HOME/bin/apollo
 
 # Add the build tag
-COPY buildtag.* $APP_HOME/
+ARG BUILD_TAG
+RUN test -n "$BUILD_TAG" && touch $APP_HOME/buildtag.build-$BUILD_TAG || touch $APP_HOME/buildtag.build-0
 
 # Specify the user
 USER docker
