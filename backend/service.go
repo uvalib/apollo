@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -65,7 +67,18 @@ func (app *Apollo) HealthCheck(c *gin.Context) {
 
 // VersionInfo will report the version of the serivce
 func (app *Apollo) VersionInfo(c *gin.Context) {
-	c.String(http.StatusOK, "Apollo version %s", app.Version)
+	build := "unknown"
+
+	// cos our CWD is the bin directory
+	files, _ := filepath.Glob("../buildtag.*")
+	if len(files) == 1 {
+		build = strings.Replace(files[0], "../buildtag.", "", 1)
+	}
+
+	vMap := make(map[string]string)
+	vMap["version"] = app.Version
+	vMap["build"] = build
+	c.JSON(http.StatusOK, vMap)
 }
 
 // IgnoreFavicon is a dummy to handle browser favicon requests without warnings

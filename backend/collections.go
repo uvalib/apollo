@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -17,7 +18,16 @@ func (app *Apollo) ListCollections(c *gin.Context) {
 // GetCollection finds a collection by PID and returns details as json
 func (app *Apollo) GetCollection(c *gin.Context) {
 	pid := c.Param("pid")
-	log.Printf("Get collection for PID %s", pid)
+	tgtFormat := c.Query("format")
+	if tgtFormat == "" {
+		tgtFormat = "json"
+	}
+	if tgtFormat != "json" && tgtFormat != "xml" {
+		log.Printf("ERROR: Unsupported format for %s requested %s", tgtFormat, pid)
+		c.String(http.StatusBadRequest, fmt.Sprintf("unsupported format %s", tgtFormat))
+		return
+	}
+	log.Printf("Get collection for PID %s as %s", pid, tgtFormat)
 	rootID, dbErr := lookupIdentifier(&app.DB, pid)
 	if dbErr != nil {
 		log.Printf("ERROR: %s", dbErr.Error())
@@ -32,7 +42,17 @@ func (app *Apollo) GetCollection(c *gin.Context) {
 		return
 	}
 	log.Printf("Collection tree retrieved from DB; sending to client")
-	c.JSON(http.StatusOK, root)
+	if tgtFormat == "json" {
+		c.JSON(http.StatusOK, root)
+	} else {
+		xml, err := generateXML(root)
+		if err != nil {
+			log.Printf("ERROR: unable to generate XML for %s: %s", pid, err.Error())
+			c.String(http.StatusInternalServerError, "unable to generate XML content")
+			return
+		}
+		c.XML(http.StatusOK, xml)
+	}
 }
 
 // getCollections returns a list of all collections. Data is ID/PID/Title
@@ -49,4 +69,9 @@ func getCollections(db *DB) []Collection {
 		out = append(out, Collection{ID: val.ID, PID: val.PID, Title: title})
 	}
 	return out
+}
+
+func generateXML(node *Node) (string, error) {
+	log.Printf("Generate XML for collection %s", node.PID)
+	return "", fmt.Errorf("Not ready yet")
 }

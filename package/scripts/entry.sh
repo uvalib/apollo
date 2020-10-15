@@ -1,5 +1,14 @@
 # run application
 
+# run the migrations
+echo "Migrate DB"
+bin/migrate -path db -verbose -database "mysql://$APOLLO_DB_USER:$APOLLO_DB_PASSWD@tcp($APOLLO_DB_HOST)/$APOLLO_DB_NAME" up
+retVal=$?
+if [ $retVal -ne 0 ]; then
+   echo "Migration failed"
+   exit $?
+fi
+
 DEVUSER_OPT=""
 if [ -n "$APOLLO_DEVUSER" ]; then
    DEVUSER_OPT="-devuser $APOLLO_DEVUSER"

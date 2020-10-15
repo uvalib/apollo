@@ -14,5 +14,6 @@ vendor
 env.*
 /pkg
 deploy.sh
+run.sh
 buildtag.*
 /scripts
