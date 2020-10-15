@@ -4,25 +4,26 @@ import (
 	"flag"
 	"log"
 	"os"
-
-	"github.com/uvalib/apollo/backend/internal/models"
 )
 
-type apollosvrConfig struct {
-	dbConfig   models.DBConfig
-	port       int
-	devUser    string
-	solrDir    string
-	qdcDir     string
-	iiifManURL string
-	fedoraURL  string
-	hostname   string
+type dbConfig struct {
+	Host     string
+	Database string
+	User     string
+	Pass     string
 }
 
-func getConfig() apollosvrConfig {
+type apolloConfig struct {
+	dbConfig   dbConfig
+	port       int
+	devUser    string
+	iiifManURL string
+	apolloURL  string
+}
+
+func getConfig() apolloConfig {
 	log.Printf("Loading configuration...")
-	cfg := apollosvrConfig{}
-	defSolrDir := "/lib_content23/record_source_for_solr_cores/apollo/data/record_dropbox"
+	cfg := apolloConfig{}
 	flag.StringVar(&cfg.dbConfig.Host, "dbhost", os.Getenv("APOLLO_DB_HOST"), "DB Host (required)")
 	flag.StringVar(&cfg.dbConfig.Database, "dbname", os.Getenv("APOLLO_DB_NAME"), "DB Name (required)")
 	flag.StringVar(&cfg.dbConfig.User, "dbuser", os.Getenv("APOLLO_DB_USER"), "DB User (required)")
@@ -31,10 +32,7 @@ func getConfig() apollosvrConfig {
 	flag.IntVar(&cfg.port, "port", 8080, "Port to offer service on (default 8080)")
 	flag.StringVar(&cfg.devUser, "devuser", "", "Computing ID to use for fake authentication in dev mode")
 	flag.StringVar(&cfg.iiifManURL, "iiif", "https://iiifman.lib.virginia.edu/pid", "IIIF Manifest service URL")
-	flag.StringVar(&cfg.solrDir, "solr_dir", defSolrDir, "Dropoff dir for generated solr add docs")
-	flag.StringVar(&cfg.qdcDir, "qdc_dir", "/digiserv-delivery/patron/dpla/qdc", "Delivery dir for generated QDC files for DPLA")
-	flag.StringVar(&cfg.fedoraURL, "fedora", "http://fedora01.lib.virginia.edu", "Production Fedora instance")
-	flag.StringVar(&cfg.hostname, "host", "apollo.lib.virginia.edu", "Apollo Hostname")
+	flag.StringVar(&cfg.apolloURL, "apollo", "https://apollo.lib.virginia.edu", "Apollo URL")
 
 	flag.Parse()
 	log.Printf("%#v", cfg)

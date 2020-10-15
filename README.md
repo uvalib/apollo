@@ -3,7 +3,7 @@
 Apollo is a management system for digitized collections.
 
 ### System Requirements
-* GO version 1.11 or greater
+* GO version 1.12 or greater (mod required)
 * Node version 8.11.1 or higher (https://nodejs.org/en/)
 * Yarn version 1.10 or greater
 * vue-cli 3 version 3.0.5 or greater
@@ -34,13 +34,11 @@ For example: `./bin/apolloingest.darwin -src=db/data/mountainwork.xml`
 * GET /version : return service version info
 * GET /healthcheck : test health of system components; results returned as json
 * GET /api/search : Search for the term provided in the query string
-* GET /api/users : Get a json list of system users
-* GET /api/users/:ID : Get json details for a user
 * GET /api/types : Get a json list of registered node types
 * GET /api/values/:type : Get a json list of controlled values for a given node type
 * GET /api/collections : get a json list of collections
 * GET /api/collections/:PID : Get full details for the specified collection as json
-* GET /api/aries : Aries ping request 
+* GET /api/aries : Aries ping request
 * GET /api/aries/:ID : return apollo info for the specified ID
 
 ### Notes
@@ -55,11 +53,3 @@ Other environment variables are set in ./frontent/.env (production) and ./fronte
 Run the frontend in development mode with `yarn serve` from the frontend directory. All API resests from the frontend will be rediected to the local instance of the backend services.
 
 To run the backend in dev mode (without Shibboleth) you will also need to supply a fake devuser identifer with the launch command: `./apollosvr.linux -port 8085 -devuser x5ht`
-
-### Solr Generation
-
-To generate the Solr Add Xml documents, start up the server and front end. Navigate to the target collection. Click the green Publish Collection button and all of the Solr docs will be generated in the directory specified by the `solr_dir` param. By default this is ./tmp.
-
-### QDC Generation (WSLS Only)
-
-QDC generation is handle via a POST to an API endpoint using curl. The command: `curl -X POST http://server.name/api/qdc/uva-an109873`. The files will be generated in the directory specifed by the `qdc_dir` param which defaults to `/digiserv-delivery/patron/dpla/qdc`

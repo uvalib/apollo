@@ -2,18 +2,17 @@ GOCMD=go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
+GOGET = $(GOCMD) get
+GOMOD = $(GOCMD) mod
 
 build: darwin-srv deploy-templates web
 
 linux-full: linux-srv deploy-templates web
 
-all: darwin-srv linux-srv darwin-tools linux-tools web deploy-templates
-
-darwin-tools:
-	GOOS=darwin GOARCH=amd64 $(GOBUILD) -a -o bin/apolloingest.darwin backend/cmd/apolloingest/*.go
+all: darwin-srv linux-srv web deploy-templates
 
 darwin-srv:
-	GOOS=darwin GOARCH=amd64 $(GOBUILD) -a -o bin/apollosvr.darwin backend/cmd/apollosvr/*.go
+	GOOS=darwin GOARCH=amd64 $(GOBUILD) -a -o bin/apollosvr.darwin backend/*.go
 
 deploy-templates:
 	mkdir -p bin/
@@ -27,11 +26,15 @@ web:
 	rm -rf bin/public
 	mv frontend/dist bin/public
 
-linux-tools:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -a -installsuffix cgo -o bin/apolloingest.linux backend/cmd/apolloingest/*.go
-
 linux-srv:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -a -installsuffix cgo -o bin/apollosvr.linux backend/cmd/apollosvr/*.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -a -installsuffix cgo -o bin/apollosvr.linux backend/*.go
 
 clean:
+	$(GOCLEAN) ./backend/...
 	rm -rf bin
+
+dep:
+	cd frontend && yarn upgrade
+	$(GOGET) -u ./backend/btsrv/...
+	$(GOMOD) tidy
+	$(GOMOD) verify

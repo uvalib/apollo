@@ -11,13 +11,13 @@ const state = {
   error: null,
   loading: false,
   viewerLoading: false,
-  viewerPID: null, 
+  viewerPID: null,
   viewerError: null,
   searchQuery: null
 }
 
-// state getter functions. All are functions that take state as the first param 
-// and the getters themselves as the second param. Getter params are passed 
+// state getter functions. All are functions that take state as the first param
+// and the getters themselves as the second param. Getter params are passed
 // as a function. Access as a property like: this.$store.getters.NAME
 const getters = {
   searchQuery: state => {
@@ -44,76 +44,8 @@ const getters = {
   collectionFound: state => {
     return Object.keys(state.collectionDetails).length > 0
   },
-  isPublished: state => {
-    return state.collectionDetails.publishedAt
-  },
-  publishedAt: state => {
-    return state.collectionDetails.publishedAt
-  },
-  hasQDC: state => {
-    return state.collectionDetails.qdcGeneratedAt
-  },
-  qdcGeneratedAt: state => {
-    return state.collectionDetails.qdcGeneratedAt
-  },
-  dplaEnabled: state=>{
-    for (var idx in state.collectionDetails.attributes) {
-      let attr = state.collectionDetails.attributes[idx]
-      if (attr.type.name === "dpla"){
-        let val = attr.values[0].value
-        if (val === "1" || val === "yes" || val === "true") {
-          return true
-        } else {
-          return false
-        }
-      }
-    }
-    return false
-  },
-  virgoLink: state => {
-    let extPid = ""
-    for (var idx in state.collectionDetails.attributes) {
-      let attr = state.collectionDetails.attributes[idx]
-      if (attr.type.name === "externalPID"){
-        extPid = attr.values[0].value
-        break
-      }
-    }
-    return process.env.VUE_APP_VIRGO_URL+"/catalog/"+extPid
-  },
   jsonLink: state => {
     return "/api/collections/"+state.collectionDetails.pid
-  },
-  fromSirsi: state=> {
-    // A collection is from Sirsi if it has a barcode
-    for (var idx in state.collectionDetails.attributes) {
-      let attr = state.collectionDetails.attributes[idx]
-      if (attr.type.name === "barcode") return true
-    }
-    return false
-  },
-  sirsiLink: state => {
-    // This should only return a URL for nodes that
-    // are top level. A top level node will have a barcode and/or key
-    let barcode=""
-    let catalogKey = ""
-    for (var idx in state.collectionDetails.attributes) {
-      let attr = state.collectionDetails.attributes[idx]
-      if (attr.type.name === "barcode"){
-        barcode = attr.values[0].value
-      }
-      if (attr.type.name === "catalogKey") {
-        catalogKey = attr.values[0].value
-      }
-    }
-
-    if (barcode.length > 0) {
-      return process.env.VUE_APP_SOLR_URL+"/core/select/?q=barcode_facet:"+barcode
-    }
-    if (catalogKey.length > 0) {
-      return process.env.VUE_APP_SOLR_URL+"/core/select/?q=id:"+catalogKey
-    }
-    return ""
   },
   viewerError: state => {
     return state.viewerError
@@ -163,36 +95,36 @@ const mutations = {
 }
 
 // Actions are asynchronous calls that commit mutatations to the state.
-// All actions get context as a param which is essentially the entirety of the 
-// Vuex instance. It has access to all getters, setters and commit. They are 
+// All actions get context as a param which is essentially the entirety of the
+// Vuex instance. It has access to all getters, setters and commit. They are
 // called from components like: this.$store.dispatch('action_name', data_object)
 const actions = {
   getCollections( ctx ) {
-    ctx.commit('setLoading', true) 
+    ctx.commit('setLoading', true)
     axios.get("/api/collections").then((response)  =>  {
       if ( response.status === 200) {
         ctx.commit('setCollections', response.data )
       } else {
-        ctx.commit('setCollections', []) 
-        ctx.commit('setError', "Internal Error: "+response.data) 
+        ctx.commit('setCollections', [])
+        ctx.commit('setError', "Internal Error: "+response.data)
       }
     }).catch((error) => {
-      ctx.commit('setCollections', []) 
-      ctx.commit('setError', "Internal Error: "+error) 
+      ctx.commit('setCollections', [])
+      ctx.commit('setError', "Internal Error: "+error)
     }).finally(() => {
-      ctx.commit('setLoading', false) 
+      ctx.commit('setLoading', false)
     })
   },
 
   getCollectionDetails(ctx, collectionID) {
-    ctx.commit('setLoading', true) 
+    ctx.commit('setLoading', true)
     return new Promise((resolve, reject) => {
       axios.get("/api/collections/"+collectionID).then((response)  =>  {
         let model = traverseCollectionDetail(response.data, {})
         ctx.commit('setCollectionDetails', model)
         resolve()
       }).catch((error) => {
-        ctx.commit('setCollectionDetails', {}) 
+        ctx.commit('setCollectionDetails', {})
         if (error.response ) {
           ctx.commit('setError', error.response.data)
         } else {
@@ -200,17 +132,17 @@ const actions = {
         }
         reject()
       }).finally(() => {
-        ctx.commit('setLoading', false) 
-      })  
+        ctx.commit('setLoading', false)
+      })
     })
   }
 }
 
-// recursive walk of json collection heirarchy into a format more suited 
-// for presntation. Instead of a list of heirarchical nodes, convert to 
-// items and attributes. Items contain other items and attributes. Attributes 
-// are just name/value pairs. Both items and Attributes have some common metadata: 
-// PID, Type and Sequence. 
+// recursive walk of json collection heirarchy into a format more suited
+// for presntation. Instead of a list of heirarchical nodes, convert to
+// items and attributes. Items contain other items and attributes. Attributes
+// are just name/value pairs. Both items and Attributes have some common metadata:
+// PID, Type and Sequence.
 function traverseCollectionDetail(json, currNode) {
   // init data that is common to all node types (and is single instance):
   // pid, type, sequence and (if present) published date
@@ -261,12 +193,6 @@ function traverseCollectionDetail(json, currNode) {
   currNode.pid = json.pid
   currNode.type = json.type
   currNode.sequence = json.sequence
-  if (json.publishedAt) {
-    currNode.publishedAt = json.publishedAt
-  }
-  if (json.qdcGeneratedAt) {
-    currNode.qdcGeneratedAt = json.qdcGeneratedAt
-  }
 }
 
 // See of the list of attributes already includes the attribute spacified
@@ -286,5 +212,5 @@ export default new Vuex.Store({
   getters,
   actions,
   mutations,
-  plugins: [] 
+  plugins: []
 })

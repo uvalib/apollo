@@ -1,26 +1,27 @@
-package services
+package main
 
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/uvalib/apollo/backend/internal/models"
+	"github.com/gin-gonic/gin"
 )
 
 // CollectionHit contains all of the search hits grouped by collection
 type CollectionHit struct {
-	ID    int64  `json:"-"`
-	PID   string `json:"collection_pid"`
-	Title string `json:"collection_title"`
-	URL   string `json:"collection_url"`
-	Hits  *[]Hit `json:"hits"`
+	ID    int64        `json:"-"`
+	PID   string       `json:"collection_pid"`
+	Title string       `json:"collection_title"`
+	URL   string       `json:"collection_url"`
+	Hits  *[]SearchHit `json:"hits"`
 }
 
-// Hit is one match found in the search
-type Hit struct {
+// SearchHit is one match found in the search
+type SearchHit struct {
 	PID     string `json:"pid"`
 	Title   string `json:"title,omitempty"`
 	Type    string `json:"match_type"`
@@ -33,32 +34,35 @@ type SearchResults struct {
 	Hits           int             `json:"hits"`
 	ResponseTimeMS int64           `json:"response_time_ms"`
 	Results        []CollectionHit `json:"results"`
+	Status         int             `json:"-"`
+	Message        string          `json:"-"`
 }
 
-type hitRow struct {
-	ID              int64  `db:"id"`
-	PID             string `db:"pid"`
-	ParentID        int64  `db:"parent_id"`
-	Type            string `db:"type"`
-	Ancestry        string `db:"ancestry"`
-	Value           string `db:"value"`
-	ControlledValue string `db:"controlled_value"`
+// SearchHandler will search for the terms included in the query string in all collections
+func (app *Apollo) SearchHandler(c *gin.Context) {
+	qs := c.Query("q")
+	if qs == "" {
+		c.String(http.StatusBadRequest, "missing query term")
+		return
+	}
+	res := app.searchAll(qs)
+	c.JSON(http.StatusOK, res)
 }
 
 // Search will search node values for the query string and return a struct containing match results
-func (svc *ApolloSvc) Search(query string) *SearchResults {
+func (app *Apollo) searchAll(query string) *SearchResults {
 	query = strings.ToLower(query)
 	start := time.Now()
-	searchQ := `select n.id,n.pid,n.parent_id,n.ancestry,nt.name as type,n.value,cv.value as controlled_value from nodes n 
+	searchQ := `select n.id,n.pid,n.parent_id,n.ancestry,nt.name as type,n.value,cv.value as controlled_value from nodes n
 		inner join node_types nt on nt.id=n.node_type_id
 		left join controlled_values cv on cv.id=n.value
 		where n.node_type_id != 6 and (n.value REGEXP ? or (cv.value REGEXP ? and nt.controlled_vocab = 1))`
-	rows, err := svc.DB.Queryx(searchQ, query, query)
+	rows, err := app.DB.Queryx(searchQ, query, query)
 	if err != nil {
-		log.Printf("Query failed: %s", err.Error())
+		log.Printf("ERROR: Search for %s failed: %s", query, err.Error())
 		elapsedNanoSec := time.Since(start)
 		elapsedMS := int64(elapsedNanoSec / time.Millisecond)
-		return &SearchResults{Hits: 0, ResponseTimeMS: elapsedMS}
+		return &SearchResults{Hits: 0, ResponseTimeMS: elapsedMS, Status: http.StatusNotFound, Message: err.Error()}
 	}
 
 	// init blank search resutls and PID/ID scoreboard
@@ -68,11 +72,21 @@ func (svc *ApolloSvc) Search(query string) *SearchResults {
 
 	// get minimal info on all collections; OID, PID and TItle. Only a few exist right
 	// now, so this brute force grab is OK
-	for _, coll := range svc.DB.GetCollections() {
-		hits := make([]Hit, 0)
+	for _, coll := range getCollections(&app.DB) {
+		hits := make([]SearchHit, 0)
 		collInfo := CollectionHit{ID: coll.ID, PID: coll.PID, Title: coll.Title,
-			URL: fmt.Sprintf("%s/collections/%s", svc.ApolloURL, coll.PID), Hits: &hits}
+			URL: fmt.Sprintf("%s/collections/%s", app.ApolloURL, coll.PID), Hits: &hits}
 		collections = append(collections, collInfo)
+	}
+
+	type hitRow struct {
+		ID              int64  `db:"id"`
+		PID             string `db:"pid"`
+		ParentID        int64  `db:"parent_id"`
+		Type            string `db:"type"`
+		Ancestry        string `db:"ancestry"`
+		Value           string `db:"value"`
+		ControlledValue string `db:"controlled_value"`
 	}
 
 	// Walk the rows from the search query and generate hit list for response
@@ -82,7 +96,7 @@ func (svc *ApolloSvc) Search(query string) *SearchResults {
 		// and find the matching CollectionHits object. It will be used to track this hit.
 		var hitRow hitRow
 		rows.StructScan(&hitRow)
-		hit := Hit{Type: hitRow.Type}
+		hit := SearchHit{Type: hitRow.Type}
 		collID, _ := strconv.ParseInt(strings.Split(hitRow.Ancestry, "/")[0], 10, 64)
 		for _, coll := range collections {
 			if coll.ID == collID {
@@ -96,7 +110,7 @@ func (svc *ApolloSvc) Search(query string) *SearchResults {
 		if parentPID == "" {
 			// Mapping not found, look it up in DB and cache it in the map
 			pq := "select pid from nodes where id=?"
-			svc.DB.Get(&parentPID, pq, hitRow.ParentID)
+			app.DB.Get(&parentPID, pq, hitRow.ParentID)
 			pidMap[hitRow.ParentID] = parentPID
 			hit.PID = parentPID
 		} else {
@@ -105,14 +119,14 @@ func (svc *ApolloSvc) Search(query string) *SearchResults {
 
 		// For non-top-level items, add a query param that allows a link directly to that item
 		if parentPID != hitCollection.PID {
-			hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", svc.ApolloURL, hitCollection.PID, parentPID)
+			hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", app.ApolloURL, hitCollection.PID, parentPID)
 			if hit.Type != "title" {
 				// Non-title hit, grab the title for some context
 				pq := "select value from nodes where parent_id=? and node_type_id=2"
-				svc.DB.Get(&hit.Title, pq, hitRow.ParentID)
+				app.DB.Get(&hit.Title, pq, hitRow.ParentID)
 			}
 		} else {
-			hit.ItemURL = fmt.Sprintf("%s/collections/%s", svc.ApolloURL, hitCollection.PID)
+			hit.ItemURL = fmt.Sprintf("%s/collections/%s", app.ApolloURL, hitCollection.PID)
 		}
 
 		// see if the hit was in value or controlled value...
@@ -145,17 +159,17 @@ func (svc *ApolloSvc) Search(query string) *SearchResults {
 	return &out
 }
 
-// LookupIdentifier will accept any sort of known identifier and find a matching
+// lookupIdentifier will accept any sort of known identifier and find a matching
 // Apollo ItemID which includes internal ID and PID
-func (svc *ApolloSvc) LookupIdentifier(identifier string) (*models.NodeIdentifier, error) {
+func lookupIdentifier(db *DB, identifier string) (*NodeIdentifier, error) {
 	log.Printf("Lookup identifier %s", identifier)
 
 	// First easy case; the identifier is an apollo PID
 	var nodeID int64
-	svc.DB.QueryRow("select id from nodes where pid=?", identifier).Scan(&nodeID)
+	db.QueryRow("select id from nodes where pid=?", identifier).Scan(&nodeID)
 	if nodeID > 0 {
 		log.Printf("%s is an ApolloPID. ID: %d", identifier, nodeID)
-		return &models.NodeIdentifier{PID: identifier, ID: nodeID}, nil
+		return &NodeIdentifier{PID: identifier, ID: nodeID}, nil
 	}
 
 	// Next case; See if it is an externalPID, barcode, catalog key, call number or WSLS ID
@@ -164,11 +178,11 @@ func (svc *ApolloSvc) LookupIdentifier(identifier string) (*models.NodeIdentifie
 	qs := `SELECT t.name, np.id, np.pid FROM nodes ns INNER JOIN nodes np ON np.id = ns.parent_id
 			 inner join node_types t on t.id = ns.node_type_id
 	 		 WHERE ns.value=? and t.id in (5,9,10,13,23)`
-	svc.DB.QueryRow(qs, identifier).Scan(&idType, &nodeID, &apolloPID)
+	db.QueryRow(qs, identifier).Scan(&idType, &nodeID, &apolloPID)
 	if apolloPID != "" {
 		log.Printf("%s matches type %s. ApolloPID: %s ID: %d",
 			identifier, idType, apolloPID, nodeID)
-		return &models.NodeIdentifier{PID: apolloPID, ID: nodeID}, nil
+		return &NodeIdentifier{PID: apolloPID, ID: nodeID}, nil
 	}
 
 	return nil, fmt.Errorf("%s was not found", identifier)
