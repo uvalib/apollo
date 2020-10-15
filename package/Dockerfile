@@ -36,6 +36,9 @@ WORKDIR $APP_HOME
 RUN mkdir -p $APP_HOME/scripts $APP_HOME/bin
 RUN chown -R docker $APP_HOME && chgrp -R sse $APP_HOME
 
+# add the migrate tool
+RUN cd $APP_HOME/bin && curl -L https://github.com/golang-migrate/migrate/releases/download/v4.6.1/migrate.linux-amd64.tar.gz | tar xvz && mv migrate.linux-amd64 migrate
+
 # port and run command
 EXPOSE 8080
 CMD scripts/entry.sh
