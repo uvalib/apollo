@@ -1,0 +1,19 @@
+START TRANSACTION;
+
+CREATE TABLE IF NOT EXISTS versions (
+   id int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+   version varchar(255) NOT NULL UNIQUE KEY,
+   created_at datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+CREATE TABLE IF NOT EXISTS publication_history (
+  id int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  node_id int(11),
+  user_id int(11),
+  published_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE RESTRICT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+COMMIT;

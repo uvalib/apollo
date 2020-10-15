@@ -53,3 +53,12 @@ Other environment variables are set in ./frontent/.env (production) and ./fronte
 Run the frontend in development mode with `yarn serve` from the frontend directory. All API resests from the frontend will be rediected to the local instance of the backend services.
 
 To run the backend in dev mode (without Shibboleth) you will also need to supply a fake devuser identifer with the launch command: `./apollosvr.linux -port 8085 -devuser x5ht`
+
+Run migrations like this:
+
+`migrate -database ${APOLLO_DB} -path backend/db/migrations up`
+
+Example migrate commads to create a migration and run one:
+
+* `migrate create -ext sql -dir backend/db/migrations -seq update_user_auth`
+* `migrate -database ${APOLLO_DB} -path backend/db/migrations/ up`
