@@ -33,7 +33,7 @@ ENV APP_HOME /apollo
 WORKDIR $APP_HOME
 
 # Create necessary directories
-RUN mkdir -p $APP_HOME/scripts $APP_HOME/bin
+RUN mkdir -p $APP_HOME/scripts $APP_HOME/bin $APP_HOME/db
 RUN chown -R docker $APP_HOME && chgrp -R sse $APP_HOME
 
 # add the migrate tool
@@ -44,14 +44,15 @@ EXPOSE 8080
 CMD scripts/entry.sh
 
 # Move in necessary assets
-COPY package/scripts/entry.sh $APP_HOME/scripts/entry.sh
 COPY package/data/container_bash_profile /home/docker/.profile
+COPY package/scripts/entry.sh $APP_HOME/scripts/entry.sh
+COPY backend/db/migrations/*.sql $APP_HOME/db/
 COPY templates $APP_HOME/bin/templates
 COPY --from=builder /build/bin/apollosvr.linux $APP_HOME/bin/apollo
 COPY --from=builder /build/bin/public $APP_HOME/bin/public
 
 # Ensure permissions are correct
-RUN chown docker:sse /home/docker/.profile $APP_HOME/scripts/entry.sh $APP_HOME/bin/apollo && chmod 755 /home/docker/.profile $APP_HOME/scripts/entry.sh $APP_HOME/bin/apollo
+RUN chown docker:sse /home/docker/.profile $APP_HOME/scripts/entry.sh $APP_HOME/bin/apollo $APP_HOME/bin/migrate $APP_HOME/db && chmod 755 /home/docker/.profile $APP_HOME/scripts/entry.sh $APP_HOME/bin/apollo $APP_HOME/bin/migrate
 
 # Add the build tag
 ARG BUILD_TAG
