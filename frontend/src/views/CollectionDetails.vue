@@ -19,8 +19,8 @@
           <div class="pure-u-9-24">
             <div class="toolbar">
               <span class="toolbar-buttons">
-                <a class="raw" :href="xmlLink" target="_blank">XML</a>
-                <a class="raw" :href="jsonLink" target="_blank">JSON</a>
+                <a class="raw" :href="xmlLink">XML</a>
+                <a class="raw" :href="jsonLink">JSON</a>
               </span>
             </div>
             <ul class="collection">

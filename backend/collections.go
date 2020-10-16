@@ -46,6 +46,7 @@ func (app *Apollo) GetCollection(c *gin.Context) {
 	}
 	log.Printf("Collection tree retrieved from DB; sending to client")
 	if tgtFormat == "json" {
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s.json", pid))
 		c.JSON(http.StatusOK, root)
 	} else {
 		xml, err := generateXML(root)
@@ -54,6 +55,7 @@ func (app *Apollo) GetCollection(c *gin.Context) {
 			c.String(http.StatusInternalServerError, "unable to generate XML content")
 			return
 		}
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s.xml", pid))
 		c.Header("Content-Type", "application/xml")
 		c.String(http.StatusOK, xml)
 	}
