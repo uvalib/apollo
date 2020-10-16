@@ -2,3 +2,6 @@
 .git
 bin
 env.*
+frontend/node_modules
+pipeline
+scripts
