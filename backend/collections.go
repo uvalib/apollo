@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -91,16 +92,22 @@ func traverseTree(out *bufio.Writer, node *Node) {
 			if child.Type.Name != "dpla" && child.Type.Name != "digitalObject" {
 				if child.Type.Container == false {
 					// log.Printf("<%s>%s</%s>", child.Type.Name, child.Value, child.Type.Name)
-					out.WriteString(fmt.Sprintf("<%s>%s</%s>", child.Type.Name, child.Value, child.Type.Name))
+					out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", child.Type.Name, cleanValue(child.Value), child.Type.Name))
 				} else {
 					traverseTree(out, child)
 				}
 			}
 		}
 		// log.Printf("</%s>", node.Type.Name)
-		out.WriteString(fmt.Sprintf("</%s>", node.Type.Name))
+		out.WriteString(fmt.Sprintf("</%s>\n", node.Type.Name))
 	} else {
 		// log.Printf("<%s>%s</%s>", node.Type.Name, node.Value, node.Type.Name)
-		out.WriteString(fmt.Sprintf("<%s>%s</%s>", node.Type.Name, node.Value, node.Type.Name))
+		out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", node.Type.Name, cleanValue(node.Value), node.Type.Name))
 	}
+}
+
+func cleanValue(val string) string {
+	clean := strings.TrimSpace(val)
+	clean = strings.ReplaceAll(clean, "&", "&amp;")
+	return clean
 }
