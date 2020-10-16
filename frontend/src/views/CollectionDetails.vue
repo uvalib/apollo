@@ -19,6 +19,7 @@
           <div class="pure-u-9-24">
             <div class="toolbar">
               <span class="toolbar-buttons">
+                <a class="raw" :href="xmlLink" target="_blank">XML</a>
                 <a class="raw" :href="jsonLink" target="_blank">JSON</a>
               </span>
             </div>
@@ -68,6 +69,7 @@
         'collectionDetails',
         'collectionFound',
         'jsonLink',
+        'xmlLink',
         'isViewerLoading',
         'viewerError',
       ])
@@ -183,10 +185,12 @@
   .toolbar  {
     font-size: 0.8em;
     position: relative;
-    text-align: right;
     margin: 0 0 0 20px;
     border-bottom: 1px solid #ccc;
     padding: 10px 0;
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: flex-end;
   }
   .publication {
     margin-top: 2px;
@@ -196,9 +200,9 @@
     font-weight: bold;
     margin-right: 10px;
   }
-  .sirsi, .raw, .publish, .virgo  {
+  .raw {
     border-radius: 10px;
-    background: #0078e7;
+    background: rgb(240, 130, 40);
     opacity: 0.75;
     cursor: pointer;
     text-decoration: none;
@@ -209,17 +213,7 @@
     cursor: pointer;
     margin-left: 5px;
   }
-  .sirsi:hover, .raw:hover, .publish:hover {
-    opacity: 1;
-  }
-  .virgo {
-    padding: 2px 10px;
-  }
-  .raw {
-    background: rgb(240, 130, 40);
-  }
   span.toolbar-buttons {
-    margin-bottom: 8px;
     display: inline-block;
   }
   span.publish {

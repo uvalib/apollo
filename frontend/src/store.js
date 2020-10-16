@@ -45,8 +45,11 @@ const getters = {
     return Object.keys(state.collectionDetails).length > 0
   },
   jsonLink: state => {
-    return "/api/collections/"+state.collectionDetails.pid
+    return "/api/collections/"+state.collectionDetails.pid+"?format=json"
   },
+  xmlLink: state => {
+   return "/api/collections/"+state.collectionDetails.pid+"?format=xml"
+ },
   viewerError: state => {
     return state.viewerError
   },

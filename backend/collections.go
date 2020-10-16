@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -51,7 +53,8 @@ func (app *Apollo) GetCollection(c *gin.Context) {
 			c.String(http.StatusInternalServerError, "unable to generate XML content")
 			return
 		}
-		c.XML(http.StatusOK, xml)
+		c.Header("Content-Type", "application/xml")
+		c.String(http.StatusOK, xml)
 	}
 }
 
@@ -73,5 +76,31 @@ func getCollections(db *DB) []Collection {
 
 func generateXML(node *Node) (string, error) {
 	log.Printf("Generate XML for collection %s", node.PID)
-	return "", fmt.Errorf("Not ready yet")
+	var buf bytes.Buffer
+	writer := bufio.NewWriter(&buf)
+	traverseTree(writer, node)
+	writer.Flush()
+	return buf.String(), nil
+}
+
+func traverseTree(out *bufio.Writer, node *Node) {
+	if node.Type.Container {
+		// log.Printf("<%s>", node.Type.Name)
+		out.WriteString(fmt.Sprintf("<%s>", node.Type.Name))
+		for _, child := range node.Children {
+			if child.Type.Name != "dpla" && child.Type.Name != "digitalObject" {
+				if child.Type.Container == false {
+					// log.Printf("<%s>%s</%s>", child.Type.Name, child.Value, child.Type.Name)
+					out.WriteString(fmt.Sprintf("<%s>%s</%s>", child.Type.Name, child.Value, child.Type.Name))
+				} else {
+					traverseTree(out, child)
+				}
+			}
+		}
+		// log.Printf("</%s>", node.Type.Name)
+		out.WriteString(fmt.Sprintf("</%s>", node.Type.Name))
+	} else {
+		// log.Printf("<%s>%s</%s>", node.Type.Name, node.Value, node.Type.Name)
+		out.WriteString(fmt.Sprintf("<%s>%s</%s>", node.Type.Name, node.Value, node.Type.Name))
+	}
 }
