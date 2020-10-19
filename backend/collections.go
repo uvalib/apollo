@@ -3,9 +3,11 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -86,12 +88,28 @@ func generateXML(node *Node) (string, error) {
 	return buf.String(), nil
 }
 
+type digitalObjectInfo struct {
+	Type string `json:"type"`
+	ID   string `json:"id"`
+}
+
 func traverseTree(out *bufio.Writer, node *Node) {
 	if node.Type.Container {
 		// log.Printf("<%s>", node.Type.Name)
 		out.WriteString(fmt.Sprintf("<%s>", node.Type.Name))
 		for _, child := range node.Children {
-			if child.Type.Name != "dpla" && child.Type.Name != "digitalObject" {
+			if child.Type.Name == "digitalObject" {
+				// value looks like: {type: images|wsls id: id}
+				var doInfo digitalObjectInfo
+				doErr := json.Unmarshal([]byte(child.Value), &doInfo)
+				if doErr != nil {
+					log.Printf("ERROR: unable to read digital object info %s", doErr.Error())
+				} else {
+					embedURL := fmt.Sprintf("https://curio.lib.virginia.edu/%s/%s", doInfo.Type, doInfo.ID)
+					val := fmt.Sprintf("https://curio.lib.virginia.edu/oembed?url=%s", url.QueryEscape(embedURL))
+					out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", child.Type.Name, val, child.Type.Name))
+				}
+			} else if child.Type.Name != "dpla" {
 				if child.Type.Container == false {
 					// log.Printf("<%s>%s</%s>", child.Type.Name, child.Value, child.Type.Name)
 					out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", child.Type.Name, cleanValue(child.Value), child.Type.Name))
