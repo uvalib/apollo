@@ -112,7 +112,12 @@ func traverseTree(out *bufio.Writer, node *Node) {
 			} else if child.Type.Name != "dpla" {
 				if child.Type.Container == false {
 					// log.Printf("<%s>%s</%s>", child.Type.Name, child.Value, child.Type.Name)
-					out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", child.Type.Name, cleanValue(child.Value), child.Type.Name))
+					if child.ValueURI != "" {
+						out.WriteString(fmt.Sprintf("<%s href=\"%s\">%s</%s>\n",
+							child.Type.Name, child.ValueURI, (child.Value), child.Type.Name))
+					} else {
+						out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", child.Type.Name, cleanValue(child.Value), child.Type.Name))
+					}
 				} else {
 					traverseTree(out, child)
 				}
