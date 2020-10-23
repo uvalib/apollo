@@ -27,7 +27,7 @@ func (app *Apollo) GetCollection(c *gin.Context) {
 	if tgtFormat == "" {
 		tgtFormat = "json"
 	}
-	if tgtFormat != "json" && tgtFormat != "xml" {
+	if tgtFormat != "json" && tgtFormat != "xml" && tgtFormat != "uvamap" {
 		log.Printf("ERROR: Unsupported format for %s requested %s", tgtFormat, pid)
 		c.String(http.StatusBadRequest, fmt.Sprintf("unsupported format %s", tgtFormat))
 		return
@@ -51,7 +51,7 @@ func (app *Apollo) GetCollection(c *gin.Context) {
 		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s.json", pid))
 		c.JSON(http.StatusOK, root)
 	} else {
-		xml, err := generateXML(root)
+		xml, err := generateXML(root, tgtFormat)
 		if err != nil {
 			log.Printf("ERROR: unable to generate XML for %s: %s", pid, err.Error())
 			c.String(http.StatusInternalServerError, "unable to generate XML content")
@@ -79,11 +79,11 @@ func getCollections(db *DB) []Collection {
 	return out
 }
 
-func generateXML(node *Node) (string, error) {
-	log.Printf("Generate XML for collection %s", node.PID)
+func generateXML(node *Node, xmlType string) (string, error) {
+	log.Printf("Generate %s for collection %s", xmlType, node.PID)
 	var buf bytes.Buffer
 	writer := bufio.NewWriter(&buf)
-	traverseTree(writer, node)
+	traverseTree(writer, node, xmlType)
 	writer.Flush()
 	return buf.String(), nil
 }
@@ -93,7 +93,7 @@ type digitalObjectInfo struct {
 	ID   string `json:"id"`
 }
 
-func traverseTree(out *bufio.Writer, node *Node) {
+func traverseTree(out *bufio.Writer, node *Node, xmlType string) {
 	if node.Type.Container {
 		// log.Printf("<%s>", node.Type.Name)
 		out.WriteString(fmt.Sprintf("<%s>", node.Type.Name))
@@ -105,8 +105,8 @@ func traverseTree(out *bufio.Writer, node *Node) {
 				if doErr != nil {
 					log.Printf("ERROR: unable to read digital object info %s", doErr.Error())
 				} else {
-					embedURL := fmt.Sprintf("https://curio.lib.virginia.edu/%s/%s", doInfo.Type, doInfo.ID)
-					val := fmt.Sprintf("https://curio.lib.virginia.edu/oembed?url=%s", url.QueryEscape(embedURL))
+					embedURL := fmt.Sprintf("https://iiif-manifest.internal.lib.virginia.edu/pid/%s", doInfo.ID)
+					val := fmt.Sprintf("https://curio.lib.virginia.edu/view/uv/uv.html#?manifest=%s", url.QueryEscape(embedURL))
 					out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", child.Type.Name, val, child.Type.Name))
 				}
 			} else if child.Type.Name != "dpla" {
@@ -119,7 +119,7 @@ func traverseTree(out *bufio.Writer, node *Node) {
 						out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", child.Type.Name, cleanValue(child.Value), child.Type.Name))
 					}
 				} else {
-					traverseTree(out, child)
+					traverseTree(out, child, xmlType)
 				}
 			}
 		}
@@ -134,5 +134,7 @@ func traverseTree(out *bufio.Writer, node *Node) {
 func cleanValue(val string) string {
 	clean := strings.TrimSpace(val)
 	clean = strings.ReplaceAll(clean, "&", "&amp;")
+	clean = strings.ReplaceAll(clean, "<", "&lt;")
+	clean = strings.ReplaceAll(clean, ">", "&gt;")
 	return clean
 }
