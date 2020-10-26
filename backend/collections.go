@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -93,13 +94,74 @@ type digitalObjectInfo struct {
 	ID   string `json:"id"`
 }
 
+type nodeMapping struct {
+	OpenTag  string
+	CloseTag string
+	Sibling  string
+}
+
 func traverseTree(out *bufio.Writer, node *Node, xmlType string) {
+	nm := mapNodeName(node.Type.Name, xmlType)
 	if node.Type.Container {
-		// log.Printf("<%s>", node.Type.Name)
-		out.WriteString(fmt.Sprintf("<%s>", node.Type.Name))
+		out.WriteString(fmt.Sprintf("%s\n", nm.OpenTag))
+		if node.Type.Name == "collection" && xmlType == "uvamap" {
+			out.WriteString("<metadataSource>Apollo</metadataSource>\n")
+			out.WriteString(fmt.Sprintf("<sourceRecordIdentifier source=\"Apollo\">%s</sourceRecordIdentifier>\n", node.PID))
+		}
 		for _, child := range node.Children {
+			if child.Type.Name == "dpla" {
+				// skip the DPLA tag; it is no longer used
+				continue
+			}
+
+			if child.Type.Name == "filmBoxLabel" && xmlType == "uvamap" {
+				if child.Value != "no label" {
+					out.WriteString(fmt.Sprintf("<alternativeTitle>%s</alternativeTitle>\n", cleanValue(child.Value)))
+					out.WriteString(fmt.Sprintf("<orig_note>Container title: %s</orig_note>\n", cleanValue(child.Value)))
+				}
+				continue
+			}
+			if child.Type.Name == "hasScript" && xmlType == "uvamap" {
+				if child.Value == "true" {
+					out.WriteString("<orig_note>Script available</orig_note>\n")
+				} else {
+					out.WriteString("<orig_note>Script not available</orig_note>\n")
+				}
+				continue
+			}
+			if child.Type.Name == "hasVideo" && xmlType == "uvamap" {
+				if child.Value == "true" {
+					out.WriteString("<orig_note>Video available</orig_note>\n")
+				} else {
+					out.WriteString("<orig_note>Video not available</orig_note>\n")
+				}
+				continue
+			}
+			if child.Type.Name == "title" && xmlType == "uvamap" {
+				t := cleanValue(child.Value)
+				out.WriteString(fmt.Sprintf("<title>%s</title>\n", t))
+				out.WriteString(fmt.Sprintf("<displayTitle>%s</displayTitle>\n", t))
+				r := regexp.MustCompile("\\A(A\\s+)|(An\\s+)|(The\\s+)")
+				st := r.ReplaceAllString(t, "")
+				out.WriteString(fmt.Sprintf("<sortTitle>%s</sortTitle>\n", st))
+				continue
+			}
+			if child.Type.Name == "wslsColor" && xmlType == "uvamap" {
+				if strings.Index(child.Value, "black") >= 0 {
+					out.WriteString("<colorContent>black and white</colorContent>\n<physDetails>negative</phyDetails>\n")
+				} else {
+					out.WriteString("<colorContent>color</colorContent>\n")
+				}
+				continue
+			}
+			if child.Type.Name == "wslsTag" && xmlType == "uvamap" {
+				val := strings.Split(child.Value, " ")[0]
+				out.WriteString(fmt.Sprintf("<soundContent>%s</soundContent>\n", val))
+				continue
+			}
+
 			if child.Type.Name == "digitalObject" {
-				// value looks like: {type: images|wsls id: id}
+				// value looks like: {type: images|wsls id: external_id}
 				var doInfo digitalObjectInfo
 				doErr := json.Unmarshal([]byte(child.Value), &doInfo)
 				if doErr != nil {
@@ -107,28 +169,72 @@ func traverseTree(out *bufio.Writer, node *Node, xmlType string) {
 				} else {
 					embedURL := fmt.Sprintf("https://iiif-manifest.internal.lib.virginia.edu/pid/%s", doInfo.ID)
 					val := fmt.Sprintf("https://curio.lib.virginia.edu/view/uv/uv.html#?manifest=%s", url.QueryEscape(embedURL))
-					out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", child.Type.Name, val, child.Type.Name))
-				}
-			} else if child.Type.Name != "dpla" {
-				if child.Type.Container == false {
-					// log.Printf("<%s>%s</%s>", child.Type.Name, child.Value, child.Type.Name)
-					if child.ValueURI != "" {
-						out.WriteString(fmt.Sprintf("<%s href=\"%s\">%s</%s>\n",
-							child.Type.Name, child.ValueURI, (child.Value), child.Type.Name))
+					if xmlType == "xml" {
+						out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", child.Type.Name, val, child.Type.Name))
 					} else {
-						out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", child.Type.Name, cleanValue(child.Value), child.Type.Name))
+						out.WriteString(fmt.Sprintf("<uri access=\"%s\" usage=\"primary\"></uri>\n", val))
+						out.WriteString(fmt.Sprintf("<uri access=\"%s\" displayLabel=\"iiifManifest\"></uri>\n", embedURL))
+					}
+				}
+			} else {
+				cm := mapNodeName(child.Type.Name, xmlType)
+				if child.Type.Container == false {
+					if child.ValueURI != "" {
+						t := cm.OpenTag
+						r := regexp.MustCompile("</|<|>")
+						st := r.ReplaceAllString(t, "")
+						out.WriteString(fmt.Sprintf("<%s href=\"%s\">%s</%s>\n",
+							st, child.ValueURI, child.Value, st))
+					} else {
+						out.WriteString(fmt.Sprintf("%s%s%s\n", cm.OpenTag, cleanValue(child.Value), cm.CloseTag))
+						if cm.Sibling != "" {
+							out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", cm.Sibling, cleanValue(child.Value), cm.Sibling))
+						}
 					}
 				} else {
 					traverseTree(out, child, xmlType)
 				}
 			}
 		}
-		// log.Printf("</%s>", node.Type.Name)
-		out.WriteString(fmt.Sprintf("</%s>\n", node.Type.Name))
+		out.WriteString(fmt.Sprintf("%s\n", nm.CloseTag))
 	} else {
-		// log.Printf("<%s>%s</%s>", node.Type.Name, node.Value, node.Type.Name)
-		out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", node.Type.Name, cleanValue(node.Value), node.Type.Name))
+		out.WriteString(fmt.Sprintf("%s%s%s\n", nm.OpenTag, cleanValue(node.Value), nm.CloseTag))
 	}
+}
+
+func mapNodeName(nodeName string, xmlType string) nodeMapping {
+	out := nodeMapping{OpenTag: fmt.Sprintf("<%s>", nodeName), CloseTag: fmt.Sprintf("</%s>", nodeName)}
+	if xmlType == "xml" {
+		// nothing to do... just return as-is
+		return out
+	}
+
+	// NOTE: the elements that have href fo not get the angle brackets as they will be added by the traverse
+	mapping := map[string]nodeMapping{"abstract": {OpenTag: "<abstractSummary>", CloseTag: "</abstractSummary>"},
+		"barcode":     {OpenTag: "<itemID>", CloseTag: "</itemID>"},
+		"catalogKey":  {OpenTag: "<sourceRecordIdentifier source=\"SIRSI\">", CloseTag: "</sourceRecordIdentifier>"},
+		"collection":  {OpenTag: "<metadata type=\"collection\">", CloseTag: "</metadata>"},
+		"description": {OpenTag: "<abstractSummary>", CloseTag: "</abstractSummary>"},
+		"duration":    {OpenTag: "<playingTime>", CloseTag: "</playingTime>"},
+		"entity":      {OpenTag: "<subject>", CloseTag: "</subject>", Sibling: "subjectName"},
+		"externalPID": {OpenTag: "<localIdentifier displayLabel=\"UVA PID\">", CloseTag: "</localIdentifier>"},
+		"issue":       {OpenTag: "<metadata type=\"issue\">", CloseTag: "</metadata>"},
+		"item":        {OpenTag: "<metadata type=\"item\">", CloseTag: "</metadata>"},
+		"month":       {OpenTag: "<metadata type=\"month\">", CloseTag: "</metadata>"},
+		"reel":        {OpenTag: "<callNumber displayLabel=\"reel\">", CloseTag: "</callNumber>"},
+		"useRights":   {OpenTag: "useRestrict", CloseTag: "useRestrict"},
+		"volume":      {OpenTag: "<metadata type=\"volume\">", CloseTag: "</metadata>"},
+		"wslsID":      {OpenTag: "<localIdentifier displayLabel=\"WSLS ID\">", CloseTag: "</localIdentifier>"},
+		"wslsPlace":   {OpenTag: "subjectGeographic", CloseTag: "subjectGeographic"},
+		"wslsRights":  {OpenTag: "<useRestrict>", CloseTag: "</useRestrict>"},
+		"wslsTopic":   {OpenTag: "<subject>", CloseTag: "</subject>", Sibling: "subjectName"},
+		"year":        {OpenTag: "<metadata type=\"year\">", CloseTag: "</metadata>"},
+	}
+	if val, ok := mapping[nodeName]; ok {
+		return val
+	}
+
+	return out
 }
 
 func cleanValue(val string) string {
