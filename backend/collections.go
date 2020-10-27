@@ -148,7 +148,7 @@ func traverseTree(out *bufio.Writer, node *Node, xmlType string) {
 			}
 			if child.Type.Name == "wslsColor" && xmlType == "uvamap" {
 				if strings.Index(child.Value, "black") >= 0 {
-					out.WriteString("<colorContent>black and white</colorContent>\n<physDetails>negative</phyDetails>\n")
+					out.WriteString("<colorContent>black and white</colorContent>\n<physDetails>negative</physDetails>\n")
 				} else {
 					out.WriteString("<colorContent>color</colorContent>\n")
 				}
@@ -167,24 +167,31 @@ func traverseTree(out *bufio.Writer, node *Node, xmlType string) {
 				if doErr != nil {
 					log.Printf("ERROR: unable to read digital object info %s", doErr.Error())
 				} else {
-					embedURL := fmt.Sprintf("https://iiif-manifest.internal.lib.virginia.edu/pid/%s", doInfo.ID)
-					val := fmt.Sprintf("https://curio.lib.virginia.edu/view/uv/uv.html#?manifest=%s", url.QueryEscape(embedURL))
-					if xmlType == "xml" {
-						out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", child.Type.Name, val, child.Type.Name))
+					if doInfo.Type == "images" {
+						embedURL := fmt.Sprintf("https://iiif-manifest.internal.lib.virginia.edu/pid/%s", doInfo.ID)
+						val := fmt.Sprintf("https://curio.lib.virginia.edu/view/uv/uv.html#?manifest=%s", url.QueryEscape(embedURL))
+						if xmlType == "xml" {
+							out.WriteString(fmt.Sprintf("<%s>%s</%s>\n", child.Type.Name, val, child.Type.Name))
+						} else {
+							out.WriteString(fmt.Sprintf("<uri access=\"object in context\" usage=\"primary\">%s</uri>\n", val))
+							out.WriteString(fmt.Sprintf("<uri access=\"object in context\" displayLabel=\"iiifManifest\">%s</uri>\n", embedURL))
+						}
 					} else {
-						out.WriteString(fmt.Sprintf("<uri access=\"%s\" usage=\"primary\"></uri>\n", val))
-						out.WriteString(fmt.Sprintf("<uri access=\"%s\" displayLabel=\"iiifManifest\"></uri>\n", embedURL))
+						val := fmt.Sprintf("https://curio.lib.virginia.edu/view/%s", doInfo.ID)
+						out.WriteString(fmt.Sprintf("<uri access=\"object in context\" usage=\"primary\">%s</uri>\n", val))
 					}
 				}
 			} else {
 				cm := mapNodeName(child.Type.Name, xmlType)
 				if child.Type.Container == false {
 					if child.ValueURI != "" {
+						// For items with HREF, the angle brackets around the tag name have to be removed as they
+						// will be added along with the href below....
 						t := cm.OpenTag
 						r := regexp.MustCompile("</|<|>")
 						st := r.ReplaceAllString(t, "")
 						out.WriteString(fmt.Sprintf("<%s href=\"%s\">%s</%s>\n",
-							st, child.ValueURI, child.Value, st))
+							st, child.ValueURI, cleanValue(child.Value), st))
 					} else {
 						out.WriteString(fmt.Sprintf("%s%s%s\n", cm.OpenTag, cleanValue(child.Value), cm.CloseTag))
 						if cm.Sibling != "" {
@@ -225,7 +232,7 @@ func mapNodeName(nodeName string, xmlType string) nodeMapping {
 		"useRights":   {OpenTag: "useRestrict", CloseTag: "useRestrict"},
 		"volume":      {OpenTag: "<metadata type=\"volume\">", CloseTag: "</metadata>"},
 		"wslsID":      {OpenTag: "<localIdentifier displayLabel=\"WSLS ID\">", CloseTag: "</localIdentifier>"},
-		"wslsPlace":   {OpenTag: "subjectGeographic", CloseTag: "subjectGeographic"},
+		"wslsPlace":   {OpenTag: "<subject>", CloseTag: "</subject>", Sibling: "subjectGeographic"},
 		"wslsRights":  {OpenTag: "<useRestrict>", CloseTag: "</useRestrict>"},
 		"wslsTopic":   {OpenTag: "<subject>", CloseTag: "</subject>", Sibling: "subjectName"},
 		"year":        {OpenTag: "<metadata type=\"year\">", CloseTag: "</metadata>"},
