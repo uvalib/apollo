@@ -187,11 +187,15 @@ func traverseTree(out *bufio.Writer, node *Node, xmlType string) {
 					if child.ValueURI != "" {
 						// For items with HREF, the angle brackets around the tag name have to be removed as they
 						// will be added along with the href below....
+						attrName := "href"
+						if xmlType == "uvamap" {
+							attrName = "valueURI"
+						}
 						t := cm.OpenTag
 						r := regexp.MustCompile("</|<|>")
 						st := r.ReplaceAllString(t, "")
-						out.WriteString(fmt.Sprintf("<%s href=\"%s\">%s</%s>\n",
-							st, child.ValueURI, cleanValue(child.Value), st))
+						out.WriteString(fmt.Sprintf("<%s %s=\"%s\">%s</%s>\n",
+							st, attrName, child.ValueURI, cleanValue(child.Value), st))
 					} else {
 						out.WriteString(fmt.Sprintf("%s%s%s\n", cm.OpenTag, cleanValue(child.Value), cm.CloseTag))
 						if cm.Sibling != "" {
