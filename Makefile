@@ -4,6 +4,9 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET = $(GOCMD) get
 GOMOD = $(GOCMD) mod
+GOVET = $(GOCMD) vet
+GOFMT = $(GOCMD) fmt
+GOMOD = $(GOCMD) mod
 
 build: darwin-srv deploy-templates web
 
@@ -38,3 +41,15 @@ dep:
 	$(GOGET) -u ./backend/btsrv/...
 	$(GOMOD) tidy
 	$(GOMOD) verify
+
+fmt:
+	cd backend; $(GOFMT)
+
+vet:
+	cd backend; $(GOVET)
+
+check:
+	go install honnef.co/go/tools/cmd/staticcheck
+	$(HOME)/go/bin/staticcheck -checks all,-S1002,-ST1003,-S1007,-S1008 backend/*.go
+	go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow
+	$(GOVET) -vettool=$(HOME)/go/bin/shadow ./backend/...

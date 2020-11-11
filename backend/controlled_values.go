@@ -23,7 +23,7 @@ func (app *Apollo) GetNodeTypes(c *gin.Context) {
 // GeControlledValues returns the controlled values for a type name
 func (app *Apollo) GeControlledValues(c *gin.Context) {
 	tgtName := c.Param("name")
-	log.Printf("Get controlled values for '%s'", tgtName)
+	log.Printf("INFO: get controlled values for '%s'", tgtName)
 	var vals []ControlledValue
 	err := app.DB.Select(&vals,
 		"SELECT cv.* FROM controlled_values cv inner join node_types nt on nt.id = cv.node_type_id WHERE nt.name=?", tgtName)
@@ -36,14 +36,14 @@ func (app *Apollo) GeControlledValues(c *gin.Context) {
 }
 
 // GetControlledValueByName finds a controlled value record by name
-func getControlledValueByName(db *DB, name string) (*ControlledValue, error) {
-	cv := ControlledValue{}
-	err := db.Get(&cv, "SELECT * FROM controlled_values WHERE value=?", name)
-	if err != nil {
-		return nil, err
-	}
-	return &cv, nil
-}
+//func getControlledValueByName(db *DB, name string) (*ControlledValue, error) {
+//	cv := ControlledValue{}
+//	err := db.Get(&cv, "SELECT * FROM controlled_values WHERE value=?", name)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return &cv, nil
+//}
 
 // GetControlledValueByID finds a controlled value record by ID
 func getControlledValueByID(db *DB, id int64) (*ControlledValue, error) {

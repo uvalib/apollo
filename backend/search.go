@@ -60,8 +60,8 @@ func (app *Apollo) searchAll(query string) *SearchResults {
 	rows, err := app.DB.Queryx(searchQ, query, query)
 	if err != nil {
 		log.Printf("ERROR: Search for %s failed: %s", query, err.Error())
-		elapsedNanoSec := time.Since(start)
-		elapsedMS := int64(elapsedNanoSec / time.Millisecond)
+		elapsed := time.Since(start)
+		elapsedMS := int64(elapsed / time.Millisecond)
 		return &SearchResults{Hits: 0, ResponseTimeMS: elapsedMS, Status: http.StatusNotFound, Message: err.Error()}
 	}
 
@@ -94,10 +94,10 @@ func (app *Apollo) searchAll(query string) *SearchResults {
 	for rows.Next() {
 		// Parse the hit row, figure out which collection it was from (first part of ancestry)
 		// and find the matching CollectionHits object. It will be used to track this hit.
-		var hitRow hitRow
-		rows.StructScan(&hitRow)
-		hit := SearchHit{Type: hitRow.Type}
-		collID, _ := strconv.ParseInt(strings.Split(hitRow.Ancestry, "/")[0], 10, 64)
+		var hr hitRow
+		rows.StructScan(&hr)
+		hit := SearchHit{Type: hr.Type}
+		collID, _ := strconv.ParseInt(strings.Split(hr.Ancestry, "/")[0], 10, 64)
 		for _, coll := range collections {
 			if coll.ID == collID {
 				hitCollection = &coll
@@ -106,12 +106,12 @@ func (app *Apollo) searchAll(query string) *SearchResults {
 		}
 
 		// Lookup the PID of the parent container of the hit node
-		parentPID := pidMap[hitRow.ParentID]
+		parentPID := pidMap[hr.ParentID]
 		if parentPID == "" {
 			// Mapping not found, look it up in DB and cache it in the map
 			pq := "select pid from nodes where id=?"
-			app.DB.Get(&parentPID, pq, hitRow.ParentID)
-			pidMap[hitRow.ParentID] = parentPID
+			app.DB.Get(&parentPID, pq, hr.ParentID)
+			pidMap[hr.ParentID] = parentPID
 			hit.PID = parentPID
 		} else {
 			continue
@@ -123,17 +123,17 @@ func (app *Apollo) searchAll(query string) *SearchResults {
 			if hit.Type != "title" {
 				// Non-title hit, grab the title for some context
 				pq := "select value from nodes where parent_id=? and node_type_id=2"
-				app.DB.Get(&hit.Title, pq, hitRow.ParentID)
+				app.DB.Get(&hit.Title, pq, hr.ParentID)
 			}
 		} else {
 			hit.ItemURL = fmt.Sprintf("%s/collections/%s", app.ApolloURL, hitCollection.PID)
 		}
 
 		// see if the hit was in value or controlled value...
-		if strings.Contains(strings.ToLower(hitRow.Value), query) {
-			hit.Match = hitRow.Value
+		if strings.Contains(strings.ToLower(hr.Value), query) {
+			hit.Match = hr.Value
 		} else {
-			hit.Match = hitRow.ControlledValue
+			hit.Match = hr.ControlledValue
 		}
 
 		hits++
@@ -149,11 +149,11 @@ func (app *Apollo) searchAll(query string) *SearchResults {
 			}
 		}
 	} else {
-		log.Printf("Search for %s found no matches", query)
+		log.Printf("INFO: search for %s found no matches", query)
 		out.Results = []CollectionHit{}
 	}
-	elapsedNanoSec := time.Since(start)
-	elapsedMS := int64(elapsedNanoSec / time.Millisecond)
+	elapsed := time.Since(start)
+	elapsedMS := int64(elapsed / time.Millisecond)
 	out.ResponseTimeMS = elapsedMS
 	out.Hits = hits
 	return &out
@@ -162,13 +162,13 @@ func (app *Apollo) searchAll(query string) *SearchResults {
 // lookupIdentifier will accept any sort of known identifier and find a matching
 // Apollo ItemID which includes internal ID and PID
 func lookupIdentifier(db *DB, identifier string) (*NodeIdentifier, error) {
-	log.Printf("Lookup identifier %s", identifier)
+	log.Printf("INFO: lookup identifier %s", identifier)
 
 	// First easy case; the identifier is an apollo PID
 	var nodeID int64
 	db.QueryRow("select id from nodes where pid=?", identifier).Scan(&nodeID)
 	if nodeID > 0 {
-		log.Printf("%s is an ApolloPID. ID: %d", identifier, nodeID)
+		log.Printf("INFO: %s is an ApolloPID. ID: %d", identifier, nodeID)
 		return &NodeIdentifier{PID: identifier, ID: nodeID}, nil
 	}
 
@@ -180,7 +180,7 @@ func lookupIdentifier(db *DB, identifier string) (*NodeIdentifier, error) {
 	 		 WHERE ns.value=? and t.id in (5,9,10,13,23)`
 	db.QueryRow(qs, identifier).Scan(&idType, &nodeID, &apolloPID)
 	if apolloPID != "" {
-		log.Printf("%s matches type %s. ApolloPID: %s ID: %d",
+		log.Printf("INFO: %s matches type %s. ApolloPID: %s ID: %d",
 			identifier, idType, apolloPID, nodeID)
 		return &NodeIdentifier{PID: apolloPID, ID: nodeID}, nil
 	}

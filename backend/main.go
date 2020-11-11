@@ -20,10 +20,10 @@ const version = "2.0.0"
 func main() {
 	log.Printf("===> Apollo staring up <===")
 
-	log.Printf("Load configuration....")
+	log.Printf("INFO: load configuration....")
 	cfg := getConfig()
 
-	log.Printf("Initialize service....")
+	log.Printf("INFO: initialize service....")
 	app, err := InitService(version, &cfg)
 	if err != nil {
 		log.Printf("FATAL: %s", err.Error())
@@ -64,6 +64,6 @@ func main() {
 		c.File("./public/index.html")
 	})
 
-	log.Printf("Start Apollo on port %d", cfg.port)
+	log.Printf("INFO: start Apollo on port %d", cfg.port)
 	log.Fatal(router.Run(fmt.Sprintf(":%d", cfg.port)))
 }

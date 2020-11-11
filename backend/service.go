@@ -37,18 +37,18 @@ func InitService(version string, cfg *apolloConfig) (*Apollo, error) {
 		IIIF:        cfg.iiifManURL,
 	}
 
-	log.Printf("Connecting to DB...")
+	log.Printf("INFO: connecting to DB...")
 	connectStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true",
 		cfg.dbConfig.User, cfg.dbConfig.Pass, cfg.dbConfig.Host, cfg.dbConfig.Database)
 	db, err := sqlx.Connect("mysql", connectStr)
 	if err != nil {
-		return nil, fmt.Errorf("Database connection failed: %s", err.Error())
+		return nil, fmt.Errorf("database connection failed: %s", err.Error())
 	}
 	db.SetConnMaxLifetime(time.Minute * 5)
 	db.SetMaxIdleConns(5)
 	db.SetMaxOpenConns(5)
 	svc.DB = DB{db}
-	log.Printf("DB Connection established")
+	log.Printf("INFO: DB Connection established")
 
 	return &svc, nil
 }
@@ -57,7 +57,7 @@ func InitService(version string, cfg *apolloConfig) (*Apollo, error) {
 func (app *Apollo) HealthCheck(c *gin.Context) {
 	err := app.DB.Ping()
 	if err != nil {
-		log.Printf("Healthcheck failure: %s", err)
+		log.Printf("ERROR: healthcheck failure: %s", err)
 		// gin.H is a shortcut for map[string]interface{}
 		c.JSON(http.StatusInternalServerError, gin.H{"alive": "true", "mysql": "false"})
 		return

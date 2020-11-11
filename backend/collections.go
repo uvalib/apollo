@@ -16,7 +16,7 @@ import (
 
 // ListCollections returns a json array containg all collection in tghe system
 func (app *Apollo) ListCollections(c *gin.Context) {
-	log.Printf("Get all collections")
+	log.Printf("INFO: get all collections")
 	collections := getCollections(&app.DB)
 	c.JSON(http.StatusOK, collections)
 }
@@ -33,7 +33,7 @@ func (app *Apollo) GetCollection(c *gin.Context) {
 		c.String(http.StatusBadRequest, fmt.Sprintf("unsupported format %s", tgtFormat))
 		return
 	}
-	log.Printf("Get collection for PID %s as %s", pid, tgtFormat)
+	log.Printf("INFO: get collection for PID %s as %s", pid, tgtFormat)
 	rootID, dbErr := lookupIdentifier(&app.DB, pid)
 	if dbErr != nil {
 		log.Printf("ERROR: %s", dbErr.Error())
@@ -47,7 +47,7 @@ func (app *Apollo) GetCollection(c *gin.Context) {
 		c.String(http.StatusInternalServerError, dbErr.Error())
 		return
 	}
-	log.Printf("Collection tree retrieved from DB; sending to client")
+	log.Printf("INFO: collection tree retrieved from DB; sending to client")
 	if tgtFormat == "json" {
 		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s.json", pid))
 		c.JSON(http.StatusOK, root)
@@ -81,7 +81,7 @@ func getCollections(db *DB) []Collection {
 }
 
 func generateXML(node *Node, xmlType string) (string, error) {
-	log.Printf("Generate %s for collection %s", xmlType, node.PID)
+	log.Printf("INFO: generate %s for collection %s", xmlType, node.PID)
 	var buf bytes.Buffer
 	writer := bufio.NewWriter(&buf)
 	traverseTree(writer, node, xmlType)
@@ -147,7 +147,7 @@ func traverseTree(out *bufio.Writer, node *Node, xmlType string) {
 				continue
 			}
 			if child.Type.Name == "wslsColor" && xmlType == "uvamap" {
-				if strings.Index(child.Value, "black") >= 0 {
+				if strings.Contains(child.Value, "black") {
 					out.WriteString("<colorContent>black and white</colorContent>\n<physDetails>negative</physDetails>\n")
 				} else {
 					out.WriteString("<colorContent>color</colorContent>\n")

@@ -22,7 +22,7 @@ type apolloConfig struct {
 }
 
 func getConfig() apolloConfig {
-	log.Printf("Loading configuration...")
+	log.Printf("INFO: loading configuration...")
 	cfg := apolloConfig{}
 	flag.StringVar(&cfg.dbConfig.Host, "dbhost", os.Getenv("APOLLO_DB_HOST"), "DB Host (required)")
 	flag.StringVar(&cfg.dbConfig.Database, "dbname", os.Getenv("APOLLO_DB_NAME"), "DB Name (required)")

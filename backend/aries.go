@@ -30,7 +30,7 @@ func (app *Apollo) AriesPing(c *gin.Context) {
 // AriesLookup will query apollo for information on the supplied identifer
 func (app *Apollo) AriesLookup(c *gin.Context) {
 	passedPID := c.Param("id")
-	log.Printf("Aries lookup %s", passedPID)
+	log.Printf("INFO: aries lookup %s", passedPID)
 	ids, err := lookupIdentifier(&app.DB, passedPID)
 	if err != nil {
 		c.String(http.StatusNotFound, "%s not found", passedPID)

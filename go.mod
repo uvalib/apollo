@@ -14,6 +14,6 @@ require (
 	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/ugorji/go v1.1.5-pre // indirect
-	golang.org/x/net v0.0.0-20190611141213-3f473d35a33a // indirect
 	golang.org/x/sys v0.0.0-20190613124609-5ed2794edfdc // indirect
+	honnef.co/go/tools v0.0.1-2020.1.6 // indirect
 )

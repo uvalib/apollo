@@ -64,7 +64,7 @@ func getNode(db *DB, nodeID int64) (*Node, error) {
 func getTree(db *DB, rootID int64) (*Node, error) {
 	// Get all children with the root ID as the start of their ancestry -- OR
 	// any nodes that contain the ID as part of their ancestry (this is necessary for subtrees)
-	log.Printf("Get tree rooted at ID %d", rootID)
+	log.Printf("INFO: get tree rooted at ID %d", rootID)
 	qs := fmt.Sprintf(`
 		%s WHERE deleted=0 and current=1 AND (n.id=? or ancestry REGEXP '(^.+/|^)%d($|/.+)')
 		ORDER BY n.id ASC`,
@@ -74,7 +74,7 @@ func getTree(db *DB, rootID int64) (*Node, error) {
 
 // getNodeCollection returns details about the collection that contains the source node
 func getNodeCollection(db *DB, node *Node) (*Node, error) {
-	log.Printf("Get Parent for %s with ancestry [%s]", node.PID, node.Ancestry.String)
+	log.Printf("INFO: get Parent for %s with ancestry [%s]", node.PID, node.Ancestry.String)
 
 	// Get the ancestry string. If there is none, this node is the collection
 	ancestry := node.Ancestry.String
@@ -84,7 +84,7 @@ func getNodeCollection(db *DB, node *Node) (*Node, error) {
 
 	// The collection node is the one with  ID matching the first ancestry substring
 	rootID, _ := strconv.ParseInt(strings.Split(ancestry, "/")[0], 10, 64)
-	log.Printf("Ancestry rootID: %d", rootID)
+	log.Printf("INFO: ancestry rootID: %d", rootID)
 
 	// Dont want deleted or non-current nodes. Non-root nodes without values are the start of
 	// child containers of the collection; skip them. Only take the parent node itself (id match)
@@ -95,7 +95,7 @@ func getNodeCollection(db *DB, node *Node) (*Node, error) {
 }
 
 func queryNodes(db *DB, query string, rootID int64) (*Node, error) {
-	// log.Printf("%s, %d", query, rootID)
+	// log.Printf("DEBUG: %s, %d", query, rootID)
 	nodes := make(map[int64]*Node)
 	nodeParents := make(map[int64]int64)
 	var root *Node
