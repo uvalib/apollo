@@ -38,7 +38,7 @@ clean:
 
 dep:
 	cd frontend && yarn upgrade
-	$(GOGET) -u ./backend/btsrv/...
+	$(GOGET) -u ./backend/...
 	$(GOMOD) tidy
 	$(GOMOD) verify
 
