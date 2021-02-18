@@ -1,11 +1,8 @@
 #
 # build the target application
 #
-FROM golang:1.15 as builder
-RUN apt-get -y update
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
-RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
-RUN apt-get -y update && apt-get -y install yarn
+FROM golang:1.16.0-alpine3.13 as builder
+RUN apk update && apk upgrade && apk add make curl yarn
 
 WORKDIR /build
 COPY go.mod go.sum Makefile ./
