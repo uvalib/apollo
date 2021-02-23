@@ -11,6 +11,7 @@ type dbConfig struct {
 	Database string
 	User     string
 	Pass     string
+	Timeout  string
 }
 
 type apolloConfig struct {
@@ -28,6 +29,7 @@ func getConfig() apolloConfig {
 	flag.StringVar(&cfg.dbConfig.Database, "dbname", os.Getenv("APOLLO_DB_NAME"), "DB Name (required)")
 	flag.StringVar(&cfg.dbConfig.User, "dbuser", os.Getenv("APOLLO_DB_USER"), "DB User (required)")
 	flag.StringVar(&cfg.dbConfig.Pass, "dbpass", os.Getenv("APOLLO_DB_PASS"), "DB Password (required)")
+	flag.StringVar(&cfg.dbConfig.Timeout, "dbtimeout", os.Getenv("APOLLO_DB_TIMEOUT"), "DB Timeout (required)")
 	//
 	flag.IntVar(&cfg.port, "port", 8080, "Port to offer service on (default 8080)")
 	flag.StringVar(&cfg.devUser, "devuser", "", "Computing ID to use for fake authentication in dev mode")
@@ -39,7 +41,7 @@ func getConfig() apolloConfig {
 
 	// if anything is still not set, die
 	if len(cfg.dbConfig.Host) == 0 || len(cfg.dbConfig.User) == 0 ||
-		len(cfg.dbConfig.Pass) == 0 || len(cfg.dbConfig.Database) == 0 {
+		len(cfg.dbConfig.Pass) == 0 || len(cfg.dbConfig.Database) == 0 || len(cfg.dbConfig.Timeout) == 0 {
 		flag.Usage()
 		log.Printf("FATAL: Missing DB configuration")
 		os.Exit(1)

@@ -38,8 +38,9 @@ func InitService(version string, cfg *apolloConfig) (*Apollo, error) {
 	}
 
 	log.Printf("INFO: connecting to DB...")
-	connectStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true",
-		cfg.dbConfig.User, cfg.dbConfig.Pass, cfg.dbConfig.Host, cfg.dbConfig.Database)
+	connectStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true&timeout=%ss&readTimeout=%ss&writeTimeout=%ss",
+		cfg.dbConfig.User, cfg.dbConfig.Pass, cfg.dbConfig.Host, cfg.dbConfig.Database,
+		cfg.dbConfig.Timeout, cfg.dbConfig.Timeout, cfg.dbConfig.Timeout )
 	db, err := sqlx.Connect("mysql", connectStr)
 	if err != nil {
 		return nil, fmt.Errorf("database connection failed: %s", err.Error())
@@ -62,6 +63,7 @@ func (app *Apollo) HealthCheck(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"alive": "true", "mysql": "false"})
 		return
 	}
+	log.Printf("INFO: healthcheck OK")
 	c.JSON(http.StatusOK, gin.H{"alive": "true", "mysql": "true"})
 }
 
