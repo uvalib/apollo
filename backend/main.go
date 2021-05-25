@@ -12,7 +12,7 @@ import (
 )
 
 // Version of the service
-const version = "2.0.0"
+const version = "2.1.0"
 
 /**
  * MAIN
@@ -51,6 +51,8 @@ func main() {
 		api.GET("/search", app.SearchHandler)
 		api.GET("/types", app.GetNodeTypes)
 		api.GET("/values/:name", app.GeControlledValues)
+		api.GET("/published/dpla", app.GetDPLAPIDs)
+		api.GET("/dpla/:pid", app.GetQDC)
 	}
 
 	// Note: in dev mode, this is never actually used. The front end is served

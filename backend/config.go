@@ -20,6 +20,7 @@ type apolloConfig struct {
 	devUser    string
 	iiifManURL string
 	apolloURL  string
+	wslsURL    string
 }
 
 func getConfig() apolloConfig {
@@ -35,9 +36,9 @@ func getConfig() apolloConfig {
 	flag.StringVar(&cfg.devUser, "devuser", "", "Computing ID to use for fake authentication in dev mode")
 	flag.StringVar(&cfg.iiifManURL, "iiif", "https://iiifman.lib.virginia.edu/pid", "IIIF Manifest service URL")
 	flag.StringVar(&cfg.apolloURL, "apollo", "https://apollo.lib.virginia.edu", "Apollo URL")
+	flag.StringVar(&cfg.wslsURL, "fedora", "https://wsls.lib.virginia.edu", "WSLS Fedora URL")
 
 	flag.Parse()
-	log.Printf("%#v", cfg)
 
 	// if anything is still not set, die
 	if len(cfg.dbConfig.Host) == 0 || len(cfg.dbConfig.User) == 0 ||

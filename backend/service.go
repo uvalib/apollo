@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -23,10 +24,12 @@ type DB struct {
 type Apollo struct {
 	Version         string
 	ApolloURL       string
+	WSLSURL         string
 	DB              DB
 	DevAuthUser     string
 	AuthComputingID string
 	IIIF            string
+	QDCTemplate     *template.Template
 }
 
 // InitService will initialize the service context based on the config parameters
@@ -35,12 +38,13 @@ func InitService(version string, cfg *apolloConfig) (*Apollo, error) {
 		ApolloURL:   cfg.apolloURL,
 		DevAuthUser: cfg.devUser,
 		IIIF:        cfg.iiifManURL,
+		WSLSURL:     cfg.wslsURL,
 	}
 
 	log.Printf("INFO: connecting to DB...")
 	connectStr := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true&timeout=%ss&readTimeout=%ss&writeTimeout=%ss",
 		cfg.dbConfig.User, cfg.dbConfig.Pass, cfg.dbConfig.Host, cfg.dbConfig.Database,
-		cfg.dbConfig.Timeout, cfg.dbConfig.Timeout, cfg.dbConfig.Timeout )
+		cfg.dbConfig.Timeout, cfg.dbConfig.Timeout, cfg.dbConfig.Timeout)
 	db, err := sqlx.Connect("mysql", connectStr)
 	if err != nil {
 		return nil, fmt.Errorf("database connection failed: %s", err.Error())
@@ -50,6 +54,9 @@ func InitService(version string, cfg *apolloConfig) (*Apollo, error) {
 	db.SetMaxOpenConns(5)
 	svc.DB = DB{db}
 	log.Printf("INFO: DB Connection established")
+
+	log.Printf("INFO: Load QDC template")
+	svc.QDCTemplate = template.Must(template.ParseFiles("./templates/wsls_qdc.xml"))
 
 	return &svc, nil
 }
