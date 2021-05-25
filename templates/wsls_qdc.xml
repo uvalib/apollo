@@ -7,7 +7,7 @@
     xmlns:dcterms="http://purl.org/dc/terms/"
     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
     xmlns:edm="http://www.europeana.eu/schemas/edm/"
-    xsi:schemaLocation="http://dplava.lib.virginia.edu dplava.xsd">
+    xsi:schemaLocation="http://dplava.lib.virginia.edu https://dplava.lib.virginia.edu/dplava.xsd">
     <dcterms:identifier>{{.PID}}</dcterms:identifier>
     <dcterms:provenance>University of Virginia Library</dcterms:provenance>
     <dcterms:isPartOf>WSLS-TV (Roanoke, Va.) news film collection</dcterms:isPartOf>
