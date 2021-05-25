@@ -137,7 +137,7 @@ func (app *Apollo) GetQDC(c *gin.Context) {
 		case "externalPID":
 			data.PID = child.Value
 		case "wslsID":
-			data.Preview = fmt.Sprintf("%s/wsls/%s/%s-thumbnail.jpg", app.WSLSURL, child.Value, child.Value)
+			data.Preview = fmt.Sprintf("%s/%s/%s-thumbnail.jpg", app.WSLSURL, child.Value, child.Value)
 		case "title":
 			data.Title = data.CleanXMLSting(child.Value)
 		case "abstract":
