@@ -46,7 +46,7 @@ func (d *wslsQdcData) CleanXMLSting(val string) string {
 
 func (d *wslsQdcData) FixDate(origDate string) string {
 	if origDate == "" {
-		return "1951-1971"
+		return "[1951..1971]"
 	}
 	if strings.Contains(origDate, "/") == false {
 		return origDate
