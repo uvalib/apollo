@@ -28,7 +28,7 @@
     <dcterms:spatial{{if .ValueURI}} valueURI="{{.ValueURI}}"{{end}}>{{.Value}}</dcterms:spatial>
     {{- end}}
     {{- end}}
-    <dcterms:rights>http://rightsstatements.org/vocab/CNE/1.0/</dcterms:rights>
+    <dcterms:rights>{{.Rights}}</dcterms:rights>
     <dcterms:language>English</dcterms:language>
     <dcterms:type>Moving Image</dcterms:type>
     <edm:hasType valueURI="http://vocab.getty.edu/aat/300136900">motion pictures (visual works)</edm:hasType>

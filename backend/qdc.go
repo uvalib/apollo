@@ -34,6 +34,7 @@ type wslsQdcData struct {
 	Places      []qdcControlledValue
 	Topics      []qdcControlledValue
 	Preview     string
+	Rights      string
 }
 
 func (d *wslsQdcData) CleanXMLSting(val string) string {
@@ -44,6 +45,9 @@ func (d *wslsQdcData) CleanXMLSting(val string) string {
 }
 
 func (d *wslsQdcData) FixDate(origDate string) string {
+	if origDate == "" {
+		return "1951-1971"
+	}
 	if strings.Contains(origDate, "/") == false {
 		return origDate
 	}
@@ -136,6 +140,12 @@ func (app *Apollo) GetQDC(c *gin.Context) {
 		switch name := child.Type.Name; name {
 		case "externalPID":
 			data.PID = child.Value
+		case "wslsRights":
+			if child.Value == "Local" {
+				data.Rights = "https://creativecommons.org/licenses/by/4.0/"
+			} else {
+				data.Rights = "http://rightsstatements.org/vocab/NoC-US/1.0/"
+			}
 		case "wslsID":
 			data.Preview = fmt.Sprintf("%s/%s/%s-thumbnail.jpg", app.WSLSURL, child.Value, child.Value)
 		case "title":
