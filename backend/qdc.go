@@ -135,7 +135,10 @@ func (app *Apollo) GetQDC(c *gin.Context) {
 		return
 	}
 
+	// default data to CNE. if a wslsRights element is found, this will be overridden
 	var data wslsQdcData
+	data.Rights = "https://rightsstatements.org/page/CNE/1.0/"
+
 	for _, child := range item.Children {
 		switch name := child.Type.Name; name {
 		case "externalPID":
