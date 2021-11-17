@@ -9,7 +9,7 @@
     xmlns:edm="http://www.europeana.eu/schemas/edm/"
     xsi:schemaLocation="http://dplava.lib.virginia.edu https://dplava.lib.virginia.edu/dplava.xsd">
     <dcterms:identifier>{{.PID}}</dcterms:identifier>
-    <dcterms:provenance>University of Virginia Library</dcterms:provenance>
+    <dcterms:provenance>University of Virginia</dcterms:provenance>
     <dcterms:isPartOf>WSLS-TV (Roanoke, Va.) news film collection</dcterms:isPartOf>
     <dcterms:title>{{.Title}}</dcterms:title>
     {{- if .Description}}
