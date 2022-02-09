@@ -1,8 +1,8 @@
 #
 # build the target application
 #
-FROM golang:1.16.5-alpine3.13 as builder
-RUN apk update && apk upgrade && apk add make yarn
+FROM public.ecr.aws/docker/library/golang:1.17-alpine3.15 as builder
+RUN apk update && apk upgrade && apk add --no-cache make yarn
 
 WORKDIR /build
 COPY go.mod go.sum Makefile ./
@@ -13,7 +13,7 @@ RUN make linux-srv web
 #
 # build the target container
 #
-FROM alpine:3.13
+FROM public.ecr.aws/docker/library/alpine:3.15
 
 # update the packages
 RUN apk update && apk upgrade && apk add bash tzdata ca-certificates curl && rm -fr /var/cache/apk/*
@@ -34,7 +34,7 @@ RUN mkdir -p $APP_HOME/scripts $APP_HOME/bin $APP_HOME/db
 RUN chown -R docker $APP_HOME && chgrp -R sse $APP_HOME
 
 # add the migrate tool
-RUN cd $APP_HOME/bin && curl -L https://github.com/golang-migrate/migrate/releases/download/v4.14.1/migrate.linux-amd64.tar.gz | tar xvz && mv migrate.linux-amd64 migrate
+RUN cd $APP_HOME/bin && curl -L https://github.com/golang-migrate/migrate/releases/download/v4.15.1/migrate.linux-amd64.tar.gz | tar xvz && rm LICENSE README.md
 
 # port and run command
 EXPOSE 8080
