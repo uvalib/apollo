@@ -9,7 +9,7 @@
          </div>
          <template v-else>
             <CollectionDetailsHeader id="fixed-header"/>
-            <div class="content collection-detail">
+            <div class="collection-detail">
                <div class="pure-u-9-24">
                   <div class="toolbar">
                   <span class="toolbar-buttons">
@@ -50,6 +50,9 @@ const route = useRoute()
 
 const targetAncestry = ref([])
 const targetPID = ref("")
+const toolbar = ref()
+const toolbarHeight = ref(0)
+const toolbarTop = ref(0)
 
 onBeforeMount( async () => {
    await collectionsStore.getCollectionDetails(route.params.id)
@@ -66,13 +69,58 @@ onBeforeMount( async () => {
       targetAncestry.value[0].childNodeCount += 1
    }
 })
+
 onMounted(() => {
-   // setup sticky toolbar
+   setTimeout( () => {
+      let tb = document.getElementById("fixed-header")
+      if ( tb) {
+         toolbar.value = tb
+         toolbarHeight.value = tb.offsetHeight
+         toolbarTop.value = 0
+         console.log("GOT HEIGHT "+tb.offsetHeight)
+
+         // walk the parents of the toolbar and add each top value
+         // to find the top of the toolbar relative to document top
+         let ele = tb
+         if (ele.offsetParent) {
+            do {
+               toolbarTop.value += ele.offsetTop
+               ele = ele.offsetParent
+            } while (ele)
+         }
+         toolbarTop.value -= 5
+         console.log("GOT TOP "+toolbarTop.value)
+      }
+   }, 1000)
+   window.addEventListener("scroll", scrollHandler)
 })
 
 onUnmounted(() => {
-   // cleanup sticky
+   window.removeEventListener("scroll", scrollHandler)
 })
+
+function scrollHandler( ) {
+   if ( toolbar.value) {
+      if ( window.scrollY <= toolbarTop.value ) {
+         if ( toolbar.value.classList.contains("sticky") ) {
+            toolbar.value.classList.remove("sticky")
+            let details = document.getElementsByClassName("collection-detail")
+            if ( details ) {
+               details[0].style.top = `0px`
+            }
+         }
+      } else {
+         if ( toolbar.value.classList.contains("sticky") == false ) {
+            let details = document.getElementsByClassName("collection-detail")
+            if ( details ) {
+               details[0].style.top = `${toolbarHeight.value}px`
+            }
+            toolbar.value.classList.add("sticky")
+         }
+      }
+   }
+}
+
 
       // formatDateTime: function( ts ) {
       //   let m = moment(ts, "YYYY-MM-DDTHH:mm:ssZ")
@@ -138,6 +186,23 @@ const getAncestry = ((currNode) => {
 </script>
 
 <style scoped>
+#fixed-header {
+   background: white;
+   z-index: 1000;
+   padding-top:5px;
+   position: relative;
+}
+#fixed-header.sticky {
+   position: fixed;
+   z-index: 1000;
+   top: 0;
+   left: 20px;
+   right: 20px;
+}
+.collection-detail {
+   position: relative;
+}
+
 .toolbar {
    font-size: 0.8em;
    position: relative;
