@@ -25,20 +25,24 @@ import { useCollectionsStore } from '@/stores/collections'
 
 const collectionsStore = useCollectionsStore()
 
-  // handleNodeDestroyed: function() {
-  //   if (!this.viewerPID) return
-  //   let tgt = $("#"+this.viewerPID)
-  //   if (tgt.length === 0) {
-  //     $("#object-viewer").empty()
-  //     this.$store.commit("setViewerPID", null)
-  //   }
-  // },
+const emit = defineEmits(['collapse', 'sync'])
 
-  // scrollTopClick: function() {
-  //   $([document.documentElement, document.body]).animate({
-  //     scrollTop:0
-  //   }, 100);
-  // },
+const scrollTopClick = (() => {
+   var scrollStep = -window.scrollY / (500 / 10),
+   scrollInterval = setInterval(()=> {
+      if ( window.scrollY != 0 ) {
+         window.scrollBy( 0, scrollStep )
+      } else {
+         clearInterval(scrollInterval)
+      }
+   },10)
+})
+const collapseClick = (() => {
+   emit("collapse")
+})
+const syncClick = (() => {
+   emit("sync")
+})
 
   // collapseClick: function() {
   //   EventBus.$emit('collapse-all')
@@ -60,6 +64,7 @@ const collectionsStore = useCollectionsStore()
    flex-flow: row nowrap;
    justify-content: space-between;
    padding-left: 20px;
+
    h4.do-header {
       margin: 0;
       border-bottom: 1px solid #ccc;
@@ -67,6 +72,7 @@ const collectionsStore = useCollectionsStore()
       margin-bottom: 0px;
       flex-grow: 1;
    }
+
    h4.do-header.pad-left {
       margin-left: 20px;
    }

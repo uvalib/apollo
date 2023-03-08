@@ -10,18 +10,18 @@
          <template v-else>
             <CollectionDetailsHeader id="fixed-header"/>
             <div class="collection-detail">
-               <div class="pure-u-9-24">
+               <div class="tree">
                   <div class="toolbar">
-                  <span class="toolbar-buttons">
-                     <a class="raw" :href="collectionsStore.xmlLink">XML</a>
-                     <a class="raw" :href="collectionsStore.jsonLink">JSON</a>
-                  </span>
+                     <span class="toolbar-buttons">
+                        <a class="raw" :href="collectionsStore.xmlLink">XML</a>
+                        <a class="raw" :href="collectionsStore.jsonLink">JSON</a>
+                     </span>
                   </div>
                   <ul class="collection">
-                     <CollectionDetailsItem :model="collectionsStore.collectionDetails" :depth="0"/>
+                     <CollectionDetailsItem :model="collectionsStore.collectionDetails" :depth="0" :open="true"/>
                   </ul>
                </div>
-               <div class="pure-u-15-24">
+               <div class="viewer" id="viewer-wrapper">
                   <ApolloError v-if="collectionsStore.viewerError" :message="viewerError"/>
                   <div v-else id="viewer-wrapper">
                   <LoadingSpinner v-if="collectionsStore.viewerLoading" message="Loading digital object view"/>
@@ -35,7 +35,6 @@
 </template>
 
 <script setup>
-import moment from 'moment'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import CollectionDetailsHeader from '@/components/CollectionDetailsHeader.vue'
 import CollectionDetailsItem from '@/components/CollectionDetailsItem.vue'
@@ -108,6 +107,9 @@ function scrollHandler( ) {
             if ( details ) {
                details[0].style.top = `0px`
             }
+            let vw = document.getElementById("viewer-wrapper")
+            vw.classList.remove("sticky")
+            vw.style.top = `0`
          }
       } else {
          if ( toolbar.value.classList.contains("sticky") == false ) {
@@ -115,17 +117,14 @@ function scrollHandler( ) {
             if ( details ) {
                details[0].style.top = `${toolbarHeight.value}px`
             }
+            let vw = document.getElementById("viewer-wrapper")
+            vw.classList.add("sticky")
+            vw.style.top = `40px`
             toolbar.value.classList.add("sticky")
          }
       }
    }
 }
-
-
-      // formatDateTime: function( ts ) {
-      //   let m = moment(ts, "YYYY-MM-DDTHH:mm:ssZ")
-      //   return m.utcOffset("+0000").format("YYYY-MM-DD hh:mma")
-      // },
 
 // Walk the collection data and find the targetPID specified by the query params
 // Populate an array of targetAncestry data including node counts for the relevant tree branches
@@ -147,23 +146,23 @@ const getAncestry = ((currNode) => {
    return false
 })
 
-      // handleNodeMounted: function() {
-      //   // only care about this event if a target was specified in the query params
-      //   if (props.targetPID && this.targetAncestry.length > 0) {
-      //     // Wait for each child of the targetAncestry node to be mounted
-      //     this.targetAncestry[0].childNodeCount -= 1
-      //     if ( this.targetAncestry[0].childNodeCount <= 0) {
-      //       // Once all are mounted, toss the head of the list and
-      //       // open the next ancestor - or scroll to target if all are open
-      //       this.targetAncestry.shift()
-      //       if ( this.targetAncestry.length == 0) {
-      //         this.scrollToTarget()
-      //       } else {
-      //         EventBus.$emit("expand-node", this.targetAncestry[0].pid)
-      //       }
-      //     }
-      //   }
-      // },
+// handleNodeMounted: function() {
+//   // only care about this event if a target was specified in the query params
+//   if (props.targetPID && this.targetAncestry.length > 0) {
+//     // Wait for each child of the targetAncestry node to be mounted
+//     this.targetAncestry[0].childNodeCount -= 1
+//     if ( this.targetAncestry[0].childNodeCount <= 0) {
+//       // Once all are mounted, toss the head of the list and
+//       // open the next ancestor - or scroll to target if all are open
+//       this.targetAncestry.shift()
+//       if ( this.targetAncestry.length == 0) {
+//         this.scrollToTarget()
+//       } else {
+//         EventBus.$emit("expand-node", this.targetAncestry[0].pid)
+//       }
+//     }
+//   }
+// },
 
 // const scrollToTarget = (() => {
 //    let ele = $("li#"+props.targetPID)
@@ -185,12 +184,11 @@ const getAncestry = ((currNode) => {
 // })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 #fixed-header {
    background: white;
    z-index: 1000;
    padding-top:5px;
-   position: relative;
 }
 #fixed-header.sticky {
    position: fixed;
@@ -200,28 +198,45 @@ const getAncestry = ((currNode) => {
    right: 20px;
 }
 .collection-detail {
-   position: relative;
-}
-
-.toolbar {
-   font-size: 0.8em;
-   position: relative;
-   margin: 0 0 0 20px;
-   border-bottom: 1px solid #ccc;
-   padding: 10px 0;
    display: flex;
    flex-flow: row nowrap;
-   justify-content: flex-end;
-}
+   position: relative;
 
-.publication {
-   margin-top: 2px;
-   font-size: 0.9em;
-}
-
-.publication .label {
-   font-weight: bold;
-   margin-right: 10px;
+   div.tree {
+      width: 38%;
+      min-width: 600px;
+      .toolbar {
+         font-size: 0.8em;
+         position: relative;
+         margin: 0 0 0 20px;
+         border-bottom: 1px solid #ccc;
+         padding: 10px 0;
+         display: flex;
+         flex-flow: row nowrap;
+         justify-content: flex-end;
+         span.toolbar-buttons {
+            display: inline-block;
+         }
+      }
+      ul.collection {
+         margin-top: 0;
+         -webkit-padding-start: 20px;
+      }
+   }
+   .viewer {
+      width: 60%;
+      min-width: 800px;
+      position: relative;
+      div#object-viewer {
+         padding: 5px 25px;
+      }
+   }
+   #viewer-wrapper.sticky {
+      position: fixed;
+      z-index: 1000;
+      right: 40px;
+      bottom: 0;
+   }
 }
 
 .raw {
@@ -238,29 +253,8 @@ const getAncestry = ((currNode) => {
    margin-left: 5px;
 }
 
-span.toolbar-buttons {
-   display: inline-block;
-}
-
-span.publish {
-   background: #3a3;
-}
-
-div#object-viewer {
-   padding: 5px 20px;
-}
-
-#viewer-tools {
-   text-align: right;
-   margin: 15px 0;
-}
-
 div.detail-wrapper {
    background-color: white;
    padding: 20px;
 }
-
-ul.collection {
-   margin-top: 0;
-   -webkit-padding-start: 20px;
-}</style>
+</style>

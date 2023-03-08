@@ -1,7 +1,7 @@
 <template>
-  <li :id="model.pid">
-    <span v-if="isFolder" class="icon" @click="toggle" :class="{ plus: open==false, minus: open==true}"></span>
-    <table class="node">
+  <li class="tree-node">
+    <span v-if="isFolder" class="icon" @click="toggle" :class="{ plus: isOpen==false, minus: isOpen==true}"></span>
+    <table class="node" :id="model.pid" >
       <tr class="attribute">
         <td class="label">PID:</td>
         <td class="data">{{ model.pid }}</td>
@@ -23,21 +23,26 @@
         <template v-else>
           <td colspan="2" class="do-buttons">
             <a v-if="hasIIIFManifest" class="do-button" :href="iiifManufestURL" target="_blank">IIIF Manifest</a>
-            <span :data-uri="getCurioURL(attribute)"
-              @click="digitalObjectClicked"
-              class="do-button">View Digitial Object</span>
+            <span @click="digitalObjectClicked(model.pid, attribute.values[0].value)" class="do-button">View Digitial Object</span>
           </td>
         </template>
       </tr>
     </table>
-    <ul v-if="open" v-show="open">
-      <CollectionDetailsItem  v-for="child in model.children" :key="child.pid" :model="child" :depth="depth+1"/>
+    <ul v-if="isOpen">
+      <CollectionDetailsItem  v-for="child in model.children" :key="child.pid" :model="child" :depth="depth+1" :open="false"/>
     </ul>
   </li>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { useCollectionsStore } from '@/stores/collections'
+import axios from 'axios'
+
+const IIIF_MAN_URL = import.meta.env.VITE_IIIF_MAN_URL
+const CURIO_URL = import.meta.env.VITE_CURIO_URL
+
+const collectionStore = useCollectionsStore()
 
 const props = defineProps({
    model: {
@@ -48,22 +53,78 @@ const props = defineProps({
       type: Number,
       required: true
    },
+   open: {
+      type: Boolean,
+      default: false
+   },
 })
+const isOpen = ref(props.open)
 
-const open = computed( () => {
-   return props.depth < 1
-})
 const isFolder = computed( () => {
    return props.model.children && props.model.children.length
 })
 const iiifManufestURL = computed( () => {
-   return process.env.VUE_APP_IIIF_MAN_URL+"/"+externalPID()+"/manifest.json"
+   return IIIF_MAN_URL+"/"+externalPID()+"/manifest.json"
 })
 const hasIIIFManifest = computed( () => {
    if (props.model.type.name === "item") {
       return false
    }
    return true
+})
+
+const toggle = (() => {
+   isOpen.value = !isOpen.value
+})
+
+// const getCurioURL = ((attribute) => {
+//    if (attribute.values[0].value.includes("https://")) {
+//       return attribute.values[0].value
+//    }
+//    // conert JSON to something like this:
+//    // https://curio.lib.virginia.edu/oembed?url=https%3A%2F%2Fcurio.lib.virginia.edu%2Fview%2Fuva-lib%3A2528443
+//    let json = JSON.parse(attribute.values[0].value)
+//    let qp = encodeURIComponent(CURIO_URL+"/view/"+json.id)
+//    let url = CURIO_URL+"/oembed?url="+qp
+//    return url
+// })
+
+
+const digitalObjectClicked = ((pid, viewerAttribString) => {
+   // make sure only one node is marked as selected
+   let nodes = document.getElementsByClassName("node")
+   for (let n of nodes) {
+      n.classList.remove("selected")
+   }
+   let tgtNode = document.getElementById(pid)
+   tgtNode.classList.add("selected")
+   collectionStore.viewerLoading = true
+
+   let attrib = JSON.parse(viewerAttribString)
+   let externalID = attrib.id
+
+   // generate the oembedURI and request embedding info
+   // https://curio.lib.virginia.edu/oembed?url=https%3A%2F%2Fcurio.lib.virginia.edu%2Fview%2Fuva-lib%3A2528443
+   let qp = encodeURIComponent(CURIO_URL+"/view/"+externalID)
+   let oembedUri = CURIO_URL+"/oembed?url="+qp
+
+   axios.get(oembedUri).then((response)  =>  {
+      // set a global flag to make the browser think JS jas not all been
+      // loaded. Without this, the JS file included in the response
+      // will not load, and the viewer will not render
+      window.embedScriptIncluded = false
+      let viewewrDiv = document.getElementById("object-viewer")
+      viewewrDiv.innerHTML = response.data.html
+      collectionStore.viewerPID = pid
+   }).catch((error) => {
+      if ( error.message ) {
+         collectionStore.viewerError = error.message
+      } else {
+         tcollectionStore.viewerError = error.response.data
+      }
+   }).finally(() => {
+      collectionStore.viewerLoading = false
+   })
 })
 
   //   mounted() {
@@ -88,17 +149,6 @@ const hasIIIFManifest = computed( () => {
   //           this.toggle()
   //         }
   //       }
-  //     },
-  //     getCurioURL: function(attribute) {
-  //       if (attribute.values[0].value.includes("https://")) {
-  //         return attribute.values[0].value
-  //       }
-  //       // conert JSON to something like this:
-  //       // https://curio.lib.virginia.edu/oembed?url=https%3A%2F%2Fcurio.lib.virginia.edu%2Fview%2Fuva-lib%3A2528443
-  //       let json = JSON.parse(attribute.values[0].value)
-  //       let qp = encodeURIComponent(process.env.VUE_APP_CURIO_URL+"/view/"+json.id)
-  //       let url = process.env.VUE_APP_CURIO_URL+"/oembed?url="+qp
-  //       return url
   //     },
   const showMore = ((attribute) => {
     if (attribute.values.length > 1) return false
@@ -147,47 +197,13 @@ const hasIIIFManifest = computed( () => {
     }
     return ""
   })
-
-// const toggle =  (()=> {
-//    if (isFolder.value) {
-//       this.open = !this.open
-//    }
-// })
-
-  //     digitalObjectClicked: function(event) {
-  //       // make sure only one node is marked as selected
-  //       $(".selected").removeClass("selected")
-  //       let node = $(event.target).closest(".node")
-  //       node.addClass("selected")
-  //       this.$store.commit("setViewerLoading", true)
-
-  //       let dv = $("#object-viewer")
-  //       dv.empty()
-
-  //       // grab the oembedURI and request embedding info
-  //       let oembedUri = event.target.getAttribute('data-uri')
-  //       axios.get(oembedUri).then((response)  =>  {
-  //         // set a global flag to make the browser think JS jas not all been
-  //         // loaded. Without this, the JS file included in the response
-  //         // will not load, and the viewer will not render
-  //         window.embedScriptIncluded = false
-  //         dv.append( $( response.data.html) )
-  //         this.$store.commit("setViewerPID", props.model.pid)
-  //       }).catch((error) => {
-  //         if ( error.message ) {
-  //           this.$store.commit("setViewerError", error.message)
-  //         } else {
-  //           this.$store.commit("setViewerError", error.response.data)
-  //         }
-  //       }).finally(() => {
-  //         this.$store.commit("setViewerLoading", false)
-  //       })
-  //     }
-  //   }
-  // }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+.tree-node {
+   list-style: none;
+   position: relative;
+}
   table.node {
     padding: 5px 0 5px 5px;
     margin: 0;
