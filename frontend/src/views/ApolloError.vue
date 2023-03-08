@@ -13,13 +13,13 @@
   </div>
 </template>
 
-<script>
-  export default {
-    name: "ApolloError",
-    props: {
-      message: String
-    }
-  }
+<script setup>
+const props = defineProps({
+  message: {
+      type: String,
+      required: true
+   }
+})
 </script>
 
 <style scoped>

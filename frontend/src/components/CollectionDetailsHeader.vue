@@ -1,5 +1,5 @@
 <template>
-  <div class="content pure-g fixed-header">
+  <div class="content pure-g">
     <div class="pure-u-9-24">
       <h4 class="do-header">
         <span>Collection Structure</span>
@@ -13,7 +13,7 @@
     <div class="pure-u-15-24">
       <h4 class="do-header">
         <span>Digitial Object Viewer</span>
-        <span v-if='!viewerPID' class="hint">
+        <span v-if='!collectionsStore.viewerPID' class="hint">
           Click 'View Digital Object' from the tree on the left to view it below
         </span>
         <span v-else class="helper-buttons">
@@ -24,51 +24,38 @@
   </div>
 </template>
 
-<script>
-  import EventBus from '@/components/EventBus'
-  import { mapGetters } from 'vuex'
+<script setup>
+import { useCollectionsStore } from '@/stores/collections'
 
-  export default {
-    name: 'CollectionDetailsHeader',
-    computed: {
-      ...mapGetters([
-        'viewerPID'
-      ])
-    },
+const collectionsStore = useCollectionsStore()
 
-    mounted: function () {
-      EventBus.$on('node-destroyed', this.handleNodeDestroyed)
-    },
+  // handleNodeDestroyed: function() {
+  //   if (!this.viewerPID) return
+  //   let tgt = $("#"+this.viewerPID)
+  //   if (tgt.length === 0) {
+  //     $("#object-viewer").empty()
+  //     this.$store.commit("setViewerPID", null)
+  //   }
+  // },
 
-    methods: {
-      handleNodeDestroyed: function() {
-        if (!this.viewerPID) return
-        let tgt = $("#"+this.viewerPID)
-        if (tgt.length === 0) {
-          $("#object-viewer").empty()
-          this.$store.commit("setViewerPID", null)
-        }
-      },
+  // scrollTopClick: function() {
+  //   $([document.documentElement, document.body]).animate({
+  //     scrollTop:0
+  //   }, 100);
+  // },
 
-      scrollTopClick: function() {
-        $([document.documentElement, document.body]).animate({
-          scrollTop:0
-        }, 100);
-      },
+  // collapseClick: function() {
+  //   EventBus.$emit('collapse-all')
+  //   this.scrollTopClick()
+  // },
 
-      collapseClick: function() {
-        EventBus.$emit('collapse-all')
-        this.scrollTopClick()
-      },
+  // syncClick: function() {
+  //   let tgt = $("#"+this.viewerPID)
+  //   $([document.documentElement, document.body]).animate({
+  //     scrollTop: tgt.offset().top-40
+  //   }, 100);
+  // },
 
-      syncClick: function() {
-        let tgt = $("#"+this.viewerPID)
-        $([document.documentElement, document.body]).animate({
-          scrollTop: tgt.offset().top-40
-        }, 100);
-      },
-    }
-  }
 </script>
 
 <style scoped>

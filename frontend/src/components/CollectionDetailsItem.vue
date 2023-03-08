@@ -31,161 +31,160 @@
       </tr>
     </table>
     <ul v-if="open" v-show="open">
-      <template v-for="child in model.children">
-        <CollectionDetailsItem :key="child.pid" :model="child" :depth="depth+1"/>
-      </template>
+      <CollectionDetailsItem  v-for="child in model.children" :key="child.pid" :model="child" :depth="depth+1"/>
     </ul>
   </li>
 </template>
 
-<script>
-  import axios from 'axios'
-  import EventBus from './EventBus'
+<script setup>
+import { computed } from 'vue'
 
-  export default {
-    name: 'CollectionDetailsItem',
-    props: {
-      model: Object,
-      depth: Number
-    },
-    data: function () {
-      return {
-        open: this.depth < 1,
-      }
-    },
-    computed: {
-      isFolder: function () {
-        return this.model.children && this.model.children.length
-      },
-      iiifManufestURL: function() {
-        return process.env.VUE_APP_IIIF_MAN_URL+"/"+this.externalPID()+"/manifest.json"
-      },
-      hasIIIFManifest: function() {
-        if (this.model.type.name === "item") {
-          return false
-        }
-        return true
-      }
-    },
+const props = defineProps({
+   model: {
+      type: Object,
+      required: true
+   },
+   depth: {
+      type: Number,
+      required: true
+   },
+})
 
-    mounted() {
-      EventBus.$on("expand-node", this.handleExpandNodeEvent)
-      EventBus.$on('collapse-all', this.handleCollapseAll)
-      EventBus.$emit('node-mounted', this.model.pid)
-    },
+const open = computed( () => {
+   return props.depth < 1
+})
+const isFolder = computed( () => {
+   return props.model.children && props.model.children.length
+})
+const iiifManufestURL = computed( () => {
+   return process.env.VUE_APP_IIIF_MAN_URL+"/"+externalPID()+"/manifest.json"
+})
+const hasIIIFManifest = computed( () => {
+   if (props.model.type.name === "item") {
+      return false
+   }
+   return true
+})
 
-    destroyed() {
-      EventBus.$emit('node-destroyed')
-    },
+  //   mounted() {
+  //     EventBus.$on("expand-node", this.handleExpandNodeEvent)
+  //     EventBus.$on('collapse-all', this.handleCollapseAll)
+  //     EventBus.$emit('node-mounted', props.model.pid)
+  //   },
 
-    methods: {
-      handleCollapseAll: function() {
-        if ( this.isFolder && this.open ) {
-          this.toggle()
-        }
-      },
-      handleExpandNodeEvent: function(pid) {
-        if ( this.model.pid == pid) {
-          if ( this.isFolder && this.open === false ) {
-            this.toggle()
-          }
-        }
-      },
-      getCurioURL: function(attribute) {
-        if (attribute.values[0].value.includes("https://")) {
-          return attribute.values[0].value
-        }
-        // conert JSON to something like this:
-        // https://curio.lib.virginia.edu/oembed?url=https%3A%2F%2Fcurio.lib.virginia.edu%2Fview%2Fuva-lib%3A2528443
-        let json = JSON.parse(attribute.values[0].value)
-        let qp = encodeURIComponent(process.env.VUE_APP_CURIO_URL+"/view/"+json.id)
-        let url = process.env.VUE_APP_CURIO_URL+"/oembed?url="+qp
-        return url
-      },
-      showMore: function(attribute) {
-        if (attribute.values.length > 1) return false
-        return attribute.values[0].value.length > 150
-      },
-      moreClicked: function(event) {
-        let btn = $(event.currentTarget)
-        if (btn.text() == "more") {
-          let parent = $(event.currentTarget).closest("td")
-          let txt = parent.find(".long-val")
-          txt.text(txt.data("full"))
-          btn.text("less")
+  //   destroyed() {
+  //     EventBus.$emit('node-destroyed')
+  //   },
+
+  //   methods: {
+  //     handleCollapseAll: function() {
+  //       if ( this.isFolder && this.open ) {
+  //         this.toggle()
+  //       }
+  //     },
+  //     handleExpandNodeEvent: function(pid) {
+  //       if ( props.model.pid == pid) {
+  //         if ( this.isFolder && this.open === false ) {
+  //           this.toggle()
+  //         }
+  //       }
+  //     },
+  //     getCurioURL: function(attribute) {
+  //       if (attribute.values[0].value.includes("https://")) {
+  //         return attribute.values[0].value
+  //       }
+  //       // conert JSON to something like this:
+  //       // https://curio.lib.virginia.edu/oembed?url=https%3A%2F%2Fcurio.lib.virginia.edu%2Fview%2Fuva-lib%3A2528443
+  //       let json = JSON.parse(attribute.values[0].value)
+  //       let qp = encodeURIComponent(process.env.VUE_APP_CURIO_URL+"/view/"+json.id)
+  //       let url = process.env.VUE_APP_CURIO_URL+"/oembed?url="+qp
+  //       return url
+  //     },
+  const showMore = ((attribute) => {
+    if (attribute.values.length > 1) return false
+    return attribute.values[0].value.length > 150
+  })
+
+  //     moreClicked: function(event) {
+  //       let btn = $(event.currentTarget)
+  //       if (btn.text() == "more") {
+  //         let parent = $(event.currentTarget).closest("td")
+  //         let txt = parent.find(".long-val")
+  //         txt.text(txt.data("full"))
+  //         btn.text("less")
+  //       } else {
+  //         let parent = $(event.currentTarget).closest("td")
+  //         let txt = parent.find(".long-val")
+  //         txt.text(txt.data("full").substring(0,150)+"...")
+  //         btn.text("more")
+  //       }
+  //     },
+  const renderAttributeValue = ((attribute) => {
+    let out = ""
+    for (var idx in attribute.values) {
+      let val = attribute.values[idx]
+      if (out.length > 0) out += "<span>, </span>"
+      if (val.valueURI) {
+        out += "<a class='uri' href='"+val.valueURI+"' target='_blank'>"+val.value+"</a>"
+      } else {
+        if (val.value.length < 150) {
+          out += "<span>"+val.value+"</span>"
         } else {
-          let parent = $(event.currentTarget).closest("td")
-          let txt = parent.find(".long-val")
-          txt.text(txt.data("full").substring(0,150)+"...")
-          btn.text("more")
+          out += "<span class='long-val' data-full='"+val.value+"'>"+val.value.substring(0,150)
+          out += "...</span>"
         }
-      },
-      renderAttributeValue: function(attribute) {
-        let out = ""
-        for (var idx in attribute.values) {
-          let val = attribute.values[idx]
-          if (out.length > 0) out += "<span>, </span>"
-          if (val.valueURI) {
-            out += "<a class='uri' href='"+val.valueURI+"' target='_blank'>"+val.value+"</a>"
-          } else {
-            if (val.value.length < 150) {
-              out += "<span>"+val.value+"</span>"
-            } else {
-              out += "<span class='long-val' data-full='"+val.value+"'>"+val.value.substring(0,150)
-              out += "...</span>"
-            }
-          }
-        }
-        return out
-      },
-
-      externalPID: function() {
-        for (var idx in this.model.attributes) {
-          var attr = this.model.attributes[idx]
-          if (attr.type.name === "externalPID") {
-            return attr.values[0].value
-          }
-        }
-        return ""
-      },
-
-      toggle: function () {
-        if (this.isFolder) {
-          this.open = !this.open
-        }
-      },
-
-      digitalObjectClicked: function(event) {
-        // make sure only one node is marked as selected
-        $(".selected").removeClass("selected")
-        let node = $(event.target).closest(".node")
-        node.addClass("selected")
-        this.$store.commit("setViewerLoading", true)
-
-        let dv = $("#object-viewer")
-        dv.empty()
-
-        // grab the oembedURI and request embedding info
-        let oembedUri = event.target.getAttribute('data-uri')
-        axios.get(oembedUri).then((response)  =>  {
-          // set a global flag to make the browser think JS jas not all been
-          // loaded. Without this, the JS file included in the response
-          // will not load, and the viewer will not render
-          window.embedScriptIncluded = false
-          dv.append( $( response.data.html) )
-          this.$store.commit("setViewerPID", this.model.pid)
-        }).catch((error) => {
-          if ( error.message ) {
-            this.$store.commit("setViewerError", error.message)
-          } else {
-            this.$store.commit("setViewerError", error.response.data)
-          }
-        }).finally(() => {
-          this.$store.commit("setViewerLoading", false)
-        })  
       }
     }
-  }
+    return out
+  })
+
+  const externalPID = (() => {
+    for (var idx in props.model.attributes) {
+      var attr = props.model.attributes[idx]
+      if (attr.type.name === "externalPID") {
+        return attr.values[0].value
+      }
+    }
+    return ""
+  })
+
+// const toggle =  (()=> {
+//    if (isFolder.value) {
+//       this.open = !this.open
+//    }
+// })
+
+  //     digitalObjectClicked: function(event) {
+  //       // make sure only one node is marked as selected
+  //       $(".selected").removeClass("selected")
+  //       let node = $(event.target).closest(".node")
+  //       node.addClass("selected")
+  //       this.$store.commit("setViewerLoading", true)
+
+  //       let dv = $("#object-viewer")
+  //       dv.empty()
+
+  //       // grab the oembedURI and request embedding info
+  //       let oembedUri = event.target.getAttribute('data-uri')
+  //       axios.get(oembedUri).then((response)  =>  {
+  //         // set a global flag to make the browser think JS jas not all been
+  //         // loaded. Without this, the JS file included in the response
+  //         // will not load, and the viewer will not render
+  //         window.embedScriptIncluded = false
+  //         dv.append( $( response.data.html) )
+  //         this.$store.commit("setViewerPID", props.model.pid)
+  //       }).catch((error) => {
+  //         if ( error.message ) {
+  //           this.$store.commit("setViewerError", error.message)
+  //         } else {
+  //           this.$store.commit("setViewerError", error.response.data)
+  //         }
+  //       }).finally(() => {
+  //         this.$store.commit("setViewerLoading", false)
+  //       })
+  //     }
+  //   }
+  // }
 </script>
 
 <style scoped>

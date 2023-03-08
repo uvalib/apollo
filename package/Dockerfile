@@ -2,7 +2,7 @@
 # build the target application
 #
 FROM public.ecr.aws/docker/library/golang:1.20-alpine3.17 as builder
-RUN apk update && apk upgrade && apk add --no-cache make yarn
+RUN apk update && apk upgrade && apk add --no-cache make npm
 
 # see: https://stackoverflow.com/questions/69692842/error-message-error0308010cdigital-envelope-routinesunsupported
 ENV NODE_OPTIONS --openssl-legacy-provider
@@ -28,7 +28,7 @@ RUN addgroup --gid 18570 sse && adduser --uid 1984 docker -G sse -D
 ENV TZ=UTC
 RUN cp /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# Specify home 
+# Specify home
 ENV APP_HOME /apollo
 WORKDIR $APP_HOME
 
