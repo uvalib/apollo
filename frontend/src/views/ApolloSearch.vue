@@ -14,7 +14,7 @@
                </h4>
                <div v-else class="results">
                   <div v-for="coll in searchStore.searchResults.collections" :key="coll.collection_pid" class="hit">
-                     <ApolloCollectionHit :collection="coll"/>
+                     <SearchHit :collection="coll"/>
                   </div>
                </div>
             </div>
@@ -27,7 +27,7 @@
 import PageHeader from '@/components/PageHeader.vue'
 import LoadingSpinner from '@/components/LoadingSpinner.vue'
 import ApolloError from '@/views/ApolloError.vue'
-import ApolloCollectionHit from '@/components/ApolloCollectionHit.vue'
+import SearchHit from '@/components/SearchHit.vue'
 import { useSearchStore } from '@/stores/search'
 import { onBeforeMount} from 'vue'
 

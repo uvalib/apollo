@@ -37,10 +37,8 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useCollectionsStore } from '@/stores/collections'
-import axios from 'axios'
 
 const IIIF_MAN_URL = import.meta.env.VITE_IIIF_MAN_URL
-const CURIO_URL = import.meta.env.VITE_CURIO_URL
 
 const collectionStore = useCollectionsStore()
 
@@ -75,21 +73,8 @@ const hasIIIFManifest = computed( () => {
 })
 
 const toggle = (() => {
-   collectionStore.toggleOpen( props.model.pid )
+  collectionStore.toggleOpen( props.model.pid )
 })
-
-// const getCurioURL = ((attribute) => {
-//    if (attribute.values[0].value.includes("https://")) {
-//       return attribute.values[0].value
-//    }
-//    // conert JSON to something like this:
-//    // https://curio.lib.virginia.edu/oembed?url=https%3A%2F%2Fcurio.lib.virginia.edu%2Fview%2Fuva-lib%3A2528443
-//    let json = JSON.parse(attribute.values[0].value)
-//    let qp = encodeURIComponent(CURIO_URL+"/view/"+json.id)
-//    let url = CURIO_URL+"/oembed?url="+qp
-//    return url
-// })
-
 
 const digitalObjectClicked = ((pid, viewerAttribString) => {
    // make sure only one node is marked as selected
@@ -99,58 +84,14 @@ const digitalObjectClicked = ((pid, viewerAttribString) => {
    }
    let tgtNode = document.getElementById(pid)
    tgtNode.classList.add("selected")
-   collectionStore.viewerLoading = true
 
    let attrib = JSON.parse(viewerAttribString)
    let externalID = attrib.id
 
-   // generate the oembedURI and request embedding info
-   // https://curio.lib.virginia.edu/oembed?url=https%3A%2F%2Fcurio.lib.virginia.edu%2Fview%2Fuva-lib%3A2528443
-   let qp = encodeURIComponent(CURIO_URL+"/view/"+externalID)
-   let oembedUri = CURIO_URL+"/oembed?url="+qp
-
-   axios.get(oembedUri).then((response)  =>  {
-      // set a global flag to make the browser think JS jas not all been
-      // loaded. Without this, the JS file included in the response
-      // will not load, and the viewer will not render
-      window.embedScriptIncluded = false
-      let viewewrDiv = document.getElementById("object-viewer")
-      viewewrDiv.innerHTML = response.data.html
-      collectionStore.viewerPID = pid
-   }).catch((error) => {
-      if ( error.message ) {
-         collectionStore.viewerError = error.message
-      } else {
-         tcollectionStore.viewerError = error.response.data
-      }
-   }).finally(() => {
-      collectionStore.viewerLoading = false
-   })
+   let viewewrDiv = document.getElementById("object-viewer")
+   collectionStore.loadViewer(viewewrDiv, pid, externalID)
 })
 
-  //   mounted() {
-  //     EventBus.$on("expand-node", this.handleExpandNodeEvent)
-  //     EventBus.$on('collapse-all', this.handleCollapseAll)
-  //     EventBus.$emit('node-mounted', props.model.pid)
-  //   },
-
-  //   destroyed() {
-  //     EventBus.$emit('node-destroyed')
-  //   },
-
-  //   methods: {
-  //     handleCollapseAll: function() {
-  //       if ( this.isFolder && this.open ) {
-  //         this.toggle()
-  //       }
-  //     },
-  //     handleExpandNodeEvent: function(pid) {
-  //       if ( props.model.pid == pid) {
-  //         if ( this.isFolder && this.open === false ) {
-  //           this.toggle()
-  //         }
-  //       }
-  //     },
   const showMore = ((attribute) => {
     if (attribute.values.length > 1) return false
     return attribute.values[0].value.length > 150

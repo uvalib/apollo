@@ -39,36 +39,24 @@ import CollectionDetailsItem from '@/components/CollectionDetailsItem.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import ApolloError from '@/views/ApolloError.vue'
 import { useCollectionsStore } from '@/stores/collections'
-import { onBeforeMount, onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 
 const collectionsStore = useCollectionsStore()
 const route = useRoute()
 
-const targetAncestry = ref([])
-const targetPID = ref("")
 const toolbar = ref()
 const toolbarHeight = ref(0)
 const toolbarTop = ref(0)
 
-onBeforeMount( async () => {
+onMounted( async () => {
    await collectionsStore.getCollectionDetails(route.params.id)
+   let targetPID = ""
    if (route.query.item) {
-      targetPID.value = route.query.item
-
-      // A target was specified; get a list of ancestor nodes
-      // that can be used to expand the display tree to that item
-      getAncestry(collectionStore.collectionDetails)
-      targetAncestry.value.reverse()
-
-      // NOTE: for the first case, need to wait for one more node; the root itself
-      // mount events come in for each child followed by one for root node
-      targetAncestry.value[0].childNodeCount += 1
+      targetPID = route.query.item
+      collectionsStore.toggleOpen( targetPID )
    }
-})
-
-onMounted(() => {
-   setTimeout( () => {
+   nextTick( () => {
       let tb = document.getElementById("fixed-header")
       if ( tb) {
          toolbar.value = tb
@@ -86,7 +74,19 @@ onMounted(() => {
          }
          toolbarTop.value -= 5
       }
-   }, 1000)
+      if ( targetPID != "") {
+         let tgtNode = document.getElementById( targetPID )
+         if (tgtNode) {
+            tgtNode.classList.add("selected")
+            scrollToPID(targetPID)
+            let extPID = collectionsStore.externalPID(targetPID)
+            if ( extPID != "" ) {
+               let viewewrDiv = document.getElementById("object-viewer")
+               collectionsStore.loadViewer(viewewrDiv, targetPID, extPID)
+            }
+         }
+      }
+   })
    window.addEventListener("scroll", scrollHandler)
 })
 
@@ -95,7 +95,11 @@ onUnmounted(() => {
 })
 
 function syncView() {
-   let tgtEle = document.getElementById(collectionsStore.viewerPID)
+   scrollToPID(collectionsStore.viewerPID)
+}
+
+function scrollToPID( pid ) {
+   let tgtEle = document.getElementById(pid)
    if (tgtEle) {
       let nav = document.getElementById("fixed-header")
       var headerOffset = nav.offsetHeight
@@ -138,46 +142,6 @@ function scrollHandler( ) {
       }
    }
 }
-
-// Walk the collection data and find the targetPID specified by the query params
-// Populate an array of targetAncestry data including node counts for the relevant tree branches
-const getAncestry = ((currNode) => {
-   if ( currNode.pid === targetPID.value ) {
-      // its a match. Return true to start unwinding the recursion
-      return true
-   } else {
-      // Nope; walk the child nodes...
-      for (var idx in currNode.children) {
-         if ( getAncestry(currNode.children[idx]) ) {
-            // the target was hit in this branch. Add to ancestors and exit
-            targetAncestry.value.push( {pid: currNode.pid, childNodeCount: currNode.children.length} )
-            return true
-         }
-      }
-   }
-   // Child branch traversed with no hits; return false
-   return false
-})
-
-
-// const scrollToTarget = (() => {
-//    let ele = $("li#"+props.targetPID)
-
-//    /// if this item has a digital object, click the ciew button to show it
-//    let doViewerBtn = ele.find("span.do-button")
-//    if ( doViewerBtn.length > 0) {
-//       doViewerBtn.trigger("click")
-//    } else {
-//       ele.addClass("target")
-//       setTimeout(function() {
-//       ele.removeClass("target")
-//       },1000)
-//    }
-
-//    $([document.documentElement, document.body]).animate({
-//       scrollTop: ele.offset().top-$(".fixed-header").outerHeight(true)
-//    }, 100);
-// })
 </script>
 
 <style scoped lang="scss">

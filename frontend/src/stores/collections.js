@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
+const CURIO_URL = import.meta.env.VITE_CURIO_URL
 
 export const useCollectionsStore = defineStore('collections', {
    state: () => ({
@@ -32,6 +33,21 @@ export const useCollectionsStore = defineStore('collections', {
             return coll.title
          }
          return ""
+      },
+      externalPID: state => {
+         return (pid) => {
+            let extPID = ""
+            let node = findNode(state.collectionDetails, pid)
+            if (node) {
+               node.attributes.some( na => {
+                  if (na.type.name == "externalPID") {
+                     extPID = na.values[0].value
+                  }
+                  return extPID != ""
+               })
+            }
+            return extPID
+         }
       }
    },
    actions: {
@@ -62,6 +78,7 @@ export const useCollectionsStore = defineStore('collections', {
             let model = traverseCollectionDetail(response.data, {})
             model.open = true
             this.collectionDetails = model
+            console.log("DETAIL DONE")
          }).catch((error) => {
             this.collectionDetails = {}
             if (error.response) {
@@ -73,6 +90,33 @@ export const useCollectionsStore = defineStore('collections', {
             this.loading = false
          })
       },
+
+      loadViewer(viewewrDiv, pid, externalID) {
+         // generate the oembedURI and request embedding info
+         // https://curio.lib.virginia.edu/oembed?url=https%3A%2F%2Fcurio.lib.virginia.edu%2Fview%2Fuva-lib%3A2528443
+         this.viewerLoading = true
+         let qp = encodeURIComponent(CURIO_URL+"/view/"+externalID)
+         let oembedUri = CURIO_URL+"/oembed?url="+qp
+
+         axios.get(oembedUri).then((response)  =>  {
+            // set a global flag to make the browser think JS jas not all been
+            // loaded. Without this, the JS file included in the response
+            // will not load, and the viewer will not render
+            window.embedScriptIncluded = false
+
+            viewewrDiv.innerHTML = response.data.html
+            this.viewerPID = pid
+         }).catch((error) => {
+            if ( error.message ) {
+               this.viewerError = error.message
+            } else {
+               this.viewerError = error.response.data
+            }
+         }).finally(() => {
+            this.viewerLoading = false
+         })
+      },
+
       toggleOpen( pid ) {
          toggleNodeOpen(this.collectionDetails, pid)
       },
@@ -82,16 +126,25 @@ export const useCollectionsStore = defineStore('collections', {
    },
 })
 
-function closeAllOpenNodes( currNode ) {
+function findNode( currNode, pid ) {
+   let out = null
+   if ( currNode.pid == pid) {
+      currNode.open = !currNode.open
+      return currNode
+   }
    if (currNode.children) {
-      currNode.open = false
-      currNode.children.forEach( node => {
+      currNode.children.some( node => {
          if (node.children ) {
-            closeAllOpenNodes(node)
+            out = findNode(node, pid)
+         } else {
+            if ( node.pid == pid) {
+               out = node
+            }
          }
+         return out != null
       })
    }
-   return false
+   return out
 }
 
 function toggleNodeOpen( currNode, pid ) {
@@ -107,8 +160,24 @@ function toggleNodeOpen( currNode, pid ) {
             if (toggleNodeOpen(node, pid)) {
                done = true
             }
+         } else {
+            if ( node.pid == pid) {
+               currNode.open = !currNode.open
+            }
          }
          return done == true
+      })
+   }
+   return false
+}
+
+function closeAllOpenNodes( currNode ) {
+   if (currNode.children) {
+      currNode.open = false
+      currNode.children.forEach( node => {
+         if (node.children ) {
+            closeAllOpenNodes(node)
+         }
       })
    }
    return false
