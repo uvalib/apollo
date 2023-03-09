@@ -78,7 +78,6 @@ export const useCollectionsStore = defineStore('collections', {
             let model = traverseCollectionDetail(response.data, {})
             model.open = true
             this.collectionDetails = model
-            console.log("DETAIL DONE")
          }).catch((error) => {
             this.collectionDetails = {}
             if (error.response) {

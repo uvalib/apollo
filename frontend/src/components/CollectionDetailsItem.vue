@@ -17,7 +17,6 @@
           <td class="label">{{ attribute.type.name }}:</td>
           <td class="data">
             <span v-html="renderAttributeValue(attribute)"></span>
-            <span v-if="showMore(attribute)" class='show-more' @click="moreClicked" >more</span>
           </td>
         </template>
         <template v-else>
@@ -97,20 +96,6 @@ const digitalObjectClicked = ((pid, viewerAttribString) => {
     return attribute.values[0].value.length > 150
   })
 
-  //     moreClicked: function(event) {
-  //       let btn = $(event.currentTarget)
-  //       if (btn.text() == "more") {
-  //         let parent = $(event.currentTarget).closest("td")
-  //         let txt = parent.find(".long-val")
-  //         txt.text(txt.data("full"))
-  //         btn.text("less")
-  //       } else {
-  //         let parent = $(event.currentTarget).closest("td")
-  //         let txt = parent.find(".long-val")
-  //         txt.text(txt.data("full").substring(0,150)+"...")
-  //         btn.text("more")
-  //       }
-  //     },
   const renderAttributeValue = ((attribute) => {
     let out = ""
     for (var idx in attribute.values) {
@@ -119,12 +104,7 @@ const digitalObjectClicked = ((pid, viewerAttribString) => {
       if (val.valueURI) {
         out += "<a class='uri' href='"+val.valueURI+"' target='_blank'>"+val.value+"</a>"
       } else {
-        if (val.value.length < 150) {
-          out += "<span>"+val.value+"</span>"
-        } else {
-          out += "<span class='long-val' data-full='"+val.value+"'>"+val.value.substring(0,150)
-          out += "...</span>"
-        }
+        out += "<span>"+val.value+"</span>"
       }
     }
     return out
@@ -189,6 +169,7 @@ const digitalObjectClicked = ((pid, viewerAttribString) => {
     padding: 5px 10px 5px 10px;
     width: 35%;
     min-width:90px;
+    vertical-align: baseline;
   }
   div.content ul, div.content li {
     font-size: 14px;

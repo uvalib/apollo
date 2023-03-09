@@ -27,11 +27,11 @@ div#app span.show-more {
   border-radius: 10px;
   background: #dedede;
   border: 1px solid #dedede;
-  position: absolute;
   bottom: 2px;
-  right: 0;
   cursor:pointer;
   opacity: 0.6;
+  display: block;
+  width: fit-content;
 }
 div#app span.show-more:hover {
   background: #d0d0d0;
