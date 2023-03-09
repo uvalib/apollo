@@ -8,7 +8,7 @@
             <h4>No data found!</h4>
          </div>
          <template v-else>
-            <CollectionDetailsHeader id="fixed-header"/>
+            <CollectionDetailsHeader id="fixed-header" @sync="syncView"/>
             <div class="collection-detail">
                <div class="tree">
                   <div class="toolbar">
@@ -23,10 +23,8 @@
                </div>
                <div class="viewer" id="viewer-wrapper">
                   <ApolloError v-if="collectionsStore.viewerError" :message="viewerError"/>
-                  <div v-else id="viewer-wrapper">
                   <LoadingSpinner v-if="collectionsStore.viewerLoading" message="Loading digital object view"/>
                   <div id="object-viewer"></div>
-                  </div>
                </div>
             </div>
          </template>
@@ -76,7 +74,6 @@ onMounted(() => {
          toolbar.value = tb
          toolbarHeight.value = tb.offsetHeight
          toolbarTop.value = 0
-         console.log("GOT HEIGHT "+tb.offsetHeight)
 
          // walk the parents of the toolbar and add each top value
          // to find the top of the toolbar relative to document top
@@ -88,7 +85,6 @@ onMounted(() => {
             } while (ele)
          }
          toolbarTop.value -= 5
-         console.log("GOT TOP "+toolbarTop.value)
       }
    }, 1000)
    window.addEventListener("scroll", scrollHandler)
@@ -97,6 +93,20 @@ onMounted(() => {
 onUnmounted(() => {
    window.removeEventListener("scroll", scrollHandler)
 })
+
+function syncView() {
+   let tgtEle = document.getElementById(collectionsStore.viewerPID)
+   if (tgtEle) {
+      let nav = document.getElementById("fixed-header")
+      var headerOffset = nav.offsetHeight
+      var elementPosition = tgtEle.getBoundingClientRect().top
+      var offsetPosition = elementPosition - headerOffset
+      window.scrollBy({
+         top: offsetPosition,
+         behavior: "smooth"
+      })
+   }
+}
 
 function scrollHandler( ) {
    if ( toolbar.value) {
@@ -110,6 +120,7 @@ function scrollHandler( ) {
             let vw = document.getElementById("viewer-wrapper")
             vw.classList.remove("sticky")
             vw.style.top = `0`
+            vw.style.left = `0`
          }
       } else {
          if ( toolbar.value.classList.contains("sticky") == false ) {
@@ -118,8 +129,10 @@ function scrollHandler( ) {
                details[0].style.top = `${toolbarHeight.value}px`
             }
             let vw = document.getElementById("viewer-wrapper")
+            let currLeft = vw.offsetLeft
             vw.classList.add("sticky")
             vw.style.top = `40px`
+            vw.style.left = `${currLeft}px`
             toolbar.value.classList.add("sticky")
          }
       }
@@ -146,23 +159,6 @@ const getAncestry = ((currNode) => {
    return false
 })
 
-// handleNodeMounted: function() {
-//   // only care about this event if a target was specified in the query params
-//   if (props.targetPID && this.targetAncestry.length > 0) {
-//     // Wait for each child of the targetAncestry node to be mounted
-//     this.targetAncestry[0].childNodeCount -= 1
-//     if ( this.targetAncestry[0].childNodeCount <= 0) {
-//       // Once all are mounted, toss the head of the list and
-//       // open the next ancestor - or scroll to target if all are open
-//       this.targetAncestry.shift()
-//       if ( this.targetAncestry.length == 0) {
-//         this.scrollToTarget()
-//       } else {
-//         EventBus.$emit("expand-node", this.targetAncestry[0].pid)
-//       }
-//     }
-//   }
-// },
 
 // const scrollToTarget = (() => {
 //    let ele = $("li#"+props.targetPID)
@@ -231,11 +227,15 @@ const getAncestry = ((currNode) => {
          padding: 5px 25px;
       }
    }
+   #viewer-wrapper {
+      margin-left: 20px;
+   }
    #viewer-wrapper.sticky {
       position: fixed;
       z-index: 1000;
       right: 40px;
       bottom: 0;
+
    }
 }
 

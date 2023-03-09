@@ -58,8 +58,9 @@ const props = defineProps({
       default: false
    },
 })
-const isOpen = ref(props.open)
-
+const isOpen = computed( () => {
+   return props.model.open
+})
 const isFolder = computed( () => {
    return props.model.children && props.model.children.length
 })
@@ -74,7 +75,7 @@ const hasIIIFManifest = computed( () => {
 })
 
 const toggle = (() => {
-   isOpen.value = !isOpen.value
+   collectionStore.toggleOpen( props.model.pid )
 })
 
 // const getCurioURL = ((attribute) => {

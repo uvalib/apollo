@@ -60,6 +60,7 @@ export const useCollectionsStore = defineStore('collections', {
          this.selectedPID = pid
          return axios.get("/api/collections/" + this.selectedPID).then((response) => {
             let model = traverseCollectionDetail(response.data, {})
+            model.open = true
             this.collectionDetails = model
          }).catch((error) => {
             this.collectionDetails = {}
@@ -71,9 +72,47 @@ export const useCollectionsStore = defineStore('collections', {
          }).finally(() => {
             this.loading = false
          })
+      },
+      toggleOpen( pid ) {
+         toggleNodeOpen(this.collectionDetails, pid)
+      },
+      closeAll() {
+         closeAllOpenNodes(this.collectionDetails)
       }
-   }
+   },
 })
+
+function closeAllOpenNodes( currNode ) {
+   if (currNode.children) {
+      currNode.open = false
+      currNode.children.forEach( node => {
+         if (node.children ) {
+            closeAllOpenNodes(node)
+         }
+      })
+   }
+   return false
+}
+
+function toggleNodeOpen( currNode, pid ) {
+   if ( currNode.pid == pid) {
+      currNode.open = !currNode.open
+      return true
+   }
+
+   if (currNode.children) {
+      let done = false
+      currNode.children.some( node => {
+         if (node.children ) {
+            if (toggleNodeOpen(node, pid)) {
+               done = true
+            }
+         }
+         return done == true
+      })
+   }
+   return false
+}
 
 // recursive walk of json collection heirarchy into a format more suited
 // for presntation. Instead of a list of heirarchical nodes, convert to
@@ -89,6 +128,8 @@ function traverseCollectionDetail(json, currNode) {
    // Container nodes contain attributes (simple name/value pairs) and children.
    // Examples of containers are collection, year and issue.
    if (json.type.container === true) {
+      currNode.open = false
+
       // Walk children and build attributes and children arrays
       for (var idx in json.children) {
          var child = json.children[idx]

@@ -25,7 +25,7 @@ import { useCollectionsStore } from '@/stores/collections'
 
 const collectionsStore = useCollectionsStore()
 
-const emit = defineEmits(['collapse', 'sync'])
+const emit = defineEmits(['sync'])
 
 const scrollTopClick = (() => {
    var scrollStep = -window.scrollY / (500 / 10),
@@ -38,24 +38,11 @@ const scrollTopClick = (() => {
    },10)
 })
 const collapseClick = (() => {
-   emit("collapse")
+   collectionsStore.closeAll()
 })
 const syncClick = (() => {
    emit("sync")
 })
-
-  // collapseClick: function() {
-  //   EventBus.$emit('collapse-all')
-  //   this.scrollTopClick()
-  // },
-
-  // syncClick: function() {
-  //   let tgt = $("#"+this.viewerPID)
-  //   $([document.documentElement, document.body]).animate({
-  //     scrollTop: tgt.offset().top-40
-  //   }, 100);
-  // },
-
 </script>
 
 <style scoped lang="scss">
