@@ -1,118 +1,104 @@
 <template>
-  <div class="content pure-g fixed-header">
-    <div class="pure-u-9-24">
+   <div class="content">
       <h4 class="do-header">
-        <span>Collection Structure</span>
-        <span class="helper-buttons">
-          <span class="helper-icon top" @click="scrollTopClick" title="Scroll to top"></span>
-          <span class="helper-icon collapse" @click="collapseClick" title="Collapse all"></span>
-        </span>
+         <span>Collection Structure</span>
+         <span class="helper-buttons">
+            <span class="helper-icon top" @click="scrollTopClick" title="Scroll to top"></span>
+            <span class="helper-icon collapse" @click="collapseClick" title="Collapse all"></span>
+         </span>
       </h4>
-    </div>
 
-    <div class="pure-u-15-24">
-      <h4 class="do-header">
-        <span>Digitial Object Viewer</span>
-        <span v-if='!viewerPID' class="hint">
-          Click 'View Digital Object' from the tree on the left to view it below
-        </span>
-        <span v-else class="helper-buttons">
-          <span class="helper-icon sync" @click="syncClick" title="Sync Tree"></span>
-        </span>
+      <h4 class="do-header pad-left">
+         <span>Digitial Object Viewer</span>
+         <span v-if='!collectionsStore.viewerPID' class="hint">
+            Click 'View Digital Object' from the tree on the left to view it below
+         </span>
+         <span v-else class="helper-buttons">
+            <span class="helper-icon sync" @click="syncClick" title="Sync Tree"></span>
+         </span>
       </h4>
-    </div>
-  </div>
+   </div>
 </template>
 
-<script>
-  import EventBus from '@/components/EventBus'
-  import { mapGetters } from 'vuex'
+<script setup>
+import { useCollectionsStore } from '@/stores/collections'
 
-  export default {
-    name: 'CollectionDetailsHeader',
-    computed: {
-      ...mapGetters([
-        'viewerPID'
-      ])
-    },
+const collectionsStore = useCollectionsStore()
 
-    mounted: function () {
-      EventBus.$on('node-destroyed', this.handleNodeDestroyed)
-    },
+const emit = defineEmits(['sync'])
 
-    methods: {
-      handleNodeDestroyed: function() {
-        if (!this.viewerPID) return
-        let tgt = $("#"+this.viewerPID)
-        if (tgt.length === 0) {
-          $("#object-viewer").empty()
-          this.$store.commit("setViewerPID", null)
-        }
-      },
-
-      scrollTopClick: function() {
-        $([document.documentElement, document.body]).animate({
-          scrollTop:0
-        }, 100);
-      },
-
-      collapseClick: function() {
-        EventBus.$emit('collapse-all')
-        this.scrollTopClick()
-      },
-
-      syncClick: function() {
-        let tgt = $("#"+this.viewerPID)
-        $([document.documentElement, document.body]).animate({
-          scrollTop: tgt.offset().top-40
-        }, 100);
-      },
-    }
-  }
+const scrollTopClick = (() => {
+   var scrollStep = -window.scrollY / (500 / 10),
+   scrollInterval = setInterval(()=> {
+      if ( window.scrollY != 0 ) {
+         window.scrollBy( 0, scrollStep )
+      } else {
+         clearInterval(scrollInterval)
+      }
+   },10)
+})
+const collapseClick = (() => {
+   collectionsStore.closeAll()
+})
+const syncClick = (() => {
+   emit("sync")
+})
 </script>
 
-<style scoped>
-  div.fixed-header {
-    background: white;
-    z-index: 1000;
-    padding-top:5px;
-  }
-  h4.do-header {
-    margin: 0;
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 10px;
-    margin-left: 20px;
-    margin-bottom: 0px;
-  }
-  .hint {
-    color: #999;
-    margin: 0;
-    text-align: right;
-    font-size: 0.85em;
-    float: right;
-    font-weight: 500;
-  }
-  .helper-icon {
-    display: inline-block;
-    width:20px;
-    height:20px;
-    opacity: 0.3;
-    cursor: pointer;
-    margin-left:5px;
-  }
-  .helper-icon.collapse {
-    background-image: url(../assets/collapse.png);
-  }
-  .helper-icon.top {
-    background-image: url(../assets/top.png);
-  }
-  .helper-icon.sync {
-    background-image: url(../assets/sync.png);
-  }
-  .helper-buttons {
-    float: right;
-  }
-  .helper-icon:hover {
+<style scoped lang="scss">
+.content {
+   display: flex;
+   flex-flow: row nowrap;
+   justify-content: space-between;
+   padding-left: 20px;
+
+   h4.do-header {
+      margin: 0;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 10px;
+      margin-bottom: 0px;
+      flex-grow: 1;
+   }
+
+   h4.do-header.pad-left {
+      margin-left: 20px;
+   }
+
+   .hint {
+      color: #999;
+      margin: 0;
+      text-align: right;
+      font-size: 0.85em;
+      float: right;
+      font-weight: 500;
+   }
+
+   .helper-icon {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      opacity: 0.3;
+      cursor: pointer;
+      margin-left: 5px;
+   }
+
+   .helper-icon.collapse {
+      background-image: url(../assets/collapse.png);
+   }
+
+   .helper-icon.top {
+      background-image: url(../assets/top.png);
+   }
+
+   .helper-icon.sync {
+      background-image: url(../assets/sync.png);
+   }
+
+   .helper-buttons {
+      float: right;
+   }
+
+   .helper-icon:hover {
       opacity: 0.8;
-  }
-</style>
+   }
+}</style>

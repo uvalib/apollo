@@ -25,7 +25,7 @@ deploy-templates:
 
 web:
 	mkdir -p bin/
-	cd frontend/; yarn install; yarn build
+	cd frontend/; npm install && npm run build
 	rm -rf bin/public
 	mv frontend/dist bin/public
 
@@ -37,7 +37,7 @@ clean:
 	rm -rf bin
 
 dep:
-	cd frontend && yarn upgrade
+	cd frontend && npm upgrade
 	$(GOGET) -u ./backend/...
 	$(GOMOD) tidy
 	$(GOMOD) verify

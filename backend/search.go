@@ -31,9 +31,9 @@ type SearchHit struct {
 
 // SearchResults contains all of the results for a search operation
 type SearchResults struct {
-	Hits           int             `json:"hits"`
+	Hits           int             `json:"total"`
 	ResponseTimeMS int64           `json:"response_time_ms"`
-	Results        []CollectionHit `json:"results"`
+	Results        []CollectionHit `json:"collections"`
 	Status         int             `json:"-"`
 	Message        string          `json:"-"`
 }

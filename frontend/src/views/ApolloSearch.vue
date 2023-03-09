@@ -2,17 +2,19 @@
    <div class="search">
       <PageHeader main="Search" sub="Search Apollo collections" />
       <div class="content">
-         <LoadingSpinner v-if="searching" message="Searching collections..." />
+         <LoadingSpinner v-if="searchStore.searching" message="Searching collections..." />
          <template v-else>
-            <ApolloError v-if="errorMsg" :message="errorMsg" />
+            <ApolloError v-if="searchStore.errorMsg" :message="searchStore.errorMsg" />
             <div class="results-container" v-else>
-               <div class="overview">{{this.searchResults.hits}} hits in {{this.searchResults.results.length}} collection(s) on "{{this.searchQuery}}" in {{this.searchResults.response_time_ms}}ms</div>
-               <h4 v-if="!searchResults.hits">
+               <div class="overview">
+                  {{searchStore.searchResults.total}} hits in {{searchStore.searchResults.collections.length}} collection(s) on "{{searchStore.searchQuery}}" in {{searchStore.searchResults.response_time_ms}}ms
+               </div>
+               <h4 v-if="searchStore.searchResults.total == 0">
                   No Results Found
                </h4>
                <div v-else class="results">
-                  <div v-for="hit in searchResults.results" :key="hit.pid" class="hit">
-                     <ApolloCollectionHit :hit="hit"/>
+                  <div v-for="coll in searchStore.searchResults.collections" :key="coll.collection_pid" class="hit">
+                     <SearchHit :collection="coll"/>
                   </div>
                </div>
             </div>
@@ -21,74 +23,19 @@
    </div>
 </template>
 
-<script>
-   import PageHeader from '@/components/PageHeader'
-   import LoadingSpinner from '@/components/LoadingSpinner'
-   import ApolloError from '@/views/ApolloError'
-   import ApolloCollectionHit from '@/components/ApolloCollectionHit'
-   import axios from 'axios'
-   import { mapGetters } from 'vuex'
-   import { mapMutations } from 'vuex'
+<script setup>
+import PageHeader from '@/components/PageHeader.vue'
+import LoadingSpinner from '@/components/LoadingSpinner.vue'
+import ApolloError from '@/views/ApolloError.vue'
+import SearchHit from '@/components/SearchHit.vue'
+import { useSearchStore } from '@/stores/search'
+import { onBeforeMount} from 'vue'
 
-   export default {
-      name: "ApolloSearch",
-      props: {
-         passedQuery: String,
-      },
-      components: {
-         PageHeader,
-         LoadingSpinner,
-         ApolloError,
-         ApolloCollectionHit
-      },
-      computed: { 
-         ...mapGetters([
-            'searchQuery',
-         ])
-      },
-      data: function () {
-         return {
-            searching: true,
-            errorMsg: null,
-            searchResults: null
-         }
-      },
+const searchStore = useSearchStore()
 
-      mounted: function () {
-         this.search()
-      },
-
-      // Watch for changes in URL to detect new search term and redo the search
-      watch: {
-         $route(/*to, from*/) {
-            this.search()
-         },
-      },
-
-      methods: {
-         ...mapMutations([
-            'setSearchQuery'
-         ]),
-         search: function () {
-            // show searching box and do search...
-            this.searching = true
-            if (this.passedQuery && this.passedQuery.length > 0) {
-               this.setSearchQuery(this.passedQuery)
-            }
-            axios.get("/api/search?q=" + this.searchQuery).then((response) => {
-               this.searchResults = response.data
-            }).catch((error) => {
-               if (error.response) {
-                  this.errorMsg = error.response.data
-               } else {
-                  this.errorMsg = error
-               }
-            }).finally(() => {
-               this.searching = false
-            })
-         }
-      }
-   }
+onBeforeMount( () => {
+   searchStore.search()
+})
 </script>
 
 <style scoped>

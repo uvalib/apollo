@@ -1,7 +1,7 @@
 <template>
-  <li :id="model.pid">
-    <span v-if="isFolder" class="icon" @click="toggle" :class="{ plus: open==false, minus: open==true}"></span>
-    <table class="node">
+  <li class="tree-node">
+    <span v-if="isFolder" class="icon" @click="toggle" :class="{ plus: isOpen==false, minus: isOpen==true}"></span>
+    <table class="node" :id="model.pid" >
       <tr class="attribute">
         <td class="label">PID:</td>
         <td class="data">{{ model.pid }}</td>
@@ -17,178 +17,115 @@
           <td class="label">{{ attribute.type.name }}:</td>
           <td class="data">
             <span v-html="renderAttributeValue(attribute)"></span>
-            <span v-if="showMore(attribute)" class='show-more' @click="moreClicked" >more</span>
           </td>
         </template>
         <template v-else>
           <td colspan="2" class="do-buttons">
             <a v-if="hasIIIFManifest" class="do-button" :href="iiifManufestURL" target="_blank">IIIF Manifest</a>
-            <span :data-uri="getCurioURL(attribute)"
-              @click="digitalObjectClicked"
-              class="do-button">View Digitial Object</span>
+            <span @click="digitalObjectClicked(model.pid, attribute.values[0].value)" class="do-button">View Digitial Object</span>
           </td>
         </template>
       </tr>
     </table>
-    <ul v-if="open" v-show="open">
-      <template v-for="child in model.children">
-        <CollectionDetailsItem :key="child.pid" :model="child" :depth="depth+1"/>
-      </template>
+    <ul v-if="isOpen">
+      <CollectionDetailsItem  v-for="child in model.children" :key="child.pid" :model="child" :depth="depth+1" :open="false"/>
     </ul>
   </li>
 </template>
 
-<script>
-  import axios from 'axios'
-  import EventBus from './EventBus'
+<script setup>
+import { computed, ref } from 'vue'
+import { useCollectionsStore } from '@/stores/collections'
 
-  export default {
-    name: 'CollectionDetailsItem',
-    props: {
-      model: Object,
-      depth: Number
-    },
-    data: function () {
-      return {
-        open: this.depth < 1,
-      }
-    },
-    computed: {
-      isFolder: function () {
-        return this.model.children && this.model.children.length
-      },
-      iiifManufestURL: function() {
-        return process.env.VUE_APP_IIIF_MAN_URL+"/"+this.externalPID()+"/manifest.json"
-      },
-      hasIIIFManifest: function() {
-        if (this.model.type.name === "item") {
-          return false
-        }
-        return true
-      }
-    },
+const IIIF_MAN_URL = import.meta.env.VITE_IIIF_MAN_URL
 
-    mounted() {
-      EventBus.$on("expand-node", this.handleExpandNodeEvent)
-      EventBus.$on('collapse-all', this.handleCollapseAll)
-      EventBus.$emit('node-mounted', this.model.pid)
-    },
+const collectionStore = useCollectionsStore()
 
-    destroyed() {
-      EventBus.$emit('node-destroyed')
-    },
+const props = defineProps({
+   model: {
+      type: Object,
+      required: true
+   },
+   depth: {
+      type: Number,
+      required: true
+   },
+   open: {
+      type: Boolean,
+      default: false
+   },
+})
+const isOpen = computed( () => {
+   return props.model.open
+})
+const isFolder = computed( () => {
+   return props.model.children && props.model.children.length
+})
+const iiifManufestURL = computed( () => {
+   return IIIF_MAN_URL+"/"+externalPID()+"/manifest.json"
+})
+const hasIIIFManifest = computed( () => {
+   if (props.model.type.name === "item") {
+      return false
+   }
+   return true
+})
 
-    methods: {
-      handleCollapseAll: function() {
-        if ( this.isFolder && this.open ) {
-          this.toggle()
-        }
-      },
-      handleExpandNodeEvent: function(pid) {
-        if ( this.model.pid == pid) {
-          if ( this.isFolder && this.open === false ) {
-            this.toggle()
-          }
-        }
-      },
-      getCurioURL: function(attribute) {
-        if (attribute.values[0].value.includes("https://")) {
-          return attribute.values[0].value
-        }
-        // conert JSON to something like this:
-        // https://curio.lib.virginia.edu/oembed?url=https%3A%2F%2Fcurio.lib.virginia.edu%2Fview%2Fuva-lib%3A2528443
-        let json = JSON.parse(attribute.values[0].value)
-        let qp = encodeURIComponent(process.env.VUE_APP_CURIO_URL+"/view/"+json.id)
-        let url = process.env.VUE_APP_CURIO_URL+"/oembed?url="+qp
-        return url
-      },
-      showMore: function(attribute) {
-        if (attribute.values.length > 1) return false
-        return attribute.values[0].value.length > 150
-      },
-      moreClicked: function(event) {
-        let btn = $(event.currentTarget)
-        if (btn.text() == "more") {
-          let parent = $(event.currentTarget).closest("td")
-          let txt = parent.find(".long-val")
-          txt.text(txt.data("full"))
-          btn.text("less")
-        } else {
-          let parent = $(event.currentTarget).closest("td")
-          let txt = parent.find(".long-val")
-          txt.text(txt.data("full").substring(0,150)+"...")
-          btn.text("more")
-        }
-      },
-      renderAttributeValue: function(attribute) {
-        let out = ""
-        for (var idx in attribute.values) {
-          let val = attribute.values[idx]
-          if (out.length > 0) out += "<span>, </span>"
-          if (val.valueURI) {
-            out += "<a class='uri' href='"+val.valueURI+"' target='_blank'>"+val.value+"</a>"
-          } else {
-            if (val.value.length < 150) {
-              out += "<span>"+val.value+"</span>"
-            } else {
-              out += "<span class='long-val' data-full='"+val.value+"'>"+val.value.substring(0,150)
-              out += "...</span>"
-            }
-          }
-        }
-        return out
-      },
+const toggle = (() => {
+  collectionStore.toggleOpen( props.model.pid )
+})
 
-      externalPID: function() {
-        for (var idx in this.model.attributes) {
-          var attr = this.model.attributes[idx]
-          if (attr.type.name === "externalPID") {
-            return attr.values[0].value
-          }
-        }
-        return ""
-      },
+const digitalObjectClicked = ((pid, viewerAttribString) => {
+   // make sure only one node is marked as selected
+   let nodes = document.getElementsByClassName("node")
+   for (let n of nodes) {
+      n.classList.remove("selected")
+   }
+   let tgtNode = document.getElementById(pid)
+   tgtNode.classList.add("selected")
 
-      toggle: function () {
-        if (this.isFolder) {
-          this.open = !this.open
-        }
-      },
+   let attrib = JSON.parse(viewerAttribString)
+   let externalID = attrib.id
 
-      digitalObjectClicked: function(event) {
-        // make sure only one node is marked as selected
-        $(".selected").removeClass("selected")
-        let node = $(event.target).closest(".node")
-        node.addClass("selected")
-        this.$store.commit("setViewerLoading", true)
+   let viewewrDiv = document.getElementById("object-viewer")
+   collectionStore.loadViewer(viewewrDiv, pid, externalID)
+})
 
-        let dv = $("#object-viewer")
-        dv.empty()
+  const showMore = ((attribute) => {
+    if (attribute.values.length > 1) return false
+    return attribute.values[0].value.length > 150
+  })
 
-        // grab the oembedURI and request embedding info
-        let oembedUri = event.target.getAttribute('data-uri')
-        axios.get(oembedUri).then((response)  =>  {
-          // set a global flag to make the browser think JS jas not all been
-          // loaded. Without this, the JS file included in the response
-          // will not load, and the viewer will not render
-          window.embedScriptIncluded = false
-          dv.append( $( response.data.html) )
-          this.$store.commit("setViewerPID", this.model.pid)
-        }).catch((error) => {
-          if ( error.message ) {
-            this.$store.commit("setViewerError", error.message)
-          } else {
-            this.$store.commit("setViewerError", error.response.data)
-          }
-        }).finally(() => {
-          this.$store.commit("setViewerLoading", false)
-        })  
+  const renderAttributeValue = ((attribute) => {
+    let out = ""
+    for (var idx in attribute.values) {
+      let val = attribute.values[idx]
+      if (out.length > 0) out += "<span>, </span>"
+      if (val.valueURI) {
+        out += "<a class='uri' href='"+val.valueURI+"' target='_blank'>"+val.value+"</a>"
+      } else {
+        out += "<span>"+val.value+"</span>"
       }
     }
-  }
+    return out
+  })
+
+  const externalPID = (() => {
+    for (var idx in props.model.attributes) {
+      var attr = props.model.attributes[idx]
+      if (attr.type.name === "externalPID") {
+        return attr.values[0].value
+      }
+    }
+    return ""
+  })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+.tree-node {
+   list-style: none;
+   position: relative;
+}
   table.node {
     padding: 5px 0 5px 5px;
     margin: 0;
@@ -232,6 +169,7 @@
     padding: 5px 10px 5px 10px;
     width: 35%;
     min-width:90px;
+    vertical-align: baseline;
   }
   div.content ul, div.content li {
     font-size: 14px;
