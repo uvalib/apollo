@@ -9,10 +9,12 @@
 </template>
 
 <script setup >
-import router from '../router'
+import { useRouter, useRoute } from 'vue-router'
 import { useSearchStore } from '@/stores/search'
 
 const searchStore = useSearchStore()
+const router = useRouter()
+const route = useRoute()
 
 const props = defineProps({
    main: {
@@ -26,7 +28,11 @@ const props = defineProps({
 })
 
 const doSearch = (() =>{
-   router.push("/search")
+   if ( route.path == "/search") {
+      searchStore.search()
+   } else {
+      router.push("/search")
+   }
 })
 </script>
 
