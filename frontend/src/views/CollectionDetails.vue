@@ -50,31 +50,34 @@ const toolbarHeight = ref(0)
 const toolbarTop = ref(0)
 
 onMounted( async () => {
+   window.addEventListener("scroll", scrollHandler)
+
    await collectionsStore.getCollectionDetails(route.params.id)
    let targetPID = ""
    if (route.query.item) {
       targetPID = route.query.item
+      console.log("TARGET PID "+targetPID)
       collectionsStore.toggleOpen( targetPID )
-   }
-   nextTick( () => {
-      let tb = document.getElementById("fixed-header")
-      if ( tb) {
-         toolbar.value = tb
-         toolbarHeight.value = tb.offsetHeight
-         toolbarTop.value = 0
+      nextTick( () => {
+         let tb = document.getElementById("fixed-header")
+         if ( tb) {
+            toolbar.value = tb
+            toolbarHeight.value = tb.offsetHeight
+            toolbarTop.value = 0
 
-         // walk the parents of the toolbar and add each top value
-         // to find the top of the toolbar relative to document top
-         let ele = tb
-         if (ele.offsetParent) {
-            do {
-               toolbarTop.value += ele.offsetTop
-               ele = ele.offsetParent
-            } while (ele)
+            // walk the parents of the toolbar and add each top value
+            // to find the top of the toolbar relative to document top
+            let ele = tb
+            if (ele.offsetParent) {
+               do {
+                  toolbarTop.value += ele.offsetTop
+                  ele = ele.offsetParent
+               } while (ele)
+            }
+            toolbarTop.value -= 5
          }
-         toolbarTop.value -= 5
-      }
-      if ( targetPID != "") {
+
+
          let tgtNode = document.getElementById( targetPID )
          if (tgtNode) {
             tgtNode.classList.add("selected")
@@ -85,9 +88,8 @@ onMounted( async () => {
                collectionsStore.loadViewer(viewewrDiv, targetPID, extPID)
             }
          }
-      }
-   })
-   window.addEventListener("scroll", scrollHandler)
+      })
+   }
 })
 
 onUnmounted(() => {

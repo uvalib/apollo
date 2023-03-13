@@ -11,7 +11,6 @@ export const useCollectionsStore = defineStore('collections', {
       viewerLoading: false,
       viewerPID: null,
       viewerError: null,
-      searchQuery: null,
       selectedPID: ""
    }),
    getters: {
@@ -78,14 +77,14 @@ export const useCollectionsStore = defineStore('collections', {
             let model = traverseCollectionDetail(response.data, {})
             model.open = true
             this.collectionDetails = model
-         }).catch((error) => {
+         })/*.catch((error) => {
             this.collectionDetails = {}
             if (error.response) {
                this.error = error.response.data
             } else {
                this.error = error
             }
-         }).finally(() => {
+         })*/.finally(() => {
             this.loading = false
          })
       },
@@ -152,22 +151,24 @@ function toggleNodeOpen( currNode, pid ) {
       return true
    }
 
+   let found = false
    if (currNode.children) {
-      let done = false
       currNode.children.some( node => {
          if (node.children ) {
             if (toggleNodeOpen(node, pid)) {
-               done = true
+               found = true
+               currNode.open = true
             }
          } else {
             if ( node.pid == pid) {
-               currNode.open = !currNode.open
+               currNode.open = true
+               found = true
             }
          }
-         return done == true
+         return found == true
       })
    }
-   return false
+   return found
 }
 
 function closeAllOpenNodes( currNode ) {

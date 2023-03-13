@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -34,6 +35,7 @@ func (app *Apollo) GetCollection(c *gin.Context) {
 		return
 	}
 	log.Printf("INFO: get collection for PID %s as %s", pid, tgtFormat)
+	startTime := time.Now()
 	rootID, dbErr := lookupIdentifier(&app.DB, pid)
 	if dbErr != nil {
 		log.Printf("ERROR: %s", dbErr.Error())
@@ -47,9 +49,12 @@ func (app *Apollo) GetCollection(c *gin.Context) {
 		c.String(http.StatusInternalServerError, dbErr.Error())
 		return
 	}
-	log.Printf("INFO: collection tree retrieved from DB; sending to client")
+	elapsedNanoSec := time.Since(startTime)
+	elapsedMS := int64(elapsedNanoSec / time.Millisecond)
+
+	log.Printf("INFO: collection tree retrieved from DB; sending to client. Elapsed Time: %d (ms)", elapsedMS)
 	if tgtFormat == "json" {
-		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s.json", pid))
+		//c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s.json", pid))
 		c.JSON(http.StatusOK, root)
 	} else {
 		xml, err := generateXML(root, tgtFormat)

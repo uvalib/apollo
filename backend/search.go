@@ -53,8 +53,9 @@ func (app *Apollo) SearchHandler(c *gin.Context) {
 func (app *Apollo) searchAll(query string) *SearchResults {
 	query = strings.ToLower(query)
 	start := time.Now()
-	searchQ := `select n.id,n.pid,n.parent_id,n.ancestry,nt.name as type,n.value,cv.value as controlled_value from nodes n
+	searchQ := `select n.id,n.pid,n.parent_id,np.pid as parent_pid,n.ancestry,nt.name as type,n.value,cv.value as controlled_value from nodes n
 		inner join node_types nt on nt.id=n.node_type_id
+		inner join nodes np on np.id = n.parent_id
 		left join controlled_values cv on cv.id=n.value
 		where n.node_type_id != 6 and (n.value REGEXP ? or (cv.value REGEXP ? and nt.controlled_vocab = 1))`
 	rows, err := app.DB.Queryx(searchQ, query, query)
@@ -68,7 +69,7 @@ func (app *Apollo) searchAll(query string) *SearchResults {
 	// init blank search resutls and PID/ID scoreboard
 	collections := make([]CollectionHit, 0)
 	hits := 0
-	pidMap := make(map[int64]string)
+	// pidMap := make(map[int64]string)
 
 	// get minimal info on all collections; OID, PID and TItle. Only a few exist right
 	// now, so this brute force grab is OK
@@ -83,6 +84,7 @@ func (app *Apollo) searchAll(query string) *SearchResults {
 		ID              int64  `db:"id"`
 		PID             string `db:"pid"`
 		ParentID        int64  `db:"parent_id"`
+		ParentPID       string `db:"parent_pid"`
 		Type            string `db:"type"`
 		Ancestry        string `db:"ancestry"`
 		Value           string `db:"value"`
@@ -105,21 +107,22 @@ func (app *Apollo) searchAll(query string) *SearchResults {
 			}
 		}
 
-		// Lookup the PID of the parent container of the hit node
-		parentPID := pidMap[hr.ParentID]
-		if parentPID == "" {
-			// Mapping not found, look it up in DB and cache it in the map
-			pq := "select pid from nodes where id=?"
-			app.DB.Get(&parentPID, pq, hr.ParentID)
-			pidMap[hr.ParentID] = parentPID
-			hit.PID = parentPID
-		} else {
-			continue
-		}
+		// // Lookup the PID of the parent container of the hit node
+		// parentPID := pidMap[hr.ParentID]
+		// if parentPID == "" {
+		// 	// Mapping not found, look it up in DB and cache it in the map
+		// 	log.Printf("LOOKUP PID")
+		// 	pq := "select pid from nodes where id=?"
+		// 	app.DB.Get(&parentPID, pq, hr.ParentID)
+		// 	pidMap[hr.ParentID] = parentPID
+		// 	hit.PID = parentPID
+		// } else {
+		// 	continue
+		// }
 
 		// For non-top-level items, add a query param that allows a link directly to that item
-		if parentPID != hitCollection.PID {
-			hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", app.ApolloURL, hitCollection.PID, parentPID)
+		if hr.ParentPID != hitCollection.PID {
+			hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", app.ApolloURL, hitCollection.PID, hr.ParentPID)
 			if hit.Type != "title" {
 				// Non-title hit, grab the title for some context
 				pq := "select value from nodes where parent_id=? and node_type_id=2"

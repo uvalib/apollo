@@ -12,7 +12,7 @@ import (
 )
 
 // Version of the service
-const version = "2.1.6"
+const version = "3.0.0"
 
 /**
  * MAIN
@@ -33,6 +33,7 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	gin.DisableConsoleColor()
 	router := gin.Default()
+	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(cors.Default())
 
 	router.GET("/version", app.VersionInfo)
@@ -41,10 +42,7 @@ func main() {
 
 	// create an api routing group and gzip all of its responses
 	api := router.Group("/api")
-	api.Use(gzip.Gzip(gzip.DefaultCompression))
 	{
-		api.GET("/aries", app.AriesPing)
-		api.GET("/aries/:id", app.AriesLookup)
 		api.GET("/collections", app.ListCollections)
 		api.GET("/collections/:pid", app.GetCollection)
 		api.GET("/items/:pid", app.GetItemDetails)

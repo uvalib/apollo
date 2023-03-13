@@ -7,7 +7,7 @@
             <ApolloError v-if="searchStore.errorMsg" :message="searchStore.errorMsg" />
             <div class="results-container" v-else>
                <div class="overview">
-                  {{searchStore.searchResults.total}} hits in {{searchStore.searchResults.collections.length}} collection(s) on "{{searchStore.searchQuery}}" in {{searchStore.searchResults.response_time_ms}}ms
+                  {{searchStore.searchResults.total}} hits in {{searchStore.searchResults.collections.length}} collection(s) on "{{searchStore.query}}" in {{searchStore.searchResults.response_time_ms}}ms
                </div>
                <h4 v-if="searchStore.searchResults.total == 0">
                   No Results Found
