@@ -69,7 +69,6 @@ func (app *Apollo) searchAll(query string) *SearchResults {
 	// init blank search resutls and PID/ID scoreboard
 	collections := make([]CollectionHit, 0)
 	hits := 0
-	// pidMap := make(map[int64]string)
 
 	// get minimal info on all collections; OID, PID and TItle. Only a few exist right
 	// now, so this brute force grab is OK
@@ -98,7 +97,7 @@ func (app *Apollo) searchAll(query string) *SearchResults {
 		// and find the matching CollectionHits object. It will be used to track this hit.
 		var hr hitRow
 		rows.StructScan(&hr)
-		hit := SearchHit{Type: hr.Type}
+		hit := SearchHit{Type: hr.Type, PID: hr.ParentPID}
 		collID, _ := strconv.ParseInt(strings.Split(hr.Ancestry, "/")[0], 10, 64)
 		for _, coll := range collections {
 			if coll.ID == collID {
@@ -107,22 +106,9 @@ func (app *Apollo) searchAll(query string) *SearchResults {
 			}
 		}
 
-		// // Lookup the PID of the parent container of the hit node
-		// parentPID := pidMap[hr.ParentID]
-		// if parentPID == "" {
-		// 	// Mapping not found, look it up in DB and cache it in the map
-		// 	log.Printf("LOOKUP PID")
-		// 	pq := "select pid from nodes where id=?"
-		// 	app.DB.Get(&parentPID, pq, hr.ParentID)
-		// 	pidMap[hr.ParentID] = parentPID
-		// 	hit.PID = parentPID
-		// } else {
-		// 	continue
-		// }
-
 		// For non-top-level items, add a query param that allows a link directly to that item
-		if hr.ParentPID != hitCollection.PID {
-			hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", app.ApolloURL, hitCollection.PID, hr.ParentPID)
+		if hr.PID != hitCollection.PID {
+			hit.ItemURL = fmt.Sprintf("%s/collections/%s?item=%s", app.ApolloURL, hitCollection.PID, hit.PID)
 			if hit.Type != "title" {
 				// Non-title hit, grab the title for some context
 				pq := "select value from nodes where parent_id=? and node_type_id=2"
