@@ -2,9 +2,9 @@
    <li class="tree-node">
       <div class="controls">
          <span v-if="isFolder" class="icon" @click="toggle" :class="{ plus: isOpen == false, minus: isOpen == true }"></span>
-         <span v-if="isEditing">
-            <span class="edit do-button" @click="cancelEdit()">Cancel</span>
-            <span class="edit do-button" @click="submitEdit()">Submit</span>
+         <span v-if="isEditing" class="editing-ctls">
+            <span class="do-button" @click="cancelEdit()">Cancel</span>
+            <span class="do-button" @click="submitEdit()">Submit</span>
          </span>
          <span v-else class="edit do-button" @click="editNode()"
             :class="{ disabled: collectionStore.editParentPID !='' }">Edit</span>
@@ -211,6 +211,10 @@ div.content li {
    border-bottom: 1px solid #ccc;
    align-items: center;
    background: #efefff;
+
+   .edit, .editing-ctls {
+      margin-left: auto;
+   }
 
    span.icon {
       width: 18px;
