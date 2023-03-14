@@ -14,11 +14,11 @@
                   <div class="toolbar">
                      <span class="toolbar-buttons">
                         <a class="raw" :href="collectionsStore.xmlLink">XML</a>
-                        <a class="raw" :href="collectionsStore.jsonLink">JSON</a>
+                        <a class="raw" :href="collectionsStore.jsonLink" target="_blank">JSON</a>
                      </span>
                   </div>
                   <ul class="collection">
-                     <CollectionDetailsItem :model="collectionsStore.collectionDetails" :depth="0" :open="true"/>
+                     <CollectionDetailsItem :model="collectionsStore.collectionDetails" :open="true"/>
                   </ul>
                </div>
                <div class="viewer" id="viewer-wrapper">

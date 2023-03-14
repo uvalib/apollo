@@ -24,7 +24,7 @@ func main() {
 	cfg := getConfig()
 
 	log.Printf("INFO: initialize service....")
-	app, err := InitService(version, &cfg)
+	app, err := initService(version, &cfg)
 	if err != nil {
 		log.Printf("FATAL: %s", err.Error())
 		os.Exit(1)
@@ -36,9 +36,9 @@ func main() {
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(cors.Default())
 
-	router.GET("/version", app.VersionInfo)
-	router.GET("/favicon.ico", app.IgnoreFavicon)
-	router.GET("/healthcheck", app.HealthCheck)
+	router.GET("/version", app.versionInfo)
+	router.GET("/favicon.ico", app.ignoreFavicon)
+	router.GET("/healthcheck", app.healthCheck)
 
 	// create an api routing group and gzip all of its responses
 	api := router.Group("/api")
@@ -51,6 +51,7 @@ func main() {
 		api.GET("/values/:name", app.GeControlledValues)
 		api.GET("/published/dpla", app.GetDPLAPIDs)
 		api.GET("/dpla/:pid", app.GetQDC)
+		api.POST("/nodes/:id/update", app.updateNode)
 	}
 
 	// Note: in dev mode, this is never actually used. The front end is served

@@ -11,7 +11,8 @@ export const useCollectionsStore = defineStore('collections', {
       viewerLoading: false,
       viewerPID: null,
       viewerError: null,
-      selectedPID: ""
+      selectedPID: "",
+      editParentPID: "",
    }),
    getters: {
       hasError: state => {
@@ -69,6 +70,35 @@ export const useCollectionsStore = defineStore('collections', {
             this.loading = false
          })
       },
+      startEdit(pid) {
+         this.editParentPID = pid
+      },
+      cancelEdit() {
+         this.editParentPID = ""
+      },
+      submitEdit( newTitle, newDescription ) {
+         let data = {title: newTitle, description: newDescription}
+         let tgtNode = findNode(this.collectionDetails, this.editParentPID)
+         axios.post("/api/nodes/" + tgtNode.id + "/update", data).then((_response) => {
+            tgtNode.attributes.forEach( a => {
+               if (a.type.name == "title") {
+                  a.values[0].value = newTitle
+               }
+               if (a.type.name == "description") {
+                  a.values[0].value = newDescription
+               }
+            })
+         }).catch((error) => {
+            this.collectionDetails = {}
+            if (error.response) {
+               this.error = error.response.data
+            } else {
+               this.error = error
+            }
+         }).finally(() => {
+            this.editParentPID = ""
+         })
+      },
 
       async getCollectionDetails(pid) {
          this.loading = true
@@ -77,14 +107,14 @@ export const useCollectionsStore = defineStore('collections', {
             let model = traverseCollectionDetail(response.data, {})
             model.open = true
             this.collectionDetails = model
-         })/*.catch((error) => {
+         }).catch((error) => {
             this.collectionDetails = {}
             if (error.response) {
                this.error = error.response.data
             } else {
                this.error = error
             }
-         })*/.finally(() => {
+         }).finally(() => {
             this.loading = false
          })
       },
@@ -237,6 +267,7 @@ function traverseCollectionDetail(json, currNode) {
 
 // initialize data elements common to both attribue and item nodes
 function commonInit(json, currNode) {
+   currNode.id = json.id
    currNode.pid = json.pid
    currNode.type = json.type
    currNode.sequence = json.sequence

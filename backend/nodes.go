@@ -21,6 +21,44 @@ const nodeSelect = `SELECT n.id, n.parent_id, n.ancestry, n.sequence, n.pid, n.v
  FROM nodes n
  INNER JOIN node_types nt ON nt.id = n.node_type_id`
 
+func (app *Apollo) updateNode(c *gin.Context) {
+	nodeID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if nodeID == 0 {
+		log.Printf("ERROR: invalid node id %s in update request", c.Param("id"))
+		c.String(http.StatusBadRequest, fmt.Sprintf("%s is not a vailid node id", c.Param("id")))
+		return
+	}
+
+	var req struct {
+		Title       string `json:"title"`
+		Description string `json:"description"`
+	}
+	err := c.BindJSON(&req)
+	if err != nil {
+		log.Printf("ERROR: invalid update node update request: %s", err.Error())
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// update title
+	_, err = app.DB.Exec("update nodes set value=? where parent_id=? and node_type_id=?", req.Title, nodeID, 2)
+	if err != nil {
+		log.Printf("ERROR: update title for parent %d failed: %s", nodeID, err.Error())
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// update description
+	_, err = app.DB.Exec("update nodes set value=? where parent_id=? and node_type_id=?", req.Description, nodeID, 12)
+	if err != nil {
+		log.Printf("ERROR: update description for parent %d failed: %s", nodeID, err.Error())
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	c.String(http.StatusOK, "updated")
+}
+
 // GetItemDetails will return a block of JSON metadata for the specified ITEM PID. This includes
 // details of the specific item as well as some basic data amout the colection it
 // belongs to.

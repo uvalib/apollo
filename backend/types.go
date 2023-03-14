@@ -74,6 +74,7 @@ func (n *Node) encodeValue(val string) string {
 // MarshalJSON will encode the Node structure as JSON
 func (n *Node) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
+		ID        int64      `json:"id"`
 		PID       string     `json:"pid"`
 		Sequence  int        `json:"sequence"`
 		Type      *NodeType  `json:"type"`
@@ -83,6 +84,7 @@ func (n *Node) MarshalJSON() ([]byte, error) {
 		UpdatedAt *time.Time `db:"updated_at" json:"updatedAt,omitempty"`
 		Children  []*Node    `json:"children,omitempty"`
 	}{
+		ID:        n.ID,
 		PID:       n.PID,
 		Sequence:  n.Sequence,
 		Type:      n.Type,

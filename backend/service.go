@@ -32,8 +32,7 @@ type Apollo struct {
 	QDCTemplate     *template.Template
 }
 
-// InitService will initialize the service context based on the config parameters
-func InitService(version string, cfg *apolloConfig) (*Apollo, error) {
+func initService(version string, cfg *apolloConfig) (*Apollo, error) {
 	svc := Apollo{Version: version,
 		ApolloURL:   cfg.apolloURL,
 		DevAuthUser: cfg.devUser,
@@ -62,7 +61,7 @@ func InitService(version string, cfg *apolloConfig) (*Apollo, error) {
 }
 
 // HealthCheck will report health of this and associated services
-func (app *Apollo) HealthCheck(c *gin.Context) {
+func (app *Apollo) healthCheck(c *gin.Context) {
 	err := app.DB.Ping()
 	if err != nil {
 		log.Printf("ERROR: healthcheck failure: %s", err)
@@ -75,7 +74,7 @@ func (app *Apollo) HealthCheck(c *gin.Context) {
 }
 
 // VersionInfo will report the version of the serivce
-func (app *Apollo) VersionInfo(c *gin.Context) {
+func (app *Apollo) versionInfo(c *gin.Context) {
 	build := "unknown"
 
 	// cos our CWD is the bin directory
@@ -91,5 +90,5 @@ func (app *Apollo) VersionInfo(c *gin.Context) {
 }
 
 // IgnoreFavicon is a dummy to handle browser favicon requests without warnings
-func (app *Apollo) IgnoreFavicon(c *gin.Context) {
+func (app *Apollo) ignoreFavicon(c *gin.Context) {
 }
