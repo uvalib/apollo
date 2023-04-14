@@ -48,6 +48,21 @@ export const useCollectionsStore = defineStore('collections', {
             }
             return extPID
          }
+      },
+      hasDigitalObject : state => {
+         return (pid) => {
+            let node = findNode(state.collectionDetails, pid)
+            let hasDO = false
+            if (node) {
+               node.attributes.some( na => {
+                  if (na.type.name == "digitalObject") {
+                     hasDO = true
+                  }
+                  return hasDO == true
+               })
+            }
+            return hasDO
+         }
       }
    },
    actions: {

@@ -53,43 +53,43 @@ onMounted( async () => {
    window.addEventListener("scroll", scrollHandler)
 
    await collectionsStore.getCollectionDetails(route.params.id)
-   let targetPID = ""
-   if (route.query.item) {
-      targetPID = route.query.item
-      console.log("TARGET PID "+targetPID)
+
+   let targetPID = route.query.item
+   if (targetPID) {
       collectionsStore.toggleOpen( targetPID )
-      nextTick( () => {
-         let tb = document.getElementById("fixed-header")
-         if ( tb) {
-            toolbar.value = tb
-            toolbarHeight.value = tb.offsetHeight
-            toolbarTop.value = 0
-
-            // walk the parents of the toolbar and add each top value
-            // to find the top of the toolbar relative to document top
-            let ele = tb
-            if (ele.offsetParent) {
-               do {
-                  toolbarTop.value += ele.offsetTop
-                  ele = ele.offsetParent
-               } while (ele)
-            }
-            toolbarTop.value -= 5
-         }
-
-
-         let tgtNode = document.getElementById( targetPID )
-         if (tgtNode) {
-            tgtNode.classList.add("selected")
-            scrollToPID(targetPID)
-            let extPID = collectionsStore.externalPID(targetPID)
-            if ( extPID != "" ) {
-               let viewewrDiv = document.getElementById("object-viewer")
-               collectionsStore.loadViewer(viewewrDiv, targetPID, extPID)
-            }
-         }
-      })
    }
+
+   nextTick( () => {
+      let tb = document.getElementById("fixed-header")
+      if ( tb) {
+         toolbar.value = tb
+         toolbarHeight.value = tb.offsetHeight
+         toolbarTop.value = 0
+
+         // walk the parents of the toolbar and add each top value
+         // to find the top of the toolbar relative to document top
+         let ele = tb
+         if (ele.offsetParent) {
+            do {
+               toolbarTop.value += ele.offsetTop
+               ele = ele.offsetParent
+            } while (ele)
+         }
+         toolbarTop.value -= 5
+      }
+
+      let tgtNode = document.getElementById( targetPID )
+      if (tgtNode) {
+         tgtNode.classList.add("selected")
+         scrollToPID(targetPID)
+         let extPID = collectionsStore.externalPID(targetPID)
+         if ( extPID != "" && collectionsStore.hasDigitalObject(targetPID) ) {
+            let viewewrDiv = document.getElementById("object-viewer")
+            collectionsStore.loadViewer(viewewrDiv, targetPID, extPID)
+         }
+      }
+
+   })
 })
 
 onUnmounted(() => {
