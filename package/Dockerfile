@@ -7,7 +7,7 @@ FROM public.ecr.aws/docker/library/golang:1.22.3-alpine3.20 as builder
 RUN apk update && apk upgrade && apk add --no-cache make npm
 
 # see: https://stackoverflow.com/questions/69692842/error-message-error0308010cdigital-envelope-routinesunsupported
-ENV NODE_OPTIONS --openssl-legacy-provider
+ENV NODE_OPTIONS=--openssl-legacy-provider
 
 WORKDIR /build
 COPY go.mod go.sum Makefile ./
@@ -31,7 +31,7 @@ ENV TZ=UTC
 RUN cp /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Specify home
-ENV APP_HOME /apollo
+ENV APP_HOME=/apollo
 WORKDIR $APP_HOME
 
 # Create necessary directories
@@ -39,7 +39,7 @@ RUN mkdir -p $APP_HOME/scripts $APP_HOME/bin $APP_HOME/db
 RUN chown -R docker $APP_HOME && chgrp -R sse $APP_HOME
 
 # add the migrate tool
-ENV MIGRATE_VERSION v4.17.1
+ENV MIGRATE_VERSION=v4.18.1
 RUN cd $APP_HOME/bin && curl -L https://github.com/golang-migrate/migrate/releases/download/${MIGRATE_VERSION}/migrate.linux-amd64.tar.gz | tar xvz && rm LICENSE README.md
 
 # port and run command
