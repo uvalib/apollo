@@ -44,7 +44,7 @@ RUN cd $APP_HOME/bin && curl -L https://github.com/golang-migrate/migrate/releas
 
 # port and run command
 EXPOSE 8080
-ENTRYPOINT ["scripts/entry.sh"]
+CMD ["scripts/entry.sh"]
 
 # Move in necessary assets
 COPY package/data/container_bash_profile /home/docker/.profile
