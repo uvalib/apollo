@@ -146,7 +146,7 @@ func traverseTree(out *bufio.Writer, node *Node, xmlType string) {
 				t := cleanValue(child.Value)
 				out.WriteString(fmt.Sprintf("<title>%s</title>\n", t))
 				out.WriteString(fmt.Sprintf("<displayTitle>%s</displayTitle>\n", t))
-				r := regexp.MustCompile("\\A(A\\s+)|(An\\s+)|(The\\s+)")
+				r := regexp.MustCompile(`\A(A\s+)|(An\s+)|(The\s+)`)
 				st := r.ReplaceAllString(t, "")
 				out.WriteString(fmt.Sprintf("<sortTitle>%s</sortTitle>\n", st))
 				continue

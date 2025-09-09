@@ -48,5 +48,14 @@ func getConfig() apolloConfig {
 		os.Exit(1)
 	}
 
+	log.Printf("[CONFIG] port          = [%d]", cfg.port)
+	log.Printf("[CONFIG] dbhost        = [%s]", cfg.dbConfig.Host)
+	log.Printf("[CONFIG] dbname        = [%s]", cfg.dbConfig.Database)
+	log.Printf("[CONFIG] dbuser        = [%s]", cfg.dbConfig.User)
+	log.Printf("[CONFIG] dbtimeout     = [%s]", cfg.dbConfig.Timeout)
+	log.Printf("[CONFIG] iiif          = [%s]", cfg.iiifManURL)
+	log.Printf("[CONFIG] apollo        = [%s]", cfg.apolloURL)
+	log.Printf("[CONFIG] fedora        = [%s]", cfg.wslsURL)
+
 	return cfg
 }

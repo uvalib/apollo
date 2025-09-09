@@ -10,33 +10,35 @@
             :class="{ disabled: collectionStore.editParentPID !='' }">Edit</span>
       </div>
       <table class="node" :id="model.pid">
-         <tr class="attribute">
-            <td class="label">PID:</td>
-            <td class="data">{{ model.pid }}</td>
-         </tr>
-         <tr class="attribute">
-            <td class="label">Type:</td>
-            <td class="data">
-               {{ model.type.name }}
-            </td>
-         </tr>
-         <tr v-for="attribute in model.attributes" :key="attribute.pid" class="attribute">
-            <template v-if="attribute.type.name != 'digitalObject'">
-               <td class="label">{{ attribute.type.name }}:</td>
+         <tbody>
+            <tr class="attribute">
+               <td class="label">PID:</td>
+               <td class="data">{{ model.pid }}</td>
+            </tr>
+            <tr class="attribute">
+               <td class="label">Type:</td>
                <td class="data">
-                  <input v-if="isEditing && attribute.type.name == 'title'" type="text" v-model="newTitle">
-                  <textarea v-else-if="isEditing && attribute.type.name == 'description'" type="text" v-model="newDesc" :rows="8"></textarea>
-                  <span v-else v-html="renderAttributeValue(attribute)"></span>
+                  {{ model.type.name }}
                </td>
-            </template>
-            <template v-else>
-               <td colspan="2" class="do-buttons">
-                  <a v-if="hasIIIFManifest" class="do-button" :href="iiifManufestURL" target="_blank">IIIF Manifest</a>
-                  <span @click="digitalObjectClicked(model.pid, attribute.values[0].value)" class="do-button">View Digitial
-                     Object</span>
-               </td>
-            </template>
-         </tr>
+            </tr>
+            <tr v-for="attribute in model.attributes" :key="attribute.pid" class="attribute">
+               <template v-if="attribute.type.name != 'digitalObject'">
+                  <td class="label">{{ attribute.type.name }}:</td>
+                  <td class="data">
+                     <input v-if="isEditing && attribute.type.name == 'title'" type="text" v-model="newTitle">
+                     <textarea v-else-if="isEditing && attribute.type.name == 'description'" type="text" v-model="newDesc" :rows="8"></textarea>
+                     <span v-else v-html="renderAttributeValue(attribute)"></span>
+                  </td>
+               </template>
+               <template v-else>
+                  <td colspan="2" class="do-buttons">
+                     <a v-if="hasIIIFManifest" class="do-button" :href="iiifManufestURL" target="_blank">IIIF Manifest</a>
+                     <span @click="digitalObjectClicked(model.pid, attribute.values[0].value)" class="do-button">View Digitial
+                        Object</span>
+                  </td>
+               </template>
+            </tr>
+         </tbody>
       </table>
       <ul v-if="isOpen">
          <CollectionDetailsItem v-for="child in model.children" :key="child.pid" :model="child" :open="false" />

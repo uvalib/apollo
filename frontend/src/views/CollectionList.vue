@@ -5,20 +5,22 @@
       <LoadingSpinner v-if="collectionsStore.loading" message="Loading collections" />
       <div v-else class="content">
          <table class="collection-list">
-            <tr>
-               <th></th>
-               <th class="right">PID</th>
-               <th>Title</th>
-            </tr>
-            <tr v-for="item in collectionsStore.collections" :key="item.pid">
-               <td class="icon">
-                  <router-link :to="`/collections/${item.pid}`" @Click="itemClicked(item)" >
-                     <img class="detail" src="../assets/detail.png" />
-                  </router-link>
-               </td>
-               <td class="right">{{ item.pid }}</td>
-               <td>{{ item.title }}</td>
-            </tr>
+            <tbody>
+               <tr>
+                  <th></th>
+                  <th class="right">PID</th>
+                  <th>Title</th>
+               </tr>
+               <tr v-for="item in collectionsStore.collections" :key="item.pid">
+                  <td class="icon">
+                     <router-link :to="`/collections/${item.pid}`" @Click="itemClicked(item)" >
+                        <img class="detail" src="../assets/detail.png" />
+                     </router-link>
+                  </td>
+                  <td class="right">{{ item.pid }}</td>
+                  <td>{{ item.title }}</td>
+               </tr>
+            </tbody>
          </table>
       </div>
    </div>
