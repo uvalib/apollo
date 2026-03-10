@@ -15,5 +15,6 @@ env.*
 /pkg
 deploy.sh
 run.sh
+to_prod_db.sh
 buildtag.*
 /scripts
